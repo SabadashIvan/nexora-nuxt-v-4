@@ -10,18 +10,30 @@ definePageMeta({
   layout: 'profile',
 })
 
-const ordersStore = useOrdersStore()
+const ordersStore = shallowRef<ReturnType<typeof useOrdersStore> | null>(null)
+
+const defaultPagination = {
+  page: 1,
+  lastPage: 1,
+  perPage: 10,
+  total: 0,
+}
 
 onMounted(async () => {
-  await ordersStore.fetchOrders()
+  const store = useOrdersStore()
+  ordersStore.value = store
+  await store.fetchOrders()
 })
 
-const orders = computed(() => ordersStore.orders)
-const pagination = computed(() => ordersStore.pagination)
-const loading = computed(() => ordersStore.loading)
+const orders = computed(() => ordersStore.value?.orders ?? [])
+const pagination = computed(() => ordersStore.value?.pagination ?? defaultPagination)
+const loading = computed(() => ordersStore.value?.loading ?? false)
 
 async function handlePageChange(page: number) {
-  await ordersStore.goToPage(page)
+  const store = ordersStore.value
+  if (!store) return
+
+  await store.goToPage(page)
 }
 
 function getStatusVariant(status: string) {

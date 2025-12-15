@@ -11,16 +11,18 @@ definePageMeta({
 })
 
 const route = useRoute()
-const ordersStore = useOrdersStore()
+const ordersStore = shallowRef<ReturnType<typeof useOrdersStore> | null>(null)
 
 const orderId = computed(() => parseInt(route.params.id as string))
 
 onMounted(async () => {
-  await ordersStore.fetchOrder(orderId.value)
+  const store = useOrdersStore()
+  ordersStore.value = store
+  await store.fetchOrder(orderId.value)
 })
 
-const order = computed(() => ordersStore.order)
-const loading = computed(() => ordersStore.loading)
+const order = computed(() => ordersStore.value?.order)
+const loading = computed(() => ordersStore.value?.loading ?? false)
 
 function getStatusVariant(status: string) {
   const variants: Record<string, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
