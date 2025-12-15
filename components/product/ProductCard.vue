@@ -13,6 +13,22 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const productTitle = computed(() => props.product.name || props.product.title || 'Product')
+
+const imageSrc = computed(() => {
+  const primaryImage = props.product.image || props.product.images?.[0]
+
+  if (typeof primaryImage === 'string') {
+    return primaryImage
+  }
+
+  if (primaryImage && typeof primaryImage === 'object' && 'url' in primaryImage) {
+    return primaryImage.url
+  }
+
+  return ''
+})
+
 const isAddingToCart = ref(false)
 const isTogglingFavorite = ref(false)
 
@@ -45,9 +61,9 @@ async function toggleFavorite() {
     <!-- Image -->
     <NuxtLink :to="`/product/${product.slug}`" class="block relative aspect-square overflow-hidden">
       <NuxtImg
-        v-if="product.image"
-        :src="product.image"
-        :alt="product.name"
+        v-if="imageSrc"
+        :src="imageSrc"
+        :alt="productTitle"
         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         loading="lazy"
       />
@@ -105,7 +121,7 @@ async function toggleFavorite() {
       <!-- Title -->
       <NuxtLink :to="`/product/${product.slug}`">
         <h3 class="font-medium text-gray-900 dark:text-gray-100 line-clamp-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-          {{ product.name }}
+          {{ productTitle }}
         </h3>
       </NuxtLink>
 

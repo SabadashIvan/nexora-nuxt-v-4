@@ -98,14 +98,20 @@ export interface ProductPrice {
 
 export interface ProductListItem {
   id: number
-  sku: string
   slug: string
-  title: string
-  is_favorite: boolean
-  images: ProductImage[]
-  price: ProductPrice
-  is_in_stock: boolean
-  variant_options: VariantOptions
+  name?: string
+  title?: string
+  sku?: string
+  is_favorite?: boolean
+  image?: string | ProductImage
+  images?: ProductImage[]
+  price: number
+  effective_price: number
+  currency: string
+  in_stock: boolean
+  rating?: number
+  reviews_count?: number
+  variant_options?: VariantOptions
 }
 
 export interface VariantsResponse {
