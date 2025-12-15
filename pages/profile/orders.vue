@@ -4,6 +4,7 @@
  */
 import { Package, Eye } from 'lucide-vue-next'
 import { formatDate } from '~/utils/format'
+import { getImageUrl } from '~/utils'
 
 definePageMeta({
   layout: 'profile',
@@ -83,8 +84,8 @@ function getStatusVariant(status: string) {
             class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800"
           >
             <NuxtImg
-              v-if="item.image"
-              :src="item.image"
+              v-if="getImageUrl(item.image)"
+              :src="getImageUrl(item.image)"
               :alt="item.name"
               class="w-full h-full object-cover"
             />
