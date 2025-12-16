@@ -2,12 +2,12 @@
 /**
  * Main application header with navigation
  */
-import { 
-  Search, 
-  ShoppingCart, 
-  Heart, 
-  User, 
-  Menu, 
+import {
+  Search,
+  ShoppingCart,
+  Heart,
+  User,
+  Menu,
   GitCompare,
   ChevronDown,
   LogOut,
@@ -18,62 +18,79 @@ import { useComparisonStore } from '~/stores/comparison.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
 
+const nuxtApp = useNuxtApp()
+const pinia = nuxtApp.$pinia
+
 const isMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 const searchQuery = ref('')
 
 // Access stores inside computed properties (lazy evaluation)
 const cartItemCount = computed(() => {
+  if (!pinia) return 0
+
   try {
-    return useCartStore().itemCount
+    return useCartStore(pinia).itemCount
   } catch {
     return 0
   }
 })
 
 const favoritesCount = computed(() => {
+  if (!pinia) return 0
+
   try {
-    return useFavoritesStore().count
+    return useFavoritesStore(pinia).count
   } catch {
     return 0
   }
 })
 
 const comparisonCount = computed(() => {
+  if (!pinia) return 0
+
   try {
-    return useComparisonStore().count
+    return useComparisonStore(pinia).count
   } catch {
     return 0
   }
 })
 
 const isAuthenticated = computed(() => {
+  if (!pinia) return false
+
   try {
-    return useAuthStore().isAuthenticated
+    return useAuthStore(pinia).isAuthenticated
   } catch {
     return false
   }
 })
 
 const categories = computed(() => {
+  if (!pinia) return []
+
   try {
-    return useCatalogStore().rootCategories
+    return useCatalogStore(pinia).rootCategories
   } catch {
     return []
   }
 })
 
 const userName = computed(() => {
+  if (!pinia) return null
+
   try {
-    return useAuthStore().userName
+    return useAuthStore(pinia).userName
   } catch {
     return null
   }
 })
 
 const userEmail = computed(() => {
+  if (!pinia) return null
+
   try {
-    return useAuthStore().userEmail
+    return useAuthStore(pinia).userEmail
   } catch {
     return null
   }
@@ -81,12 +98,14 @@ const userEmail = computed(() => {
 
 // Helper to get auth store safely
 function getAuthStore() {
-  return useAuthStore()
+  if (!pinia) return null
+  return useAuthStore(pinia)
 }
 
 // Helper to get catalog store safely
 function getCatalogStore() {
-  return useCatalogStore()
+  if (!pinia) return null
+  return useCatalogStore(pinia)
 }
 
 async function handleSearch() {
@@ -102,6 +121,8 @@ async function handleSearch() {
 async function handleLogout() {
   try {
     const authStore = getAuthStore()
+    if (!authStore) return
+
     await authStore.logout()
     isUserMenuOpen.value = false
     await navigateTo('/')
@@ -114,6 +135,8 @@ async function handleLogout() {
 onMounted(async () => {
   try {
     const catalogStore = getCatalogStore()
+    if (!catalogStore) return
+
     if (catalogStore.categories.length === 0) {
       await catalogStore.fetchCategories()
     }
