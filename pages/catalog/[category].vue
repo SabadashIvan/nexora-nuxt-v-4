@@ -8,37 +8,15 @@ import type { Category, ProductFilter } from '~/types'
 // Call useRoute() at top level of setup - this is safe in Nuxt 3
 const route = useRoute()
 
-// Computed for reactive access to route params and query
-// Access route properties directly - computed will be reactive
-const categorySlug = computed(() => {
-  try {
-    return route.params.category as string
-  } catch {
-    return ''
-  }
-})
-const routeQuery = computed(() => {
-  try {
-    return route.query
-  } catch {
-    return {}
-  }
-})
+// Helpers for reactive route access
+const categorySlug = computed(() => (route.params.category as string) || '')
+const routeQuery = computed(() => route.query)
 
 const { data: category, pending, error, refresh } = await useAsyncData(
-  () => {
-    // Use categorySlug computed to get current slug
-    const slug = categorySlug.value
-    const key = `category-${slug}`
-    console.log('useAsyncData key:', key, 'slug:', slug)
-    return key
-  },
+  () => `category-${categorySlug.value}`,
   async () => {
-    // Get route inside async callback to ensure we have the latest route
-    const route = useRoute()
-    const slug = route.params.category as string
-    const query = route.query
-    console.log('Fetching category data for slug:', slug)
+    const slug = categorySlug.value
+    const query = routeQuery.value
     const filters = {
       q: query.q as string | undefined,
       sort: query.sort as string | undefined,
@@ -112,13 +90,12 @@ const { data: category, pending, error, refresh } = await useAsyncData(
     } else {
       console.warn('Category not found or missing ID:', cat)
     }
-    console.log('Returning category from useAsyncData:', cat)
     return cat
   },
-  { 
+  {
     server: true,
     default: () => null,
-    watch: [categorySlug, routeQuery]
+    watch: [() => route.fullPath, routeQuery],
   }
 )
 
