@@ -10,10 +10,11 @@ const route = useRoute()
 
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
-const routeQuery = computed(() => route.query)
+
+const asyncKey = computed(() => `category-${categorySlug.value}`)
 
 const { data: category, pending, error, refresh } = await useAsyncData(
-  () => `category-${categorySlug.value}`,
+  asyncKey.value,
   async () => {
     const slug = categorySlug.value
     const query = routeQuery.value
@@ -95,7 +96,7 @@ const { data: category, pending, error, refresh } = await useAsyncData(
   {
     server: true,
     default: () => null,
-    watch: [() => route.fullPath, routeQuery],
+    watch: [() => route.fullPath],
   }
 )
 
