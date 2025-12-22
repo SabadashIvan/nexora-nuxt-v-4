@@ -39,7 +39,7 @@ async function resendEmail() {
       <!-- Header -->
       <div class="text-center mb-8">
         <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
-          DontWorry
+          Nexora
         </NuxtLink>
       </div>
 

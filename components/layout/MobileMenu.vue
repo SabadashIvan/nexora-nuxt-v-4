@@ -68,7 +68,7 @@ watch(isOpen, (value) => {
           <!-- Header -->
           <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
             <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
-              DontWorry
+              Nexora
             </span>
             <button
               class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"

@@ -19,7 +19,7 @@ export const useSeoStore = defineStore('seo', {
      * Get current page title
      */
     title: (state): string => {
-      return state.current?.title || 'DontWorry Shop'
+      return state.current?.title || 'Nexora Shop'
     },
 
     /**
@@ -67,7 +67,7 @@ export const useSeoStore = defineStore('seo', {
         console.error('SEO fetch error:', error)
         // Set fallback
         this.current = {
-          title: 'DontWorry Shop',
+          title: 'Nexora Shop',
           description: 'Your trusted e-commerce destination',
         }
       } finally {

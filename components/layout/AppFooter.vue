@@ -13,7 +13,7 @@ const currentYear = new Date().getFullYear()
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <!-- Brand -->
         <div>
-          <h3 class="text-2xl font-bold text-white mb-4">DontWorry</h3>
+          <h3 class="text-2xl font-bold text-white mb-4">Nexora</h3>
           <p class="text-sm text-gray-400 mb-6">
             Your trusted e-commerce destination. Quality products, fast delivery, excellent service.
           </p>
@@ -96,8 +96,8 @@ const currentYear = new Date().getFullYear()
           <ul class="space-y-3">
             <li class="flex items-center gap-3">
               <Mail class="h-5 w-5 text-gray-400" />
-              <a href="mailto:support@dontworry.shop" class="text-sm hover:text-white transition-colors">
-                support@dontworry.shop
+              <a href="mailto:support@nexora.shop" class="text-sm hover:text-white transition-colors">
+                support@nexora.shop
               </a>
             </li>
             <li class="flex items-center gap-3">
@@ -121,7 +121,7 @@ const currentYear = new Date().getFullYear()
       <div class="mt-12 pt-8 border-t border-gray-800">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <p class="text-sm text-gray-400">
-            © {{ currentYear }} DontWorry. All rights reserved.
+            © {{ currentYear }} Nexora. All rights reserved.
           </p>
           <div class="flex items-center gap-6">
             <NuxtLink to="/privacy" class="text-sm text-gray-400 hover:text-white transition-colors">

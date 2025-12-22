@@ -127,7 +127,7 @@ onMounted(async () => {
         <div class="flex items-center">
           <NuxtLink to="/" class="flex items-center gap-2">
             <span class="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              DontWorry
+              Nexora
             </span>
           </NuxtLink>
         </div>

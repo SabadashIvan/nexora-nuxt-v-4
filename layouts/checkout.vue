@@ -20,7 +20,7 @@ import { ArrowLeft, Lock } from 'lucide-vue-next'
           </NuxtLink>
 
           <NuxtLink to="/" class="text-xl font-bold text-primary-600 dark:text-primary-400">
-            DontWorry
+            Nexora
           </NuxtLink>
 
           <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
@@ -40,7 +40,7 @@ import { ArrowLeft, Lock } from 'lucide-vue-next'
     <footer class="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-6">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p class="text-center text-sm text-gray-500 dark:text-gray-400">
-          © {{ new Date().getFullYear() }} DontWorry. Secure checkout powered by trusted payment providers.
+          © {{ new Date().getFullYear() }} Nexora. Secure checkout powered by trusted payment providers.
         </p>
       </div>
     </footer>

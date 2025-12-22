@@ -1,6 +1,6 @@
 # AI Agents Guide
 
-This document provides guidance for AI agents working on the DontWorry Nuxt 3 E-commerce project. All AI agents must follow the rules and documentation defined in the `ai/` folder.
+This document provides guidance for AI agents working on the Nexora Nuxt 3 E-commerce project. All AI agents must follow the rules and documentation defined in the `ai/` folder.
 
 ## 📚 Documentation Structure
 

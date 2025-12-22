@@ -31,7 +31,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (!pinia) {
     // Pinia not available yet - apply fallback SEO
     useHead({
-      title: 'DontWorry Shop',
+      title: 'Nexora Shop',
       meta: [
         { name: 'description', content: 'Your trusted e-commerce destination' },
       ],
@@ -55,7 +55,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     console.error('Failed to fetch SEO metadata:', error)
     // Apply fallback SEO
     useHead({
-      title: 'DontWorry Shop',
+      title: 'Nexora Shop',
       meta: [
         { name: 'description', content: 'Your trusted e-commerce destination' },
       ],

@@ -60,7 +60,7 @@ async function handleSubmit() {
       <!-- Header -->
       <div class="text-center mb-8">
         <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
-          DontWorry
+          Nexora
         </NuxtLink>
         <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-gray-100">
           Set new password
