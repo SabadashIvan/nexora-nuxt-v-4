@@ -457,12 +457,16 @@ function updateUrl() {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-white">
     <!-- Breadcrumbs -->
-    <UiBreadcrumbs 
-      :items="breadcrumbs" 
-      class="mb-6"
-    />
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <UiBreadcrumbs 
+        :items="breadcrumbs" 
+        class="mb-6"
+      />
+    </div>
+
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
     <!-- Loading -->
     <div v-if="pending" class="animate-pulse">
@@ -506,14 +510,8 @@ function updateUrl() {
               </div>
 
               <div class="flex-1">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-                  {{ categoryName }}
-                </h1>
-                <p v-if="category.description" class="text-gray-500 dark:text-gray-400 mt-2">
+                <p v-if="category.description" class="text-gray-500 dark:text-gray-400">
                   {{ category.description }}
-                </p>
-                <p class="text-gray-500 dark:text-gray-400 mt-2">
-                  {{ pagination.total }} products
                 </p>
               </div>
             </div>
@@ -555,23 +553,21 @@ function updateUrl() {
       </div>
 
       <!-- Header with Filters -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div class="flex items-center gap-4">
-          <!-- Mobile filter button only -->
-          <div class="lg:hidden">
-            <CatalogFiltersSidebar
-              :filters="availableFilters"
-              :active-filters="activeFilters"
-              @update:filters="handleFilterChange"
-              @reset="handleReset"
-            />
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-4">
+      <div class="flex items-baseline justify-between border-b border-gray-200 pt-24 pb-6">
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900">{{ categoryName }}</h1>
+
+        <div class="flex items-center">
           <CatalogSortDropdown
             :model-value="sorting"
             @update:model-value="handleSortChange"
+          />
+
+          <CatalogFiltersSidebar
+            :filters="availableFilters"
+            :active-filters="activeFilters"
+            mobile-only
+            @update:filters="handleFilterChange"
+            @reset="handleReset"
           />
         </div>
       </div>
@@ -585,32 +581,37 @@ function updateUrl() {
       />
 
       <!-- Main content -->
-      <div class="flex gap-8">
-        <!-- Desktop filters sidebar -->
-        <aside class="hidden lg:block w-64 flex-shrink-0">
-          <CatalogFiltersSidebar
-            :filters="availableFilters"
-            :active-filters="activeFilters"
-            @update:filters="handleFilterChange"
-            @reset="handleReset"
-          />
-        </aside>
+      <section aria-labelledby="products-heading" class="pt-6 pb-24">
+        <h2 id="products-heading" class="sr-only">Products</h2>
 
-        <!-- Products -->
-        <div class="flex-1">
-          <CatalogProductGrid :products="products" />
-
-          <!-- Pagination -->
-          <div v-if="pagination.lastPage > 1" class="mt-8">
-            <UiPagination
-              :current-page="pagination.page"
-              :total-pages="pagination.lastPage"
-              @update:current-page="handlePageChange"
+        <div class="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
+          <!-- Filters -->
+          <div class="hidden lg:block">
+            <CatalogFiltersSidebar
+              :filters="availableFilters"
+              :active-filters="activeFilters"
+              @update:filters="handleFilterChange"
+              @reset="handleReset"
             />
           </div>
+
+          <!-- Product grid -->
+          <div class="lg:col-span-3">
+            <CatalogProductGrid :products="products" />
+
+            <!-- Pagination -->
+            <div v-if="pagination.lastPage > 1" class="mt-8">
+              <UiPagination
+                :current-page="pagination.page"
+                :total-pages="pagination.lastPage"
+                @update:current-page="handlePageChange"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </template>
+    </main>
   </div>
 </template>
 

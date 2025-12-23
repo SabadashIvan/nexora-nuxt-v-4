@@ -1,16 +1,21 @@
 <script setup lang="ts">
 /**
- * Mobile navigation menu
+ * Mobile navigation menu - Tailwind template design with tabs
  */
-import { X, ChevronRight } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 import type { Category } from '~/types'
+import { getImageUrl } from '~/utils/image'
+import { useSystemStore } from '~/stores/system.store'
 
 interface Props {
   modelValue: boolean
   categories: Category[]
+  categoryTabs?: Category[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  categoryTabs: () => [],
+})
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -21,108 +26,251 @@ const isOpen = computed({
   set: (value) => emit('update:modelValue', value),
 })
 
+const activeTab = ref(0)
+
 function closeMenu() {
   isOpen.value = false
 }
 
-// Prevent body scroll when menu is open
+// Get categories for active tab
+const activeTabCategories = computed(() => {
+  if (props.categoryTabs.length === 0) return props.categories
+  const activeCategory = props.categoryTabs[activeTab.value]
+  if (!activeCategory) return props.categories
+  
+  // Get children of active category
+  return props.categories.filter(c => c.parent_id === activeCategory.id)
+})
+
+// Get featured categories (first 2 children with images)
+const featuredCategories = computed(() => {
+  if (props.categoryTabs.length === 0) return []
+  const activeCategory = props.categoryTabs[activeTab.value]
+  if (!activeCategory) return []
+  
+  return props.categories
+    .filter(c => c.parent_id === activeCategory.id && getImageUrl(c.image || c.icon))
+    .slice(0, 2)
+})
+
+// Reset active tab when menu opens
 watch(isOpen, (value) => {
+  if (value) {
+    activeTab.value = 0
+  }
   if (import.meta.client) {
     document.body.style.overflow = value ? 'hidden' : ''
+  }
+})
+
+// Helper to get category image
+function getCategoryImage(category: Category) {
+  return getImageUrl(category.image) || getImageUrl(category.icon)
+}
+
+// Get current currency
+const currentCurrency = computed(() => {
+  try {
+    return useSystemStore().currentCurrencyObject || { code: 'USD', symbol: '$', name: 'US Dollar' }
+  } catch {
+    return { code: 'USD', symbol: '$', name: 'US Dollar' }
   }
 })
 </script>
 
 <template>
-  <Transition
-    enter-active-class="transition ease-out duration-300"
-    enter-from-class="opacity-0"
-    enter-to-class="opacity-100"
-    leave-active-class="transition ease-in duration-200"
-    leave-from-class="opacity-100"
-    leave-to-class="opacity-0"
-  >
-    <div 
-      v-if="isOpen" 
-      class="fixed inset-0 z-50 md:hidden"
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-opacity duration-300 ease-linear"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-300 ease-linear"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
     >
-      <!-- Backdrop -->
-      <div 
-        class="fixed inset-0 bg-black/50" 
-        @click="closeMenu"
-      />
-
-      <!-- Menu panel -->
-      <Transition
-        enter-active-class="transition ease-out duration-300 transform"
-        enter-from-class="-translate-x-full"
-        enter-to-class="translate-x-0"
-        leave-active-class="transition ease-in duration-200 transform"
-        leave-from-class="translate-x-0"
-        leave-to-class="-translate-x-full"
+      <div
+        v-if="isOpen"
+        class="fixed inset-0 z-50 lg:hidden"
       >
-        <div 
-          v-if="isOpen"
-          class="fixed inset-y-0 left-0 w-full max-w-xs bg-white dark:bg-gray-900 shadow-xl"
-        >
-          <!-- Header -->
-          <div class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800">
-            <span class="text-xl font-bold text-primary-600 dark:text-primary-400">
-              Nexora
-            </span>
-            <button
-              class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              @click="closeMenu"
-            >
-              <X class="h-6 w-6" />
-            </button>
-          </div>
+        <!-- Backdrop -->
+        <div
+          class="fixed inset-0 bg-black/25"
+          @click="closeMenu"
+        />
 
-          <!-- Navigation -->
-          <nav class="px-4 py-6 space-y-1 overflow-y-auto max-h-[calc(100vh-64px)]">
-            <NuxtLink
-              to="/catalog"
-              class="flex items-center justify-between px-3 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium"
-              @click="closeMenu"
+        <!-- Menu panel -->
+        <div class="fixed inset-0 flex focus:outline-none">
+          <Transition
+            enter-active-class="transition duration-300 ease-in-out transform"
+            enter-from-class="-translate-x-full"
+            enter-to-class="translate-x-0"
+            leave-active-class="transition duration-300 ease-in-out transform"
+            leave-from-class="translate-x-0"
+            leave-to-class="-translate-x-full"
+          >
+            <div
+              v-if="isOpen"
+              class="relative flex w-full max-w-xs transform flex-col overflow-y-auto bg-white pb-12 shadow-xl"
             >
-              All Products
-              <ChevronRight class="h-5 w-5 text-gray-400" />
-            </NuxtLink>
-
-            <!-- Categories -->
-            <div class="pt-4">
-              <h3 class="px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Categories
-              </h3>
-              <div class="mt-2 space-y-1">
-                <NuxtLink
-                  v-for="category in categories"
-                  :key="category.id"
-                  :to="`/catalog/${category.slug}`"
-                  class="flex items-center justify-between px-3 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+              <!-- Header -->
+              <div class="flex px-4 pt-5 pb-2">
+                <button
+                  type="button"
+                  class="relative -m-2 inline-flex items-center justify-center rounded-md p-2 text-gray-400"
                   @click="closeMenu"
                 >
-                  {{ category.name }}
-                  <ChevronRight class="h-5 w-5 text-gray-400" />
-                </NuxtLink>
+                  <span class="absolute -inset-0.5" />
+                  <span class="sr-only">Close menu</span>
+                  <X class="size-6" />
+                </button>
+              </div>
+
+              <!-- Tabs -->
+              <div v-if="categoryTabs.length > 0" class="mt-2 block">
+                <div class="border-b border-gray-200">
+                  <div class="-mb-px flex space-x-8 px-4">
+                    <button
+                      v-for="(tab, index) in categoryTabs"
+                      :key="tab.id"
+                      type="button"
+                      class="flex-1 border-b-2 border-transparent px-1 py-4 text-base font-medium whitespace-nowrap"
+                      :class="activeTab === index ? 'border-indigo-600 text-indigo-600' : 'text-gray-900'"
+                      @click="activeTab = index"
+                    >
+                      {{ tab.title || tab.name }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Tab panels -->
+                <div class="space-y-10 px-4 pt-10 pb-8">
+                  <!-- Featured categories with images -->
+                  <div v-if="featuredCategories.length > 0" class="grid grid-cols-2 gap-x-4">
+                    <div
+                      v-for="category in featuredCategories"
+                      :key="category.id"
+                      class="group relative text-sm"
+                    >
+                      <NuxtImg
+                        v-if="getCategoryImage(category)"
+                        :src="getCategoryImage(category)"
+                        :alt="category.title || category.name || 'Category'"
+                        class="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
+                      />
+                      <NuxtLink
+                        :to="`/catalog/${category.slug}`"
+                        class="mt-6 block font-medium text-gray-900"
+                        @click="closeMenu"
+                      >
+                        <span aria-hidden="true" class="absolute inset-0 z-10" />
+                        {{ category.title || category.name }}
+                      </NuxtLink>
+                      <p aria-hidden="true" class="mt-1">Shop now</p>
+                    </div>
+                  </div>
+
+                  <!-- Category list -->
+                  <div v-if="activeTabCategories.length > 0">
+                    <p class="font-medium text-gray-900">Categories</p>
+                    <ul role="list" class="mt-6 flex flex-col space-y-6">
+                      <li
+                        v-for="category in activeTabCategories"
+                        :key="category.id"
+                        class="flow-root"
+                      >
+                        <NuxtLink
+                          :to="`/catalog/${category.slug}`"
+                          class="-m-2 block p-2 text-gray-500"
+                          @click="closeMenu"
+                        >
+                          {{ category.title || category.name }}
+                        </NuxtLink>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fallback: no tabs, show all categories -->
+              <div v-else class="mt-2 space-y-10 px-4 pt-10 pb-8">
+                <div>
+                  <p class="font-medium text-gray-900">Categories</p>
+                  <ul role="list" class="mt-6 flex flex-col space-y-6">
+                    <li
+                      v-for="category in categories"
+                      :key="category.id"
+                      class="flow-root"
+                    >
+                      <NuxtLink
+                        :to="`/catalog/${category.slug}`"
+                        class="-m-2 block p-2 text-gray-500"
+                        @click="closeMenu"
+                      >
+                        {{ category.title || category.name }}
+                      </NuxtLink>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Additional links -->
+              <div class="space-y-6 border-t border-gray-200 px-4 py-6">
+                <div class="flow-root">
+                  <NuxtLink
+                    to="/catalog"
+                    class="-m-2 block p-2 font-medium text-gray-900"
+                    @click="closeMenu"
+                  >
+                    All Products
+                  </NuxtLink>
+                </div>
+                <div class="flow-root">
+                  <NuxtLink
+                    to="/blog"
+                    class="-m-2 block p-2 font-medium text-gray-900"
+                    @click="closeMenu"
+                  >
+                    Blog
+                  </NuxtLink>
+                </div>
+              </div>
+
+              <!-- Auth links -->
+              <div class="space-y-6 border-t border-gray-200 px-4 py-6">
+                <div class="flow-root">
+                  <NuxtLink
+                    to="/auth/login"
+                    class="-m-2 block p-2 font-medium text-gray-900"
+                    @click="closeMenu"
+                  >
+                    Sign in
+                  </NuxtLink>
+                </div>
+                <div class="flow-root">
+                  <NuxtLink
+                    to="/auth/register"
+                    class="-m-2 block p-2 font-medium text-gray-900"
+                    @click="closeMenu"
+                  >
+                    Create account
+                  </NuxtLink>
+                </div>
+              </div>
+
+              <!-- Currency -->
+              <div class="border-t border-gray-200 px-4 py-6">
+                <button
+                  type="button"
+                  class="-m-2 flex items-center p-2"
+                >
+                  <span class="block text-base font-medium text-gray-900">{{ currentCurrency.code }}</span>
+                  <span class="sr-only">, change currency</span>
+                </button>
               </div>
             </div>
-
-            <!-- Other links -->
-            <div class="pt-4 border-t border-gray-200 dark:border-gray-800">
-              <NuxtLink
-                to="/blog"
-                class="flex items-center justify-between px-3 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg font-medium"
-                @click="closeMenu"
-              >
-                Blog
-                <ChevronRight class="h-5 w-5 text-gray-400" />
-              </NuxtLink>
-            </div>
-          </nav>
+          </Transition>
         </div>
-      </Transition>
-    </div>
-  </Transition>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
-

@@ -1,45 +1,23 @@
 <script setup lang="ts">
 /**
- * Main application header with navigation
+ * Main application header with navigation - Tailwind template design
  */
 import { 
-  ShoppingCart, 
-  Heart, 
-  User, 
-  Menu, 
-  GitCompare,
-  ChevronDown,
-  LogOut,
+  Menu,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
-import { useFavoritesStore } from '~/stores/favorites.store'
-import { useComparisonStore } from '~/stores/comparison.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
+import { useSystemStore } from '~/stores/system.store'
+import { getImageUrl } from '~/utils/image'
 
-const isMenuOpen = ref(false)
-const isUserMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
+const openPopoverId = ref<string | null>(null)
 
 // Access stores inside computed properties (lazy evaluation)
 const cartItemCount = computed(() => {
   try {
     return useCartStore().itemCount
-  } catch {
-    return 0
-  }
-})
-
-const favoritesCount = computed(() => {
-  try {
-    return useFavoritesStore().count
-  } catch {
-    return 0
-  }
-})
-
-const comparisonCount = computed(() => {
-  try {
-    return useComparisonStore().count
   } catch {
     return 0
   }
@@ -61,55 +39,51 @@ const categories = computed(() => {
   }
 })
 
-const userName = computed(() => {
-  try {
-    return useAuthStore().userName
-  } catch {
-    return null
-  }
+// Get first 2 categories for tabs (or all if less than 2)
+const categoryTabs = computed(() => {
+  return categories.value.slice(0, 2)
 })
 
-const userEmail = computed(() => {
+// Current currency
+const currentCurrency = computed(() => {
   try {
-    return useAuthStore().userEmail
+    return useSystemStore().currentCurrencyObject || { code: 'USD', symbol: '$', name: 'US Dollar' }
   } catch {
-    return null
+    return { code: 'USD', symbol: '$', name: 'US Dollar' }
   }
 })
-
-// Helper to get auth store safely
-function getAuthStore() {
-  return useAuthStore()
-}
-
-// Helper to get catalog store safely
-function getCatalogStore() {
-  return useCatalogStore()
-}
 
 function handleSearchSelect(query: string) {
-  // Navigate to catalog with search query
   navigateTo({
     path: '/catalog',
-    query: { search: query },
+    query: { q: query },
   })
 }
 
-async function handleLogout() {
-  try {
-    const authStore = getAuthStore()
-    await authStore.logout()
-    isUserMenuOpen.value = false
-    await navigateTo('/')
-  } catch (error) {
-    console.error('Logout error:', error)
-  }
+function togglePopover(id: string) {
+  openPopoverId.value = openPopoverId.value === id ? null : id
 }
+
+function closePopover() {
+  openPopoverId.value = null
+}
+
+// Close popover on click outside
+onMounted(() => {
+  if (import.meta.client) {
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-popover]')) {
+        closePopover()
+      }
+    })
+  }
+})
 
 // Fetch categories on mount
 onMounted(async () => {
   try {
-    const catalogStore = getCatalogStore()
+    const catalogStore = useCatalogStore()
     if (catalogStore.categories.length === 0) {
       await catalogStore.fetchCategories()
     }
@@ -117,201 +91,255 @@ onMounted(async () => {
     console.error('Failed to fetch categories:', error)
   }
 })
+
+// Helper to get category image
+function getCategoryImage(category: any) {
+  return getImageUrl(category.image) || getImageUrl(category.icon)
+}
+
+// Helper to get category children grouped
+function getCategoryChildren(categoryId: number) {
+  try {
+    const catalogStore = useCatalogStore()
+    return catalogStore.categories.filter(c => c.parent_id === categoryId)
+  } catch {
+    return []
+  }
+}
 </script>
 
 <template>
-  <header class="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <!-- Logo -->
-        <div class="flex items-center">
-          <NuxtLink to="/" class="flex items-center gap-2">
-            <span class="text-2xl font-bold text-primary-600 dark:text-primary-400">
-              Nexora
-            </span>
-          </NuxtLink>
-        </div>
+  <div class="bg-white">
+    <!-- Promo banner -->
+    <p class="flex h-10 items-center justify-center bg-indigo-600 px-4 text-sm font-medium text-white sm:px-6 lg:px-8">
+      Get free delivery on orders over $100
+    </p>
 
-        <!-- Desktop Navigation -->
-        <nav class="hidden md:flex items-center space-x-8">
-          <NuxtLink 
-            to="/catalog" 
-            class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-          >
-            Catalog
-          </NuxtLink>
-          
-          <!-- Categories dropdown -->
-          <div class="relative group">
-            <button 
-              class="flex items-center gap-1 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
+    <header class="relative bg-white">
+      <nav aria-label="Top" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="border-b border-gray-200">
+          <div class="flex h-16 items-center">
+            <!-- Mobile menu button -->
+            <button
+              type="button"
+              class="relative rounded-md bg-white p-2 text-gray-400 lg:hidden"
+              @click="isMobileMenuOpen = true"
             >
-              Categories
-              <ChevronDown class="h-4 w-4" />
+              <span class="absolute -inset-0.5" />
+              <span class="sr-only">Open menu</span>
+              <Menu class="size-6" />
             </button>
-            
-            <div class="absolute left-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 min-w-[200px]">
-                <NuxtLink
-                  v-for="category in categories"
+
+            <!-- Logo -->
+            <div class="ml-4 flex lg:ml-0">
+              <NuxtLink to="/">
+                <span class="sr-only">Your Company</span>
+                <span class="text-2xl font-bold text-indigo-600">Nexora</span>
+              </NuxtLink>
+            </div>
+
+            <!-- Desktop Navigation with Mega Menus -->
+            <div class="hidden lg:ml-8 lg:block lg:self-stretch">
+              <div class="flex h-full space-x-8">
+                <!-- Category menus -->
+                <div
+                  v-for="(category, index) in categoryTabs"
                   :key="category.id"
-                  :to="`/catalog/${category.slug}`"
-                  class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  class="group/popover flex"
+                  data-popover
                 >
-                  {{ category.name }}
+                  <div class="relative flex">
+                    <button
+                      class="relative flex items-center justify-center text-sm font-medium transition-colors duration-200 ease-out"
+                      :class="openPopoverId === `menu-${category.id}` ? 'text-indigo-600' : 'text-gray-700 hover:text-gray-800'"
+                      @click.stop="togglePopover(`menu-${category.id}`)"
+                    >
+                      {{ category.title || category.name }}
+                      <span
+                        aria-hidden="true"
+                        class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in"
+                        :class="openPopoverId === `menu-${category.id}` ? 'bg-indigo-600' : ''"
+                      />
+                    </button>
+                  </div>
+
+                  <!-- Mega Menu Popover -->
+                  <Transition
+                    enter-active-class="transition transition-discrete duration-200 ease-out"
+                    enter-from-class="opacity-0"
+                    enter-to-class="opacity-100"
+                    leave-active-class="transition transition-discrete duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="openPopoverId === `menu-${category.id}`"
+                      class="absolute left-1/2 top-full z-50 w-screen -translate-x-1/2 bg-white text-sm text-gray-500 shadow-lg"
+                      @click.stop
+                    >
+                      <div aria-hidden="true" class="absolute inset-0 top-1/2 bg-white shadow-sm" />
+                      <div class="relative bg-white">
+                        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                          <div class="grid grid-cols-2 gap-x-8 gap-y-10 py-16">
+                            <!-- Category images -->
+                            <div class="col-start-2 grid grid-cols-2 gap-x-8">
+                              <div
+                                v-for="(child, idx) in getCategoryChildren(category.id).slice(0, 2)"
+                                :key="child.id"
+                                class="group relative text-base sm:text-sm"
+                              >
+                                <NuxtImg
+                                  v-if="getCategoryImage(child)"
+                                  :src="getCategoryImage(child)"
+                                  :alt="child.title || child.name || 'Category'"
+                                  class="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
+                                />
+                                <NuxtLink
+                                  :to="`/catalog/${child.slug}`"
+                                  class="mt-6 block font-medium text-gray-900"
+                                  @click="closePopover"
+                                >
+                                  <span aria-hidden="true" class="absolute inset-0 z-10" />
+                                  {{ child.title || child.name }}
+                                </NuxtLink>
+                                <p aria-hidden="true" class="mt-1">Shop now</p>
+                              </div>
+                            </div>
+
+                            <!-- Category links -->
+                            <div class="row-start-1 grid grid-cols-3 gap-x-8 gap-y-10 text-sm">
+                              <div>
+                                <p :id="`${category.slug}-heading`" class="font-medium text-gray-900">
+                                  Categories
+                                </p>
+                                <ul
+                                  role="list"
+                                  :aria-labelledby="`${category.slug}-heading`"
+                                  class="mt-6 space-y-6 sm:mt-4 sm:space-y-4"
+                                >
+                                  <li
+                                    v-for="child in getCategoryChildren(category.id)"
+                                    :key="child.id"
+                                    class="flex"
+                                  >
+                                    <NuxtLink
+                                      :to="`/catalog/${child.slug}`"
+                                      class="hover:text-gray-800"
+                                      @click="closePopover"
+                                    >
+                                      {{ child.title || child.name }}
+                                    </NuxtLink>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Transition>
+                </div>
+
+                <!-- All Categories link -->
+                <NuxtLink
+                  to="/catalog"
+                  class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
+                >
+                  All Categories
+                </NuxtLink>
+
+                <!-- Other links -->
+                <NuxtLink
+                  to="/blog"
+                  class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
+                >
+                  Blog
+                </NuxtLink>
+              </div>
+            </div>
+
+            <!-- Right side actions -->
+            <div class="ml-auto flex items-center">
+              <!-- Auth links (desktop) -->
+              <div class="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
+                <NuxtLink
+                  v-if="!isAuthenticated"
+                  to="/auth/login"
+                  class="text-sm font-medium text-gray-700 hover:text-gray-800"
+                >
+                  Sign in
+                </NuxtLink>
+                <span v-if="!isAuthenticated" aria-hidden="true" class="h-6 w-px bg-gray-200" />
+                <NuxtLink
+                  v-if="!isAuthenticated"
+                  to="/auth/register"
+                  class="text-sm font-medium text-gray-700 hover:text-gray-800"
+                >
+                  Create account
+                </NuxtLink>
+                <NuxtLink
+                  v-else
+                  to="/profile"
+                  class="text-sm font-medium text-gray-700 hover:text-gray-800"
+                >
+                  Profile
+                </NuxtLink>
+              </div>
+
+              <!-- Currency selector (desktop) -->
+              <div class="hidden lg:ml-8 lg:flex">
+                <button
+                  type="button"
+                  class="flex items-center text-gray-700 hover:text-gray-800"
+                >
+                  <span class="block text-sm font-medium">{{ currentCurrency.code }}</span>
+                  <span class="sr-only">, change currency</span>
+                </button>
+              </div>
+
+              <!-- Search -->
+              <div class="flex lg:ml-6 w-64">
+                <SearchLiveSearch
+                  placeholder="Search products..."
+                  @select="handleSearchSelect"
+                />
+              </div>
+
+              <!-- Cart -->
+              <div class="ml-4 flow-root lg:ml-6">
+                <NuxtLink to="/cart" class="group -m-2 flex items-center p-2">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    data-slot="icon"
+                    aria-hidden="true"
+                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                  >
+                    <path
+                      d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
+                    {{ cartItemCount }}
+                  </span>
+                  <span class="sr-only">items in cart, view bag</span>
                 </NuxtLink>
               </div>
             </div>
           </div>
-
-          <NuxtLink 
-            to="/blog" 
-            class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
-          >
-            Blog
-          </NuxtLink>
-        </nav>
-
-        <!-- Search -->
-        <div class="hidden md:flex flex-1 max-w-md mx-8">
-          <SearchLiveSearch @select="handleSearchSelect" />
         </div>
+      </nav>
+    </header>
 
-        <!-- Right actions -->
-        <div class="flex items-center gap-2">
-          <!-- Comparison -->
-          <NuxtLink 
-            to="/comparison" 
-            class="relative p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <GitCompare class="h-6 w-6" />
-            <span 
-              v-if="comparisonCount > 0"
-              class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-primary-500 text-white text-xs font-medium rounded-full"
-            >
-              {{ comparisonCount }}
-            </span>
-          </NuxtLink>
-
-          <!-- Favorites -->
-          <NuxtLink 
-            to="/favorites" 
-            class="relative p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <Heart class="h-6 w-6" />
-            <span 
-              v-if="favoritesCount > 0"
-              class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-red-500 text-white text-xs font-medium rounded-full"
-            >
-              {{ favoritesCount }}
-            </span>
-          </NuxtLink>
-
-          <!-- Cart -->
-          <NuxtLink 
-            to="/cart" 
-            class="relative p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-          >
-            <ShoppingCart class="h-6 w-6" />
-            <span 
-              v-if="cartItemCount > 0"
-              class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-primary-500 text-white text-xs font-medium rounded-full"
-            >
-              {{ cartItemCount }}
-            </span>
-          </NuxtLink>
-
-          <!-- User menu -->
-          <div class="relative">
-            <button
-              class="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-              @click="isUserMenuOpen = !isUserMenuOpen"
-            >
-              <User class="h-6 w-6" />
-            </button>
-
-            <!-- User dropdown -->
-            <Transition
-              enter-active-class="transition ease-out duration-100"
-              enter-from-class="transform opacity-0 scale-95"
-              enter-to-class="transform opacity-100 scale-100"
-              leave-active-class="transition ease-in duration-75"
-              leave-from-class="transform opacity-100 scale-100"
-              leave-to-class="transform opacity-0 scale-95"
-            >
-              <div 
-                v-if="isUserMenuOpen"
-                class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2"
-              >
-                <template v-if="isAuthenticated">
-                  <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {{ userName }}
-                    </p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ userEmail }}
-                    </p>
-                  </div>
-                  <NuxtLink
-                    to="/profile"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    @click="isUserMenuOpen = false"
-                  >
-                    My Profile
-                  </NuxtLink>
-                  <NuxtLink
-                    to="/profile/orders"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    @click="isUserMenuOpen = false"
-                  >
-                    My Orders
-                  </NuxtLink>
-                  <button
-                    class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                    @click="handleLogout"
-                  >
-                    <LogOut class="h-4 w-4" />
-                    Sign Out
-                  </button>
-                </template>
-                <template v-else>
-                  <NuxtLink
-                    to="/auth/login"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    @click="isUserMenuOpen = false"
-                  >
-                    Sign In
-                  </NuxtLink>
-                  <NuxtLink
-                    to="/auth/register"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    @click="isUserMenuOpen = false"
-                  >
-                    Create Account
-                  </NuxtLink>
-                </template>
-              </div>
-            </Transition>
-          </div>
-
-          <!-- Mobile menu button -->
-          <button
-            class="md:hidden p-2 text-gray-700 dark:text-gray-300"
-            @click="isMenuOpen = !isMenuOpen"
-          >
-            <Menu class="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Mobile search -->
-      <div class="md:hidden pb-4">
-        <SearchLiveSearch @select="handleSearchSelect" />
-      </div>
-    </div>
-
-    <!-- Mobile navigation -->
-    <LayoutMobileMenu v-model="isMenuOpen" :categories="categories" />
-  </header>
+    <!-- Mobile Menu -->
+    <LayoutMobileMenu
+      v-model="isMobileMenuOpen"
+      :categories="categories"
+      :category-tabs="categoryTabs"
+    />
+  </div>
 </template>
-

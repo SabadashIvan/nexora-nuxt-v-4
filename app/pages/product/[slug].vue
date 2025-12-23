@@ -459,246 +459,381 @@ function isOptionAvailable(optionValue: any): boolean {
   }
   return true
 }
+
+// Helper to check if an option is a color option (for styling)
+function isColorOption(optionCode: string, optionName: string): boolean {
+  const colorKeywords = ['color', 'colour', 'couleur']
+  const code = optionCode.toLowerCase()
+  const name = optionName.toLowerCase()
+  return colorKeywords.some(keyword => code.includes(keyword) || name.includes(keyword))
+}
+
+// Helper to get color class from value (try to extract color from label/value)
+function getColorClass(value: any): string {
+  const label = (value.label || '').toLowerCase()
+  const valueStr = (value.value || '').toLowerCase()
+  
+  // Map common color names to Tailwind classes
+  const colorMap: Record<string, string> = {
+    'white': 'bg-white checked:outline-gray-400',
+    'black': 'bg-gray-900 checked:outline-gray-900',
+    'gray': 'bg-gray-200 checked:outline-gray-400',
+    'grey': 'bg-gray-200 checked:outline-gray-400',
+    'red': 'bg-red-500 checked:outline-red-600',
+    'blue': 'bg-blue-500 checked:outline-blue-600',
+    'green': 'bg-green-500 checked:outline-green-600',
+    'yellow': 'bg-yellow-500 checked:outline-yellow-600',
+    'purple': 'bg-purple-500 checked:outline-purple-600',
+    'pink': 'bg-pink-500 checked:outline-pink-600',
+    'orange': 'bg-orange-500 checked:outline-orange-600',
+  }
+  
+  for (const [key, className] of Object.entries(colorMap)) {
+    if (label.includes(key) || valueStr.includes(key)) {
+      return className
+    }
+  }
+  
+  // Default to gray if no match
+  return 'bg-gray-200 checked:outline-gray-400'
+}
+
+// Get first 4 images for grid layout
+const gridImages = computed(() => {
+  const allImages = images.value
+  if (allImages.length <= 1) return []
+  return allImages.slice(0, 4)
+})
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Error -->
-    <div v-if="error" class="text-center py-12">
-      <p class="text-red-600 dark:text-red-400">Error loading product: {{ error }}</p>
-    </div>
+  <div class="bg-white">
+    <div class="pt-6">
+      <!-- Error -->
+      <div v-if="error" class="text-center py-12">
+        <p class="text-red-600">Error loading product: {{ error }}</p>
+      </div>
 
-    <!-- Breadcrumbs - always render to ensure consistent DOM structure (outside conditional blocks) -->
-    <UiBreadcrumbs :items="breadcrumbs" class="mb-6" />
+      <!-- Breadcrumbs -->
+      <nav v-if="!error && !pending" aria-label="Breadcrumb" class="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
+        <ol role="list" class="flex items-center space-x-2">
+          <li v-for="(breadcrumb, index) in breadcrumbs" :key="index">
+            <div class="flex items-center">
+              <NuxtLink
+                v-if="breadcrumb.to && breadcrumb.to !== '#' && index !== breadcrumbs.length - 1"
+                :to="breadcrumb.to"
+                class="mr-2 text-sm font-medium text-gray-900"
+              >
+                {{ breadcrumb.label }}
+              </NuxtLink>
+              <span
+                v-else
+                class="mr-2 text-sm font-medium"
+                :class="index === breadcrumbs.length - 1 ? 'text-gray-500' : 'text-gray-900'"
+                :aria-current="index === breadcrumbs.length - 1 ? 'page' : undefined"
+              >
+                {{ breadcrumb.label }}
+              </span>
+              <svg
+                v-if="index < breadcrumbs.length - 1"
+                width="16"
+                height="20"
+                viewBox="0 0 16 20"
+                fill="currentColor"
+                aria-hidden="true"
+                class="h-5 w-4 text-gray-300"
+              >
+                <path d="M5.697 4.34L8.98 16.532h1.327L7.025 4.341H5.697z" />
+              </svg>
+            </div>
+          </li>
+        </ol>
+      </nav>
 
-    <!-- Loading -->
-    <div v-if="pending" class="animate-pulse">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div class="aspect-square bg-gray-200 dark:bg-gray-800 rounded-xl" />
-        <div class="space-y-4">
-          <div class="h-8 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-          <div class="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
-          <div class="h-24 bg-gray-200 dark:bg-gray-800 rounded" />
+      <!-- Loading -->
+      <div v-if="pending" class="animate-pulse mx-auto max-w-2xl px-4 pt-6 sm:px-6 lg:max-w-7xl lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div class="aspect-square bg-gray-200 rounded-xl" />
+          <div class="space-y-4">
+            <div class="h-8 bg-gray-200 rounded w-3/4" />
+            <div class="h-6 bg-gray-200 rounded w-1/2" />
+            <div class="h-24 bg-gray-200 rounded" />
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Content -->
-    <div v-else-if="product">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-        <!-- Images -->
-        <div>
-          <!-- Main image -->
-          <div class="aspect-square bg-white dark:bg-gray-900 rounded-xl overflow-hidden mb-4">
+      <!-- Content -->
+      <div v-else-if="product">
+        <!-- Image gallery -->
+        <div class="mx-auto mt-6 max-w-2xl sm:px-6 lg:grid lg:max-w-7xl lg:grid-cols-3 lg:gap-8 lg:px-8">
+          <!-- Grid layout for multiple images -->
+          <template v-if="gridImages.length >= 4 && gridImages[0] && gridImages[1] && gridImages[2] && gridImages[3]">
             <NuxtImg
-              v-if="currentImage"
-              :src="currentImage"
-              :alt="productTitle"
-              class="w-full h-full object-contain"
+              :src="gridImages[0].url"
+              :alt="gridImages[0].alt || `${productTitle} - Image 1`"
+              class="row-span-2 aspect-3/4 size-full rounded-lg object-cover max-lg:hidden"
             />
-            <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
-              No image
-            </div>
-          </div>
-
-          <!-- Thumbnails -->
-          <div v-if="images.length > 1" class="flex gap-3 overflow-x-auto pb-2">
-            <button
-              v-for="(image, index) in images"
-              :key="image.id"
-              class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors"
-              :class="[
-                index === selectedImageIndex 
-                  ? 'border-primary-500' 
-                  : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-              ]"
-              @click="selectedImageIndex = index"
-            >
+            <NuxtImg
+              :src="gridImages[1].url"
+              :alt="gridImages[1].alt || `${productTitle} - Image 2`"
+              class="col-start-2 aspect-3/2 size-full rounded-lg object-cover max-lg:hidden"
+            />
+            <NuxtImg
+              :src="gridImages[2].url"
+              :alt="gridImages[2].alt || `${productTitle} - Image 3`"
+              class="col-start-2 row-start-2 aspect-3/2 size-full rounded-lg object-cover max-lg:hidden"
+            />
+            <NuxtImg
+              :src="gridImages[3].url"
+              :alt="gridImages[3].alt || `${productTitle} - Image 4`"
+              class="row-span-2 aspect-4/5 size-full object-cover sm:rounded-lg lg:aspect-3/4"
+            />
+          </template>
+          
+          <!-- Fallback: single main image or carousel -->
+          <template v-else>
+            <div class="aspect-square bg-white rounded-xl overflow-hidden">
               <NuxtImg
-                :src="image.url"
-                :alt="`${productTitle} ${index + 1}`"
-                class="w-full h-full object-cover"
+                v-if="currentImage"
+                :src="currentImage"
+                :alt="productTitle"
+                class="w-full h-full object-contain"
               />
-            </button>
-          </div>
+              <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+                No image
+              </div>
+            </div>
+            
+            <!-- Thumbnails -->
+            <div v-if="images.length > 1" class="mt-4 flex gap-3 overflow-x-auto pb-2 lg:hidden">
+              <button
+                v-for="(image, index) in images"
+                :key="image.id"
+                class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-colors"
+                :class="[
+                  index === selectedImageIndex 
+                    ? 'border-indigo-600' 
+                    : 'border-transparent hover:border-gray-300'
+                ]"
+                @click="selectedImageIndex = index"
+              >
+                <NuxtImg
+                  :src="image.url"
+                  :alt="`${productTitle} ${index + 1}`"
+                  class="w-full h-full object-cover"
+                />
+              </button>
+            </div>
+          </template>
         </div>
 
         <!-- Product info -->
-        <div>
-          <!-- Brand -->
-          <div v-if="productBrand" class="mb-2">
-            <NuxtLink
-              :to="`/catalog?brand=${productBrand.slug}`"
-              class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-            >
-              {{ productBrand.title }}
-            </NuxtLink>
+        <div class="mx-auto max-w-2xl px-4 pt-10 pb-16 sm:px-6 lg:grid lg:max-w-7xl lg:grid-cols-3 lg:grid-rows-[auto_auto_1fr] lg:gap-x-8 lg:px-8 lg:pt-16 lg:pb-24">
+          <div class="lg:col-span-2 lg:border-r lg:border-gray-200 lg:pr-8">
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{{ productTitle }}</h1>
           </div>
-
-          <!-- Title -->
-          <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {{ productTitle }}
-          </h1>
-
-          <!-- SKU -->
-          <div v-if="product.sku" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            SKU: {{ product.sku }}
-          </div>
-
-          <!-- Rating -->
-          <div v-if="productRating > 0 || reviewsCount > 0" class="mt-3">
-            <UiRating :rating="productRating" :reviews-count="reviewsCount" />
-          </div>
-
-          <!-- Price -->
-          <div v-if="product && priceToDisplay !== null" class="mt-4">
-            <template v-if="productPrice !== null">
-              <UiPrice
-                :price="productPrice"
-                size="xl"
-              />
-            </template>
-            <template v-else-if="legacyPriceValue !== null && typeof legacyPriceValue === 'number'">
-              <UiPrice
-                :price="legacyPriceValue"
-                :effective-price="product.effective_price"
-                :currency="product.currency"
-                size="xl"
-              />
-            </template>
-          </div>
-
-          <!-- Stock status -->
-          <div class="mt-4">
-            <UiBadge v-if="inStock" variant="success">In Stock</UiBadge>
-            <UiBadge v-else variant="error">Out of Stock</UiBadge>
-          </div>
-
-          <!-- Categories -->
-          <div v-if="productCategories.length > 0" class="mt-4 flex flex-wrap gap-2">
-            <NuxtLink
-              v-for="category in productCategories"
-              :key="category.id"
-              :to="`/catalog/${category.slug}`"
-              class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-            >
-              {{ category.title || category.name }}
-            </NuxtLink>
-          </div>
-
-          <!-- Short description -->
-          <p v-if="product.short_description || product.product?.description" class="mt-4 text-gray-600 dark:text-gray-400">
-            {{ product.short_description || product.product?.description }}
-          </p>
 
           <!-- Options -->
-          <div v-if="availableOptions.length" class="mt-6 space-y-4">
-            <div v-for="option in availableOptions" :key="option.code">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {{ option.name }}
-              </label>
-              <div class="flex flex-wrap gap-2">
+          <div class="mt-4 lg:row-span-3 lg:mt-0">
+            <h2 class="sr-only">Product information</h2>
+            
+            <!-- Price -->
+            <div v-if="product && priceToDisplay !== null" class="mt-4">
+              <template v-if="productPrice !== null">
+                <UiPrice :price="productPrice" size="xl" />
+              </template>
+              <template v-else-if="legacyPriceValue !== null && typeof legacyPriceValue === 'number'">
+                <UiPrice
+                  :price="legacyPriceValue"
+                  :effective-price="product.effective_price"
+                  :currency="product.currency"
+                  size="xl"
+                />
+              </template>
+            </div>
+
+            <!-- Reviews -->
+            <div v-if="productRating > 0 || reviewsCount > 0" class="mt-6">
+              <h3 class="sr-only">Reviews</h3>
+              <UiRating :rating="productRating" :reviews-count="reviewsCount" />
+            </div>
+
+            <form class="mt-10" @submit.prevent="addToCart">
+              <!-- Options -->
+              <div v-for="option in availableOptions" :key="option.code" :class="option.code !== availableOptions[0]?.code ? 'mt-10' : ''">
+                <!-- Color options -->
+                <template v-if="isColorOption(option.code, option.name)">
+                  <h3 class="text-sm font-medium text-gray-900">{{ option.name }}</h3>
+                  <fieldset aria-label="Choose a color" class="mt-4">
+                    <div class="flex items-center gap-x-3">
+                      <div
+                        v-for="value in option.values"
+                        :key="getOptionValue(value)"
+                        class="flex rounded-full outline -outline-offset-1 outline-black/10"
+                      >
+                        <input
+                          :aria-label="value.label"
+                          type="radio"
+                          :name="`option-${option.code}`"
+                          :value="getOptionValue(value)"
+                          :checked="selectedOptions[option.code] === getOptionValue(value)"
+                          :disabled="!isOptionAvailable(value)"
+                          :class="[
+                            getColorClass(value),
+                            'size-8 appearance-none rounded-full forced-color-adjust-none checked:outline-2 checked:outline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-3 disabled:opacity-25 disabled:cursor-not-allowed'
+                          ]"
+                          @change="selectOption(option.code, getOptionValue(value))"
+                        >
+                      </div>
+                    </div>
+                  </fieldset>
+                </template>
+                
+                <!-- Size or other options -->
+                <template v-else>
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-medium text-gray-900">{{ option.name }}</h3>
+                    <a v-if="option.code.toLowerCase().includes('size')" href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Size guide</a>
+                  </div>
+                  <fieldset :aria-label="`Choose a ${option.name}`" class="mt-4">
+                    <div class="grid grid-cols-4 gap-3">
+                      <label
+                        v-for="value in option.values"
+                        :key="getOptionValue(value)"
+                        :aria-label="value.label"
+                        :class="[
+                          'group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 text-sm font-medium uppercase',
+                          selectedOptions[option.code] === getOptionValue(value)
+                            ? 'border-indigo-600 bg-indigo-600 text-white'
+                            : 'text-gray-900 hover:border-gray-400',
+                          !isOptionAvailable(value) && 'border-gray-400 bg-gray-200 opacity-25 cursor-not-allowed'
+                        ]"
+                      >
+                        <input
+                          type="radio"
+                          :name="`option-${option.code}`"
+                          :value="getOptionValue(value)"
+                          :checked="selectedOptions[option.code] === getOptionValue(value)"
+                          :disabled="!isOptionAvailable(value)"
+                          class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed"
+                          @change="selectOption(option.code, getOptionValue(value))"
+                        >
+                        <span>{{ value.label }}</span>
+                      </label>
+                    </div>
+                  </fieldset>
+                </template>
+              </div>
+
+              <!-- Quantity and Add to Cart -->
+              <div class="mt-10 flex items-center gap-4">
+                <UiQuantitySelector v-model="quantity" :disabled="!inStock" />
                 <button
-                  v-for="value in option.values"
-                  :key="getOptionValue(value)"
-                  :disabled="!isOptionAvailable(value)"
-                  class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
-                  :class="[
-                    selectedOptions[option.code] === getOptionValue(value)
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500',
-                    !isOptionAvailable(value) && 'opacity-50 cursor-not-allowed line-through',
-                  ]"
-                  @click="selectOption(option.code, getOptionValue(value))"
+                  type="submit"
+                  :disabled="!inStock || isAddingToCart"
+                  class="flex flex-1 items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {{ value.label }}
+                  <UiSpinner v-if="isAddingToCart" size="sm" class="mr-2" />
+                  <ShoppingCart v-else class="mr-2 h-5 w-5" />
+                  Add to bag
                 </button>
               </div>
-            </div>
-          </div>
 
-          <!-- Quantity and Add to Cart -->
-          <div class="mt-6 flex flex-col sm:flex-row gap-4">
-            <UiQuantitySelector v-model="quantity" :disabled="!inStock" />
-            
-            <button
-              class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!inStock || isAddingToCart"
-              @click="addToCart"
-            >
-              <UiSpinner v-if="isAddingToCart" size="sm" />
-              <ShoppingCart v-else class="h-5 w-5" />
-              <span>Add to Cart</span>
-            </button>
-          </div>
-
-          <!-- Secondary actions -->
-          <div class="mt-4 flex gap-4">
-            <button
-              class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-              :class="{ 'text-red-500': isFavorite }"
-              @click="toggleFavorite"
-            >
-              <Heart class="h-5 w-5" :class="{ 'fill-current': isFavorite }" />
-              <span>{{ isFavorite ? 'In Wishlist' : 'Add to Wishlist' }}</span>
-            </button>
-            <button class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              <Share2 class="h-5 w-5" />
-              <span>Share</span>
-            </button>
-          </div>
-
-          <!-- Features -->
-          <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div class="flex items-center gap-3">
-                <Truck class="h-5 w-5 text-gray-400" />
-                <span class="text-sm text-gray-600 dark:text-gray-400">Free Shipping</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <Shield class="h-5 w-5 text-gray-400" />
-                <span class="text-sm text-gray-600 dark:text-gray-400">Secure Payment</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <RefreshCw class="h-5 w-5 text-gray-400" />
-                <span class="text-sm text-gray-600 dark:text-gray-400">30-Day Returns</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Description -->
-      <div v-if="product.description || product.product?.description" class="mt-12">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Description</h2>
-        <div 
-          class="prose dark:prose-invert max-w-none"
-          v-html="product.description || product.product?.description"
-        />
-      </div>
-
-      <!-- Specifications -->
-      <div v-if="product.specifications?.length" class="mt-12">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Specifications</h2>
-        <div class="bg-white dark:bg-gray-900 rounded-lg overflow-hidden">
-          <table class="w-full">
-            <tbody>
-              <template v-for="(spec, index) in product.specifications" :key="index">
-                <tr 
-                  v-for="item in spec.items" 
-                  :key="item.name"
-                  class="border-b border-gray-200 dark:border-gray-800 last:border-0"
+              <!-- Secondary actions -->
+              <div class="mt-4 flex gap-4">
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors"
+                  :class="{ 'text-red-500': isFavorite }"
+                  @click="toggleFavorite"
                 >
-                  <td class="px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 w-1/3">
-                    {{ item.name }}
-                  </td>
-                  <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                    {{ item.value }}
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+                  <Heart class="h-5 w-5" :class="{ 'fill-current': isFavorite }" />
+                  <span class="text-sm">{{ isFavorite ? 'In Wishlist' : 'Add to Wishlist' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
+                >
+                  <Share2 class="h-5 w-5" />
+                  <span class="text-sm">Share</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Description and details -->
+          <div class="py-10 lg:col-span-2 lg:col-start-1 lg:border-r lg:border-gray-200 lg:pt-6 lg:pr-8 lg:pb-16">
+            <!-- Description -->
+            <div>
+              <h3 class="sr-only">Description</h3>
+              <div class="space-y-6">
+                <p v-if="product.short_description || product.product?.description" class="text-base text-gray-900">
+                  {{ product.short_description || product.product?.description }}
+                </p>
+                <div
+                  v-if="product.description"
+                  class="prose max-w-none text-base text-gray-900"
+                  v-html="product.description"
+                />
+              </div>
+            </div>
+
+            <!-- Highlights (if available) -->
+            <div v-if="product.product?.description && !product.short_description" class="mt-10">
+              <h3 class="text-sm font-medium text-gray-900">Highlights</h3>
+              <div class="mt-4">
+                <ul role="list" class="list-disc space-y-2 pl-4 text-sm">
+                  <li
+                    v-for="(highlight, index) in (product.product.description.match(/[^.!?]+[.!?]+/g) || []).slice(0, 4)"
+                    :key="index"
+                    class="text-gray-400"
+                  >
+                    <span class="text-gray-600">{{ highlight.trim() }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Details -->
+            <div v-if="product.description || product.product?.description" class="mt-10">
+              <h2 class="text-sm font-medium text-gray-900">Details</h2>
+              <div class="mt-4 space-y-6">
+                <div
+                  v-if="product.description"
+                  class="prose max-w-none text-sm text-gray-600"
+                  v-html="product.description"
+                />
+                <p v-else-if="product.product?.description" class="text-sm text-gray-600">
+                  {{ product.product.description }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Specifications -->
+            <div v-if="product.specifications?.length" class="mt-10">
+              <h2 class="text-sm font-medium text-gray-900">Specifications</h2>
+              <div class="mt-4 bg-white rounded-lg overflow-hidden border border-gray-200">
+                <table class="w-full">
+                  <tbody>
+                    <template v-for="(spec, index) in product.specifications" :key="index">
+                      <tr
+                        v-for="item in spec.items"
+                        :key="item.name"
+                        class="border-b border-gray-200 last:border-0"
+                      >
+                        <td class="px-4 py-3 text-sm font-medium text-gray-500 w-1/3">
+                          {{ item.name }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900">
+                          {{ item.value }}
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

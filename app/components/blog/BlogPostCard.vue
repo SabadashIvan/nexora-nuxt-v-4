@@ -23,64 +23,57 @@ const featuredImageUrl = computed(() => {
 </script>
 
 <template>
-  <article class="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow group">
+  <article class="group relative">
     <!-- Image -->
-    <NuxtLink :to="`/blog/${post.slug}`" class="block aspect-video overflow-hidden">
-      <NuxtImg
-        v-if="featuredImageUrl"
-        :src="featuredImageUrl"
-        :alt="post.title"
-        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        loading="lazy"
-      />
-      <div v-else class="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
-        <span class="text-gray-400">No image</span>
-      </div>
-    </NuxtLink>
+    <div class="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
+      <NuxtLink :to="`/blog/${post.slug}`">
+        <NuxtImg
+          v-if="featuredImageUrl"
+          :src="featuredImageUrl"
+          :alt="post.title"
+          class="h-full w-full object-cover object-center"
+          loading="lazy"
+        />
+        <div v-else class="h-full w-full bg-gray-200 flex items-center justify-center">
+          <span class="text-gray-400 text-sm">No image</span>
+        </div>
+      </NuxtLink>
+    </div>
 
     <!-- Content -->
-    <div class="p-5">
+    <div class="mt-4">
       <!-- Category -->
       <NuxtLink
         v-if="post.category"
         :to="`/blog/category/${post.category.slug}`"
-        class="inline-block text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider mb-2 hover:underline"
+        class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
       >
         {{ post.category.title || post.category.name }}
       </NuxtLink>
 
       <!-- Title -->
-      <NuxtLink :to="`/blog/${post.slug}`">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+      <NuxtLink :to="`/blog/${post.slug}`" class="mt-2 block">
+        <h3 class="text-base font-semibold text-gray-900 group-hover:text-gray-700 line-clamp-2">
           {{ post.title }}
-        </h2>
+        </h3>
       </NuxtLink>
 
       <!-- Excerpt -->
-      <p v-if="post.excerpt" class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+      <p v-if="post.excerpt" class="mt-2 text-sm text-gray-600 line-clamp-3">
         {{ post.excerpt }}
       </p>
 
       <!-- Meta -->
-      <div class="mt-4 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+      <div class="mt-4 flex items-center gap-4 text-sm text-gray-500">
         <span class="flex items-center gap-1">
           <Calendar class="h-4 w-4" />
           {{ formatDate(post.published_at) }}
         </span>
         <span v-if="post.reading_time" class="flex items-center gap-1">
           <Clock class="h-4 w-4" />
-          {{ post.reading_time }} min read
+          {{ post.reading_time }} min
         </span>
       </div>
-
-      <!-- Read more -->
-      <NuxtLink
-        :to="`/blog/${post.slug}`"
-        class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary-600 dark:text-primary-400 hover:gap-2 transition-all"
-      >
-        Read More
-        <ArrowRight class="h-4 w-4" />
-      </NuxtLink>
     </div>
   </article>
 </template>

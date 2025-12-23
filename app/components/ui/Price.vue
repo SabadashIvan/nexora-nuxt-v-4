@@ -119,7 +119,7 @@ const sizeClasses = computed(() => {
       <span 
         :class="[
           sizeClasses,
-          isDiscounted ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-900 dark:text-gray-100'
+          isDiscounted ? 'text-red-600 dark:text-red-400 font-bold' : 'text-black dark:text-gray-100 font-bold'
         ]"
       >
         {{ formattedPrice }}
@@ -128,7 +128,7 @@ const sizeClasses = computed(() => {
       <!-- Original price (if discounted) -->
       <span 
         v-if="isDiscounted" 
-        class="text-gray-400 line-through text-sm"
+        class="text-gray-500 line-through text-sm font-medium"
       >
         {{ formattedOriginalPrice }}
       </span>
