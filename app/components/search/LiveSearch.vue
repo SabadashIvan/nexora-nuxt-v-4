@@ -140,8 +140,10 @@ function handleSelect(index: number) {
   if (index < variants.length) {
     // Selected a variant
     const variant = variants[index]
-    navigateTo(`/product/${variant.slug}`)
-    closeSearch()
+    if (variant) {
+      navigateTo(`/product/${variant.slug}`)
+      closeSearch()
+    }
   } else if (index < variants.length + suggestions.length) {
     // Selected a suggestion
     const suggestionIndex = index - variants.length
@@ -212,7 +214,7 @@ function getProductImage(product: ProductListItem): string | undefined {
           v-model="searchQuery"
           type="search"
           :placeholder="placeholder"
-          class="w-full pl-10 pr-10 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-700 transition-colors"
+          class="w-full pl-10 pr-10 py-2 bg-white border-2 border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none placeholder:text-gray-400"
           @input="isOpen = searchQuery.length >= 2"
           @keydown="handleKeydown"
           @focus="isOpen = searchQuery.length >= 2 && searchResults !== null"

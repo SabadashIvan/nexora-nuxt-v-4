@@ -34,69 +34,79 @@ function handlePageChange(newPage: number) {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-white">
     <!-- Breadcrumbs -->
-    <UiBreadcrumbs :items="[{ label: 'Blog' }]" class="mb-6" />
-
-    <!-- Header -->
-    <div class="text-center mb-12">
-      <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Our Blog</h1>
-      <p class="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-        Discover tips, guides, and stories from our team
-      </p>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+      <UiBreadcrumbs :items="[{ label: 'Blog' }]" class="mb-6" />
     </div>
 
-    <!-- Categories -->
-    <div v-if="categories.length" class="flex flex-wrap justify-center gap-3 mb-8">
-      <NuxtLink
-        to="/blog"
-        class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
-        :class="[
-          !route.query.category 
-            ? 'bg-primary-500 text-white' 
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-        ]"
-      >
-        All Posts
-      </NuxtLink>
-      <NuxtLink
-        v-for="category in categories"
-        :key="category.id"
-        :to="`/blog/category/${category.slug}`"
-        class="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-      >
-        {{ category.title || category.name }}
-      </NuxtLink>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="pending" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="i in 6" :key="i" class="bg-white dark:bg-gray-900 rounded-xl overflow-hidden animate-pulse">
-        <div class="aspect-video bg-gray-200 dark:bg-gray-800" />
-        <div class="p-5 space-y-3">
-          <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/4" />
-          <div class="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-          <div class="h-4 bg-gray-200 dark:bg-gray-800 rounded" />
+    <main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-24">
+      <!-- Header -->
+      <div class="flex items-baseline justify-between border-b border-gray-200 pt-24 pb-6">
+        <div>
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">Our Blog</h1>
+          <p class="mt-2 text-base text-gray-600">
+            Discover tips, guides, and stories from our team
+          </p>
         </div>
       </div>
-    </div>
 
-    <!-- Posts -->
-    <div v-else-if="posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <BlogPostCard v-for="post in posts" :key="post.id" :post="post" />
-    </div>
+      <!-- Categories -->
+      <div v-if="categories.length" class="flex flex-wrap gap-2 mt-6 pb-6 border-b border-gray-200">
+        <NuxtLink
+          to="/blog"
+          class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium"
+          :class="[
+            !route.query.category 
+              ? 'bg-indigo-600 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          All Posts
+        </NuxtLink>
+        <NuxtLink
+          v-for="category in categories"
+          :key="category.id"
+          :to="`/blog/category/${category.slug}`"
+          class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+        >
+          {{ category.title || category.name }}
+        </NuxtLink>
+      </div>
 
-    <!-- Empty -->
-    <UiEmptyState v-else title="No posts yet" description="Check back soon for new content" />
+      <!-- Loading -->
+      <div v-if="pending" class="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="i in 6" :key="i" class="group relative animate-pulse">
+          <div class="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-200 group-hover:opacity-75">
+            <div class="h-full w-full bg-gray-300" />
+          </div>
+          <div class="mt-4 space-y-2">
+            <div class="h-4 bg-gray-200 rounded w-1/4" />
+            <div class="h-6 bg-gray-200 rounded w-3/4" />
+            <div class="h-4 bg-gray-200 rounded" />
+          </div>
+        </div>
+      </div>
 
-    <!-- Pagination -->
-    <div v-if="pagination.lastPage > 1" class="mt-12">
-      <UiPagination
-        :current-page="pagination.page"
-        :total-pages="pagination.lastPage"
-        @update:current-page="handlePageChange"
-      />
-    </div>
+      <!-- Posts -->
+      <div v-else-if="posts.length" class="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        <BlogPostCard v-for="post in posts" :key="post.id" :post="post" />
+      </div>
+
+      <!-- Empty -->
+      <div v-else class="mt-12">
+        <UiEmptyState title="No posts yet" description="Check back soon for new content" />
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="pagination.lastPage > 1" class="mt-12">
+        <UiPagination
+          :current-page="pagination.page"
+          :total-pages="pagination.lastPage"
+          @update:current-page="handlePageChange"
+        />
+      </div>
+    </main>
   </div>
 </template>
 

@@ -1,24 +1,60 @@
 <script setup lang="ts">
 /**
- * Filters sidebar for catalog
+ * Filters sidebar for catalog - Tailwind template design
  */
-import { X, SlidersHorizontal } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 import type { CatalogFilters, ProductFilter } from '~/types'
 
 interface Props {
   filters: CatalogFilters
   activeFilters: ProductFilter
   loading?: boolean
+  mobileOnly?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  mobileOnly: false,
+})
 
 const emit = defineEmits<{
   'update:filters': [filters: ProductFilter]
   'reset': []
 }>()
 
-const isOpen = ref(false)
+const isMobileOpen = ref(false)
+
+// Disclosure states for collapsible sections
+const expandedSections = ref<Record<string, boolean>>({
+  color: false,
+  category: false,
+  size: false,
+})
+
+// Helper to map attribute codes to section keys
+function getSectionKey(code: string): string {
+  const lowerCode = code.toLowerCase()
+  if (lowerCode.includes('color') || lowerCode.includes('colour')) return 'color'
+  if (lowerCode.includes('size')) return 'size'
+  if (lowerCode.includes('category') || lowerCode.includes('cat')) return 'category'
+  return code
+}
+
+// Initialize expanded sections
+onMounted(() => {
+  // Check if any filters are active to expand relevant sections
+  if (props.activeFilters.filters) {
+    if (props.activeFilters.filters.brands) {
+      expandedSections.value.category = true
+    }
+    if (props.activeFilters.filters.attributes) {
+      // Expand sections that have active attributes
+      props.filters.attributes?.forEach(attr => {
+        const sectionKey = getSectionKey(attr.code)
+        expandedSections.value[sectionKey] = true
+      })
+    }
+  }
+})
 
 // Local filter state
 const priceMin = ref<number | undefined>(
@@ -31,46 +67,37 @@ const priceMax = ref<number | undefined>(
     ? Number(props.activeFilters.filters.price_max) 
     : undefined
 )
-// Categories and brands stored as string[] (comma-separated IDs)
 const selectedCategories = ref<string[]>([])
 const selectedBrands = ref<string[]>([])
-// Attributes stored as Record<code, string[]> for UI
 const selectedAttributes = ref<Record<string, string[]>>({})
 
 // Initialize filters from activeFilters
 function initializeFilters() {
-  // Initialize categories
   if (props.activeFilters.filters?.categories) {
     selectedCategories.value = props.activeFilters.filters.categories.split(',')
   } else {
     selectedCategories.value = []
   }
   
-  // Initialize brands
   if (props.activeFilters.filters?.brands) {
     selectedBrands.value = props.activeFilters.filters.brands.split(',')
   } else {
     selectedBrands.value = []
   }
   
-  // Initialize attributes
   selectedAttributes.value = {}
   if (props.activeFilters.filters?.attributes && props.filters.attributes) {
-    // Map attributes by code - each attribute group in filters.attributes corresponds to a code
     props.activeFilters.filters.attributes.forEach((attrGroup, index) => {
       const attrGroupDef = props.filters.attributes?.[index]
       if (attrGroupDef) {
-        // Split comma-separated values
         selectedAttributes.value[attrGroupDef.code] = attrGroup.split(',')
       }
     })
   }
 }
 
-// Initialize on mount
 initializeFilters()
 
-// Watch for external changes
 watch(() => props.activeFilters, (newFilters) => {
   priceMin.value = newFilters.filters?.price_min !== undefined 
     ? Number(newFilters.filters.price_min) 
@@ -132,19 +159,16 @@ function applyFilters() {
   const filterData: Record<string, string | number | string[]> = {}
   let hasFilters = false
   
-  // Categories
   if (selectedCategories.value.length > 0) {
     filterData.categories = selectedCategories.value.join(',')
     hasFilters = true
   }
   
-  // Brands
   if (selectedBrands.value.length > 0) {
     filterData.brands = selectedBrands.value.join(',')
     hasFilters = true
   }
   
-  // Price range
   if (priceMin.value !== undefined) {
     filterData.price_min = priceMin.value
     hasFilters = true
@@ -154,14 +178,11 @@ function applyFilters() {
     hasFilters = true
   }
   
-  // Convert attributes from Record<string, string[]> to string[] format
-  // Order must match the order in props.filters.attributes
   const attributeArray: string[] = []
   if (props.filters.attributes) {
     props.filters.attributes.forEach((attrGroup) => {
       const selectedValues = selectedAttributes.value[attrGroup.code]
       if (selectedValues && selectedValues.length > 0) {
-        // Join values with comma: "4,5" or "7,8"
         attributeArray.push(selectedValues.join(','))
       }
     })
@@ -171,7 +192,6 @@ function applyFilters() {
     hasFilters = true
   }
   
-  // Only emit if there are actual filters
   const filters: ProductFilter = hasFilters ? { filters: filterData } : {}
   emit('update:filters', filters)
 }
@@ -185,268 +205,364 @@ function resetFilters() {
   emit('reset')
 }
 
-const { debounced: debouncedApplyFilters } = useDebounce(applyFilters, 500)
+function toggleSection(section: string) {
+  expandedSections.value[section] = !expandedSections.value[section]
+}
+
+// Render filter content (shared between mobile and desktop)
+function renderFilterContent() {
+  return null // Will be rendered in template
+}
 </script>
 
 <template>
   <div>
-    <!-- Mobile filter button -->
-    <button
-      class="lg:hidden flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 rounded-lg shadow-sm font-medium"
-      @click="isOpen = true"
-    >
-      <SlidersHorizontal class="h-5 w-5" />
-      Filters
-    </button>
-
-    <!-- Mobile drawer -->
-    <Transition
-      enter-active-class="transition-opacity duration-300"
-      leave-active-class="transition-opacity duration-300"
-      enter-from-class="opacity-0"
-      leave-to-class="opacity-0"
-    >
-      <div 
-        v-if="isOpen" 
-        class="fixed inset-0 z-50 lg:hidden"
+    <!-- Mobile filter button - only show if mobileOnly -->
+    <ClientOnly v-if="mobileOnly">
+      <button
+        type="button"
+        class="-m-2 ml-4 p-2 text-gray-400 hover:text-gray-500 sm:ml-6 lg:hidden"
+        @click="isMobileOpen = true"
       >
-        <div class="absolute inset-0 bg-black/50" @click="isOpen = false" />
-        <div class="absolute inset-y-0 right-0 w-full max-w-sm bg-white dark:bg-gray-900 shadow-xl p-6 overflow-y-auto">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Filters</h2>
-            <button @click="isOpen = false">
-              <X class="h-6 w-6 text-gray-500" />
-            </button>
-          </div>
-          
-          <!-- Filter content (same as desktop) -->
-          <div class="space-y-6">
-            <!-- Price range -->
-            <div v-if="filters.price_range">
-              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Price Range</h3>
-              <div class="flex items-center gap-3">
-                <input
-                  v-model.number="priceMin"
-                  type="number"
-                  :min="filters.price_range.min"
-                  :max="filters.price_range.max"
-                  placeholder="Min"
-                  class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm"
-                  @input="debouncedApplyFilters"
-                >
-                <span class="text-gray-400">-</span>
-                <input
-                  v-model.number="priceMax"
-                  type="number"
-                  :min="filters.price_range.min"
-                  :max="filters.price_range.max"
-                  placeholder="Max"
-                  class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm"
-                  @input="debouncedApplyFilters"
-                >
-              </div>
-            </div>
+        <span class="sr-only">Filters</span>
+        <svg viewBox="0 0 20 20" fill="currentColor" data-slot="icon" aria-hidden="true" class="size-5">
+          <path d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" fill-rule="evenodd" />
+        </svg>
+      </button>
+    </ClientOnly>
 
-            <!-- Categories -->
-            <div v-if="filters.categories && filters.categories.length > 0">
-              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Categories</h3>
-              <div class="space-y-2 max-h-48 overflow-y-auto">
-                <label 
-                  v-for="category in filters.categories" 
-                  :key="category.value"
-                  class="flex items-center gap-3 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="isCategorySelected(category.value)"
-                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    @change="toggleCategory(category.value)"
-                  >
-                  <span class="text-sm text-gray-700 dark:text-gray-300">
-                    {{ category.label }}
-                    <span v-if="category.count" class="text-gray-400">({{ category.count }})</span>
-                  </span>
-                </label>
-              </div>
-            </div>
+    <!-- Mobile filter dialog - only show if mobileOnly -->
+    <ClientOnly v-if="mobileOnly">
+      <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-300 ease-linear"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-300 ease-linear"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="isMobileOpen"
+          class="fixed inset-0 z-50 lg:hidden"
+        >
+          <!-- Backdrop -->
+          <div class="fixed inset-0 bg-black/25" @click="isMobileOpen = false" />
 
-            <!-- Brands -->
-            <div v-if="filters.brands && filters.brands.length > 0">
-              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Brands</h3>
-              <div class="space-y-2 max-h-48 overflow-y-auto">
-                <label 
-                  v-for="brand in filters.brands" 
-                  :key="brand.value"
-                  class="flex items-center gap-3 cursor-pointer"
+          <!-- Panel -->
+          <div class="fixed inset-0 flex">
+            <div class="relative ml-auto flex size-full max-w-xs transform flex-col overflow-y-auto bg-white pt-4 pb-6 shadow-xl transition duration-300 ease-in-out">
+              <div class="flex items-center justify-between px-4">
+                <h2 class="text-lg font-medium text-gray-900">Filters</h2>
+                <button
+                  type="button"
+                  class="relative -mr-2 flex size-10 items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
+                  @click="isMobileOpen = false"
                 >
-                  <input
-                    type="checkbox"
-                    :checked="isBrandSelected(brand.value)"
-                    class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                    @change="toggleBrand(brand.value)"
-                  >
-                  <span class="text-sm text-gray-700 dark:text-gray-300">
-                    {{ brand.label }}
-                    <span v-if="brand.count" class="text-gray-400">({{ brand.count }})</span>
-                  </span>
-                </label>
+                  <span class="absolute -inset-0.5" />
+                  <span class="sr-only">Close menu</span>
+                  <X class="size-6" />
+                </button>
               </div>
-            </div>
 
-            <!-- Attribute filters -->
-            <template v-if="filters.attributes && filters.attributes.length > 0">
-              <div v-for="group in filters.attributes" :key="group.code">
-                <h3 v-if="group.name" class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                  {{ group.name }}
-                </h3>
-                <div v-if="group.options && group.options.length > 0" class="space-y-2">
-                  <label 
-                    v-for="option in group.options" 
-                    :key="option.value"
-                    class="flex items-center gap-3 cursor-pointer"
+              <!-- Filters -->
+              <form class="mt-4 border-t border-gray-200">
+                <!-- Categories (simple list) -->
+                <h3 v-if="filters.categories && filters.categories.length > 0" class="sr-only">Categories</h3>
+                <ul v-if="filters.categories && filters.categories.length > 0" role="list" class="px-2 py-3 font-medium text-gray-900">
+                  <li v-for="category in filters.categories" :key="category.value">
+                    <label class="block px-2 py-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        :checked="isCategorySelected(category.value)"
+                        class="mr-2"
+                        @change="toggleCategory(category.value)"
+                      >
+                      {{ category.label }}
+                      <span v-if="category.count" class="text-gray-400 ml-1">({{ category.count }})</span>
+                    </label>
+                  </li>
+                </ul>
+
+                <!-- Attribute filters -->
+                <template v-if="filters.attributes && filters.attributes.length > 0">
+                  <div
+                    v-for="group in filters.attributes"
+                    :key="group.code"
+                    class="border-t border-gray-200 px-4 py-6"
                   >
-                    <input
-                      type="checkbox"
-                      :checked="isAttributeSelected(group.code, option.value)"
-                      class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      @change="toggleAttribute(group.code, option.value)"
+                    <h3 class="-mx-2 -my-3 flow-root">
+                      <button
+                        type="button"
+                        class="flex w-full items-center justify-between bg-white px-2 py-3 text-gray-400 hover:text-gray-500"
+                        @click="toggleSection(getSectionKey(group.code))"
+                      >
+                        <span class="font-medium text-gray-900">{{ group.name }}</span>
+                        <span class="ml-6 flex items-center">
+                          <svg
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            data-slot="icon"
+                            aria-hidden="true"
+                            class="size-5"
+                            :class="expandedSections[getSectionKey(group.code)] ? 'hidden' : 'block'"
+                          >
+                            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                          </svg>
+                          <svg
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            data-slot="icon"
+                            aria-hidden="true"
+                            class="size-5"
+                            :class="expandedSections[getSectionKey(group.code)] ? 'block' : 'hidden'"
+                          >
+                            <path d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clip-rule="evenodd" fill-rule="evenodd" />
+                          </svg>
+                        </span>
+                      </button>
+                    </h3>
+                    <div
+                      v-if="expandedSections[getSectionKey(group.code)]"
+                      class="block pt-6"
                     >
-                    <span class="text-sm text-gray-700 dark:text-gray-300">
-                      {{ option.label }}
-                      <span v-if="option.count !== undefined" class="text-gray-400">({{ option.count }})</span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </template>
-          </div>
+                      <div class="space-y-6">
+                        <div
+                          v-for="option in group.options"
+                          :key="option.value"
+                          class="flex gap-3"
+                        >
+                          <UiCheckbox
+                            :id="`filter-mobile-${group.code}-${option.value}`"
+                            :model-value="isAttributeSelected(group.code, option.value)"
+                            :name="`${group.code}[]`"
+                            :value="option.value"
+                            @update:model-value="toggleAttribute(group.code, option.value)"
+                          />
+                          <label
+                            :for="`filter-mobile-${group.code}-${option.value}`"
+                            class="min-w-0 flex-1 text-gray-500"
+                          >
+                            {{ option.label }}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
 
-          <!-- Actions -->
-          <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
-            <button
-              class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 rounded-lg text-gray-700 dark:text-gray-300 font-medium"
-              @click="resetFilters"
-            >
-              Reset Filters
-            </button>
+                <!-- Brands as collapsible section -->
+                <div v-if="filters.brands && filters.brands.length > 0" class="border-t border-gray-200 px-4 py-6">
+                  <h3 class="-mx-2 -my-3 flow-root">
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between bg-white px-2 py-3 text-gray-400 hover:text-gray-500"
+                      @click="toggleSection('brand')"
+                    >
+                      <span class="font-medium text-gray-900">Brand</span>
+                      <span class="ml-6 flex items-center">
+                        <svg
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          data-slot="icon"
+                          aria-hidden="true"
+                          class="size-5"
+                          :class="expandedSections.brand ? 'hidden' : 'block'"
+                        >
+                          <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                        </svg>
+                        <svg
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          data-slot="icon"
+                          aria-hidden="true"
+                          class="size-5"
+                          :class="expandedSections.brand ? 'block' : 'hidden'"
+                        >
+                          <path d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clip-rule="evenodd" fill-rule="evenodd" />
+                        </svg>
+                      </span>
+                    </button>
+                  </h3>
+                  <div v-if="expandedSections.brand" class="block pt-6">
+                    <div class="space-y-6">
+                      <div
+                        v-for="brand in filters.brands"
+                        :key="brand.value"
+                        class="flex gap-3"
+                      >
+                        <UiCheckbox
+                          :id="`filter-mobile-brand-${brand.value}`"
+                          :model-value="isBrandSelected(brand.value)"
+                          name="brand[]"
+                          :value="brand.value"
+                          @update:model-value="toggleBrand(brand.value)"
+                        />
+                        <label
+                          :for="`filter-mobile-brand-${brand.value}`"
+                          class="min-w-0 flex-1 text-gray-500"
+                        >
+                          {{ brand.label }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+      </Teleport>
+    </ClientOnly>
 
     <!-- Desktop sidebar -->
-    <div class="hidden lg:block space-y-6">
-      <!-- Price range -->
-      <div v-if="filters.price_range" class="bg-white dark:bg-gray-900 rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Price Range</h3>
-        <div class="flex items-center gap-3">
-          <input
-            v-model.number="priceMin"
-            type="number"
-            :min="filters.price_range.min"
-            :max="filters.price_range.max"
-            placeholder="Min"
-            class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm"
-            @input="debouncedApplyFilters"
-          >
-          <span class="text-gray-400">-</span>
-          <input
-            v-model.number="priceMax"
-            type="number"
-            :min="filters.price_range.min"
-            :max="filters.price_range.max"
-            placeholder="Max"
-            class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm"
-            @input="debouncedApplyFilters"
-          >
-        </div>
-      </div>
-
-      <!-- Categories -->
-      <div v-if="filters.categories && filters.categories.length > 0" class="bg-white dark:bg-gray-900 rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Categories</h3>
-        <div class="space-y-2 max-h-48 overflow-y-auto">
-          <label 
-            v-for="category in filters.categories" 
-            :key="category.value"
-            class="flex items-center gap-3 cursor-pointer"
-          >
+    <form v-if="!mobileOnly" class="hidden lg:block">
+      <!-- Categories (simple list) -->
+      <h3 v-if="filters.categories && filters.categories.length > 0" class="sr-only">Categories</h3>
+      <ul
+        v-if="filters.categories && filters.categories.length > 0"
+        role="list"
+        class="space-y-4 border-b border-gray-200 pb-6 text-sm font-medium text-gray-900"
+      >
+        <li v-for="category in filters.categories" :key="category.value">
+          <label class="cursor-pointer">
             <input
               type="checkbox"
               :checked="isCategorySelected(category.value)"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="mr-2"
               @change="toggleCategory(category.value)"
             >
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              {{ category.label }}
-              <span v-if="category.count" class="text-gray-400">({{ category.count }})</span>
-            </span>
+            {{ category.label }}
+            <span v-if="category.count" class="text-gray-400 ml-1">({{ category.count }})</span>
           </label>
-        </div>
-      </div>
-
-      <!-- Brands -->
-      <div v-if="filters.brands && filters.brands.length > 0" class="bg-white dark:bg-gray-900 rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Brands</h3>
-        <div class="space-y-2 max-h-48 overflow-y-auto">
-          <label 
-            v-for="brand in filters.brands" 
-            :key="brand.value"
-            class="flex items-center gap-3 cursor-pointer"
-          >
-            <input
-              type="checkbox"
-              :checked="isBrandSelected(brand.value)"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-              @change="toggleBrand(brand.value)"
-            >
-            <span class="text-sm text-gray-700 dark:text-gray-300">
-              {{ brand.label }}
-              <span v-if="brand.count" class="text-gray-400">({{ brand.count }})</span>
-            </span>
-          </label>
-        </div>
-      </div>
+        </li>
+      </ul>
 
       <!-- Attribute filters -->
       <template v-if="filters.attributes && filters.attributes.length > 0">
-        <div 
-          v-for="group in filters.attributes" 
+        <div
+          v-for="group in filters.attributes"
           :key="group.code"
-          class="bg-white dark:bg-gray-900 rounded-lg p-4"
+          class="border-b border-gray-200 py-6"
         >
-          <h3 v-if="group.name" class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-            {{ group.name }}
-          </h3>
-          <div v-if="group.options && group.options.length > 0" class="space-y-2 max-h-48 overflow-y-auto">
-            <label 
-              v-for="option in group.options" 
-              :key="option.value"
-              class="flex items-center gap-3 cursor-pointer"
+          <h3 class="-my-3 flow-root">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between bg-white py-3 text-sm text-gray-400 hover:text-gray-500"
+              @click="toggleSection(getSectionKey(group.code))"
             >
-              <input
-                type="checkbox"
-                :checked="isAttributeSelected(group.code, option.value)"
-                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                @change="toggleAttribute(group.code, option.value)"
-              >
-              <span class="text-sm text-gray-700 dark:text-gray-300">
-                {{ option.label }}
-                <span v-if="option.count !== undefined" class="text-gray-400">({{ option.count }})</span>
+              <span class="font-medium text-gray-900">{{ group.name }}</span>
+              <span class="ml-6 flex items-center">
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  data-slot="icon"
+                  aria-hidden="true"
+                  class="size-5"
+                  :class="expandedSections[getSectionKey(group.code)] ? 'hidden' : 'block'"
+                >
+                  <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+                </svg>
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  data-slot="icon"
+                  aria-hidden="true"
+                  class="size-5"
+                  :class="expandedSections[getSectionKey(group.code)] ? 'block' : 'hidden'"
+                >
+                  <path d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clip-rule="evenodd" fill-rule="evenodd" />
+                </svg>
               </span>
-            </label>
+            </button>
+          </h3>
+          <div
+            v-if="expandedSections[getSectionKey(group.code)]"
+            class="block pt-6"
+          >
+            <div class="space-y-4">
+              <div
+                v-for="option in group.options"
+                :key="option.value"
+                class="flex gap-3"
+              >
+                <UiCheckbox
+                  :id="`filter-${group.code}-${option.value}`"
+                  :model-value="isAttributeSelected(group.code, option.value)"
+                  :name="`${group.code}[]`"
+                  :value="option.value"
+                  @update:model-value="toggleAttribute(group.code, option.value)"
+                />
+                <label
+                  :for="`filter-${group.code}-${option.value}`"
+                  class="text-sm text-gray-600"
+                >
+                  {{ option.label }}
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </template>
 
-      <!-- Reset button -->
-      <button
-        class="w-full px-4 py-2 bg-white dark:bg-gray-900 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        @click="resetFilters"
-      >
-        Reset Filters
-      </button>
-    </div>
+      <!-- Brands as collapsible section -->
+      <div v-if="filters.brands && filters.brands.length > 0" class="border-b border-gray-200 py-6">
+        <h3 class="-my-3 flow-root">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between bg-white py-3 text-sm text-gray-400 hover:text-gray-500"
+            @click="toggleSection('brand')"
+          >
+            <span class="font-medium text-gray-900">Brand</span>
+            <span class="ml-6 flex items-center">
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                data-slot="icon"
+                aria-hidden="true"
+                class="size-5"
+                :class="expandedSections.brand ? 'hidden' : 'block'"
+              >
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                data-slot="icon"
+                aria-hidden="true"
+                class="size-5"
+                :class="expandedSections.brand ? 'block' : 'hidden'"
+              >
+                <path d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clip-rule="evenodd" fill-rule="evenodd" />
+              </svg>
+            </span>
+          </button>
+        </h3>
+        <div v-if="expandedSections.brand" class="block pt-6">
+          <div class="space-y-4">
+            <div
+              v-for="brand in filters.brands"
+              :key="brand.value"
+              class="flex gap-3"
+            >
+              <UiCheckbox
+                :id="`filter-brand-${brand.value}`"
+                :model-value="isBrandSelected(brand.value)"
+                name="brand[]"
+                :value="brand.value"
+                @update:model-value="toggleBrand(brand.value)"
+              />
+              <label
+                :for="`filter-brand-${brand.value}`"
+                class="text-sm text-gray-600"
+              >
+                {{ brand.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
   </div>
 </template>
-

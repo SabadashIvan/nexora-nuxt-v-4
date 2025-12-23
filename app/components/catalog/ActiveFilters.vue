@@ -3,7 +3,6 @@
  * Active filters display component
  * Shows selected filters as chips with remove buttons
  */
-import { X } from 'lucide-vue-next'
 import type { ProductFilter, CatalogFilters } from '~/types'
 
 interface Props {
@@ -108,29 +107,38 @@ function resetAll() {
 </script>
 
 <template>
-  <div v-if="activeFilterChips.length > 0" class="bg-white dark:bg-gray-900 rounded-lg px-4 py-3 mb-6 border border-gray-200 dark:border-gray-800">
-    <div class="flex items-center flex-wrap gap-3">
-      <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+  <div v-if="activeFilterChips.length > 0" class="border-b border-gray-200 pb-4 mb-6">
+    <div class="flex items-center flex-wrap gap-2">
+      <span class="text-sm font-medium text-gray-700">
         Вы выбрали:
       </span>
       
       <div class="flex items-center flex-wrap gap-2">
-        <button
+        <span
           v-for="chip in activeFilterChips"
           :key="chip.value"
-          class="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          @click="removeFilter(chip.type, chip.value)"
+          class="inline-flex items-center gap-x-1 rounded-full bg-gray-100 py-1 pl-3 pr-2 text-xs font-medium text-gray-900 hover:bg-gray-200"
         >
-          <span>{{ chip.displayValue }}</span>
-          <X class="h-4 w-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
-        </button>
+          {{ chip.displayValue }}
+          <button
+            type="button"
+            class="ml-0.5 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-500 focus:bg-gray-500 focus:text-white focus:outline-none relative z-10"
+            @click.stop="removeFilter(chip.type, chip.value)"
+          >
+            <span class="sr-only">Remove {{ chip.displayValue }}</span>
+            <svg class="h-2 w-2 pointer-events-none" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+              <path stroke-linecap="round" stroke-width="1.5" d="M1 1l6 6m0-6l-6 6" />
+            </svg>
+          </button>
+        </span>
       </div>
       
       <button
-        class="ml-auto text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 underline font-medium"
+        type="button"
+        class="ml-auto text-sm font-medium text-gray-700 hover:text-gray-900"
         @click="resetAll"
       >
-        Сбросить все
+        Очистить все
       </button>
     </div>
   </div>

@@ -1,6 +1,8 @@
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
+  compatibilityDate: '2025-12-22',
+  
   runtimeConfig: {
     apiBackendUrl: process.env.NUXT_API_BACKEND_URL || 'http://localhost:8000',
     apiSecret: process.env.NUXT_API_SECRET,
