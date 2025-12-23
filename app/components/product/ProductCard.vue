@@ -96,7 +96,7 @@ function prefetchProduct() {
       <span class="text-gray-400">No image</span>
     </div>
     <h3 class="mt-4 text-sm text-gray-700">{{ product.title }}</h3>
-    <p class="mt-1 text-lg font-medium text-gray-900">{{ formattedPrice }}</p>
+    <p class="mt-1 text-lg font-bold text-black">{{ formattedPrice }}</p>
   </NuxtLink>
 </template>
 
