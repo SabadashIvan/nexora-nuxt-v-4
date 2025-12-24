@@ -103,7 +103,7 @@ function getAttributeValue(item: typeof items.value[0], attrName: string): strin
     >
       <template #action>
         <NuxtLink
-          to="/catalog"
+          to="/categories"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
           Browse Products

@@ -157,10 +157,10 @@ const activeFilters = computed(() => catalogStore.filters)
 
 // Breadcrumbs
 const breadcrumbs = computed(() => {
-  const items = [{ label: 'Catalog', to: '/catalog' }]
+  const items = [{ label: 'Categories', to: '/categories' }]
   if (category.value) {
     const categoryName = category.value.title || category.value.name || 'Category'
-    items.push({ label: categoryName, to: `/catalog/${categorySlug.value}` })
+    items.push({ label: categoryName, to: `/categories/${categorySlug.value}` })
   }
   return items
 })
@@ -272,7 +272,7 @@ async function handlePageChange(page: number) {
   
   // Navigate to update URL - this will trigger useLazyAsyncData to refetch
   // The watch on route.fullPath will detect the change and reload data
-  await navigateTo({ path: `/catalog/${categorySlug.value}`, query }, { replace: true })
+  await navigateTo({ path: `/categories/${categorySlug.value}`, query }, { replace: true })
   
   // Force refresh to ensure data is reloaded
   await refresh()
@@ -395,7 +395,7 @@ async function handleReset() {
     await catalogStore.fetchProducts()
   }
   
-  navigateTo(`/catalog/${categorySlug.value}`)
+  navigateTo(`/categories/${categorySlug.value}`)
 }
 
 // Update URL with current filters
@@ -452,7 +452,7 @@ function updateUrl() {
     query.page = catalogStore.pagination.page.toString()
   }
   
-  navigateTo({ path: `/catalog/${categorySlug.value}`, query }, { replace: true })
+  navigateTo({ path: `/categories/${categorySlug.value}`, query }, { replace: true })
 }
 </script>
 
@@ -528,7 +528,7 @@ function updateUrl() {
           <NuxtLink
             v-for="subcategory in category.children"
             :key="subcategory.id"
-            :to="`/catalog/${subcategory.slug}`"
+            :to="`/categories/${subcategory.slug}`"
             class="group flex flex-col items-center p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-primary-500 dark:hover:border-primary-400 hover:shadow-md transition-all"
           >
             <!-- Subcategory Icon or Image -->

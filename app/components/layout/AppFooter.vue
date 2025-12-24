@@ -37,22 +37,22 @@ const currentYear = new Date().getFullYear()
           </h4>
           <ul class="space-y-3">
             <li>
-              <NuxtLink to="/catalog" class="text-sm hover:text-white transition-colors">
+              <NuxtLink to="/categories" class="text-sm hover:text-white transition-colors">
                 All Products
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/catalog?sort=newest" class="text-sm hover:text-white transition-colors">
+              <NuxtLink to="/categories?sort=newest" class="text-sm hover:text-white transition-colors">
                 New Arrivals
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/catalog?sort=price_desc" class="text-sm hover:text-white transition-colors">
+              <NuxtLink to="/categories?sort=price_desc" class="text-sm hover:text-white transition-colors">
                 Best Sellers
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/catalog?sale=true" class="text-sm hover:text-white transition-colors">
+              <NuxtLink to="/categories?sale=true" class="text-sm hover:text-white transition-colors">
                 Sale
               </NuxtLink>
             </li>

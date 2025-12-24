@@ -13,12 +13,15 @@ interface Props {
   variantsLimit?: number
   /** Suggestions limit (1-10, default 5) */
   suggestionsLimit?: number
+  /** Hide dropdown (for mobile mode) */
+  hideDropdown?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Search products...',
   variantsLimit: 5,
   suggestionsLimit: 5,
+  hideDropdown: false,
 })
 
 const emit = defineEmits<{
@@ -120,9 +123,14 @@ async function performSearch(query: string) {
     )
 
     searchResults.value = response
-  } catch (error) {
-    console.error('Search error:', error)
+  } catch (error: any) {
+    // Silently handle API errors (422, etc.) - don't show to user
+    // This can happen if API doesn't support suggest endpoint or has validation errors
+    if (error?.response?.status !== 422) {
+      console.error('Search error:', error)
+    }
     searchResults.value = null
+    isOpen.value = false
   } finally {
     isLoading.value = false
   }
@@ -158,7 +166,7 @@ function handleSelect(index: number) {
     const categoryIndex = index - variants.length - suggestions.length
     const category = categories[categoryIndex]
     if (category) {
-      navigateTo(category.slug ? `/catalog/${category.slug}` : '/catalog')
+      navigateTo(category.slug ? `/categories/${category.slug}` : '/categories')
       closeSearch()
     }
   } else {
@@ -166,7 +174,7 @@ function handleSelect(index: number) {
     const brandIndex = index - variants.length - suggestions.length - categories.length
     const brand = brands[brandIndex]
     if (brand) {
-      navigateTo(brand.slug ? `/catalog?brands=${brand.slug}` : '/catalog')
+      navigateTo(brand.slug ? `/categories?brands=${brand.slug}` : '/categories')
       closeSearch()
     }
   }
@@ -177,7 +185,7 @@ function handleSubmit() {
   if (searchQuery.value.trim()) {
     emit('select', searchQuery.value.trim())
     navigateTo({
-      path: '/catalog',
+      path: '/categories',
       query: { search: searchQuery.value.trim() },
     })
     closeSearch()
@@ -201,6 +209,16 @@ function clearSearch() {
 function getProductImage(product: ProductListItem): string | undefined {
   return getImageUrl(product.image) || product.images?.[0]?.url
 }
+
+// Expose search state for parent components
+defineExpose({
+  searchResults,
+  isLoading,
+  searchQuery,
+  isOpen,
+  handleSelect,
+  getProductImage,
+})
 </script>
 
 <template>
@@ -232,6 +250,7 @@ function getProductImage(product: ProductListItem): string | undefined {
 
     <!-- Dropdown -->
     <Transition
+      v-if="!hideDropdown"
       enter-active-class="transition ease-out duration-200"
       enter-from-class="opacity-0 scale-95"
       enter-to-class="opacity-100 scale-100"

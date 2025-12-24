@@ -28,8 +28,8 @@ export interface SeoState {
 // Pages that should be indexed
 export const INDEXABLE_ROUTES = [
   '/',
-  '/catalog',
-  '/catalog/*',
+  '/categories',
+  '/categories/*',
   '/product/*',
   '/blog',
   '/blog/*',

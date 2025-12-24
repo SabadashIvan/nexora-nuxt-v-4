@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Catalog page - SSR for SEO
+ * Categories page - SSR for SEO
  */
 import { useCatalogStore } from '~/stores/catalog.store'
 import type { ProductFilter } from '~/types'
@@ -43,11 +43,11 @@ const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
     }
     
     // Build filters object from URL params only
-    // On /catalog page, we don't add categories filter unless explicitly in URL
+    // On /categories page, we don't add categories filter unless explicitly in URL
     const filters: any = {
       page: initialFilters.page,
       // Explicitly set filters to empty object to prevent old category filters from being merged
-      // This ensures that when navigating from /catalog/[category] to /catalog/, 
+      // This ensures that when navigating from /categories/[category] to /categories/, 
       // old category filters are not preserved
       filters: {},
     }
@@ -56,7 +56,7 @@ const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
     if (initialFilters.q) {
       filters.filters.q = initialFilters.q
     }
-    // Only add categories if explicitly in URL - don't add by default on /catalog
+    // Only add categories if explicitly in URL - don't add by default on /categories
     if (initialFilters.categories) {
       filters.filters.categories = initialFilters.categories
     }
@@ -253,7 +253,7 @@ async function handlePageChange(page: number) {
   
   // Navigate to update URL - this will trigger useLazyAsyncData to refetch
   // The watch on routeQuery will detect the change and reload data
-  await navigateTo({ path: '/catalog', query }, { replace: true })
+  await navigateTo({ path: '/categories', query }, { replace: true })
   
   // Force refresh to ensure data is reloaded
   await refresh()
@@ -336,7 +336,7 @@ async function handleReset() {
   const catalogStore = useCatalogStore()
   catalogStore.resetFilters()
   await catalogStore.fetchProducts()
-  navigateTo('/catalog')
+  navigateTo('/categories')
 }
 
 // Update URL with current filters
@@ -384,7 +384,7 @@ function updateUrl() {
     query.page = catalogStore.pagination.page.toString()
   }
   
-  navigateTo({ path: '/catalog', query }, { replace: true })
+  navigateTo({ path: '/categories', query }, { replace: true })
 }
 </script>
 
@@ -393,7 +393,7 @@ function updateUrl() {
     <!-- Breadcrumbs -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
       <UiBreadcrumbs 
-        :items="[{ label: 'Catalog' }]" 
+        :items="[{ label: 'Categories' }]" 
         class="mb-6"
       />
     </div>
