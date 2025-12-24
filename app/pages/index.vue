@@ -80,7 +80,7 @@ const features = [
                 </div>
               </div>
 
-              <NuxtLink to="/catalog" class="inline-block rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-center font-medium text-white hover:bg-indigo-700">
+              <NuxtLink to="/categories" class="inline-block rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-center font-medium text-white hover:bg-indigo-700">
                 Shop Collection
               </NuxtLink>
             </div>
@@ -134,7 +134,7 @@ const features = [
               Shop by Category
             </h2>
             <NuxtLink 
-              to="/catalog" 
+              to="/categories" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               View All
@@ -145,7 +145,7 @@ const features = [
             <NuxtLink
               v-for="category in categories"
               :key="category.id"
-              :to="`/catalog/${category.slug}`"
+              :to="`/categories/${category.slug}`"
               class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100"
             >
               <NuxtImg
@@ -178,7 +178,7 @@ const features = [
               Featured Products
             </h2>
             <NuxtLink 
-              to="/catalog?sort=newest" 
+              to="/categories?sort=newest" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               View All

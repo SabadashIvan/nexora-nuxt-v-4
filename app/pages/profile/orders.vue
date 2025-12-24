@@ -137,7 +137,7 @@ function getStatusVariant(status: string) {
     >
       <template #action>
         <NuxtLink
-          to="/catalog"
+          to="/categories"
           class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
         >
           Start Shopping

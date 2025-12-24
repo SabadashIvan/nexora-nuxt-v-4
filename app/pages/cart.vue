@@ -78,7 +78,7 @@ const appliedCoupons = computed(() => {
     >
       <template #action>
         <NuxtLink
-          to="/catalog"
+          to="/categories"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
           Continue Shopping
@@ -94,7 +94,7 @@ const appliedCoupons = computed(() => {
 
         <!-- Continue shopping -->
         <NuxtLink 
-          to="/catalog" 
+          to="/categories" 
           class="inline-flex items-center gap-2 text-primary-600 dark:text-primary-400 hover:underline mt-4"
         >
           <ArrowLeft class="h-4 w-4" />

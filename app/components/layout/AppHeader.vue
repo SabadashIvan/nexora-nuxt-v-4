@@ -1,18 +1,48 @@
 <script setup lang="ts">
 /**
  * Main application header with navigation - Tailwind template design
+ * Uses mega menu from API endpoint /api/v1/site/menus/tree
  */
 import { 
   Menu,
+  Search,
+  X,
+  Loader2,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
+import type { MenuItem, MenuTreeResponse } from '~/types'
+import { useApi } from '~/composables/useApi'
 import { getImageUrl } from '~/utils/image'
 
 const isMobileMenuOpen = ref(false)
-const openPopoverId = ref<string | null>(null)
+const isMobileSearchOpen = ref(false)
+const isCatalogMenuOpen = ref(false)
+const menuItems = ref<MenuItem[]>([])
+const isLoadingMenu = ref(false)
+const mobileSearchRef = ref<any>(null)
+
+// Get search data from mobile search component
+const mobileSearchResults = computed(() => mobileSearchRef.value?.searchResults || null)
+const mobileSearchLoading = computed(() => mobileSearchRef.value?.isLoading || false)
+const mobileSearchQuery = computed(() => mobileSearchRef.value?.searchQuery || '')
+const handleMobileSearchSelect = computed(() => mobileSearchRef.value?.handleSelect || (() => {}))
+
+// Helper function to get product image
+function getMobileProductImage(product: any): string | undefined {
+  return getImageUrl(product?.image) || product?.images?.[0]?.url
+}
+
+// Helper to calculate index for mobile search
+function getMobileSearchIndex(variantsCount: number, suggestionsCount: number, categoriesCount: number, index: number | string, type: 'variant' | 'suggestion' | 'category' | 'brand'): number {
+  const idx = typeof index === 'string' ? parseInt(index, 10) : index
+  if (type === 'variant') return idx
+  if (type === 'suggestion') return variantsCount + idx
+  if (type === 'category') return variantsCount + suggestionsCount + idx
+  return variantsCount + suggestionsCount + categoriesCount + idx
+}
 
 // Access stores inside computed properties (lazy evaluation)
 const cartItemCount = computed(() => {
@@ -55,32 +85,94 @@ const currentCurrency = computed(() => {
 
 function handleSearchSelect(query: string) {
   navigateTo({
-    path: '/catalog',
+    path: '/categories',
     query: { q: query },
   })
+  // Close mobile search after selection
+  isMobileSearchOpen.value = false
 }
 
-function togglePopover(id: string) {
-  openPopoverId.value = openPopoverId.value === id ? null : id
+function openMobileSearch() {
+  isMobileSearchOpen.value = true
 }
 
-function closePopover() {
-  openPopoverId.value = null
+// Focus search input when mobile search opens and manage body scroll
+watch(isMobileSearchOpen, (isOpen) => {
+  if (import.meta.client) {
+    document.body.style.overflow = isOpen ? 'hidden' : ''
+    
+    if (isOpen) {
+      nextTick(() => {
+        // Find input in the search component after animation
+        setTimeout(() => {
+          const searchPanel = document.querySelector('.fixed.inset-x-0.top-0.z-50.bg-white')
+          if (searchPanel) {
+            const input = searchPanel.querySelector('input[type="search"]') as HTMLInputElement
+            if (input) {
+              input.focus()
+            }
+          }
+        }, 250)
+      })
+    }
+  }
+})
+
+function closeMobileSearch() {
+  isMobileSearchOpen.value = false
 }
 
-// Close popover on click outside
+function openCatalogMenu() {
+  isCatalogMenuOpen.value = true
+}
+
+function closeCatalogMenu() {
+  isCatalogMenuOpen.value = false
+}
+
+// Close menu on click outside
 onMounted(() => {
   if (import.meta.client) {
     document.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
-      if (!target.closest('[data-popover]')) {
-        closePopover()
+      if (!target.closest('[data-catalog-menu]')) {
+        closeCatalogMenu()
       }
     })
   }
 })
 
-// Fetch categories on mount
+// Fetch menu tree from API
+async function fetchMenuTree() {
+  if (isLoadingMenu.value) return
+  
+  try {
+    isLoadingMenu.value = true
+    const api = useApi()
+    const response = await api.get<MenuTreeResponse>('/site/menus/tree')
+    
+    // Handle response - check if it's wrapped in 'data' or direct array
+    if (response && typeof response === 'object') {
+      if ('data' in response && Array.isArray(response.data)) {
+        menuItems.value = response.data
+      } else if (Array.isArray(response)) {
+        menuItems.value = response
+      } else {
+        console.warn('Unexpected menu tree response format:', response)
+        menuItems.value = []
+      }
+    } else {
+      menuItems.value = []
+    }
+  } catch (error) {
+    console.error('Failed to fetch menu tree:', error)
+    menuItems.value = []
+  } finally {
+    isLoadingMenu.value = false
+  }
+}
+
+// Fetch categories and menu on mount
 onMounted(async () => {
   try {
     const catalogStore = useCatalogStore()
@@ -90,22 +182,10 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to fetch categories:', error)
   }
+  
+  // Fetch menu tree
+  await fetchMenuTree()
 })
-
-// Helper to get category image
-function getCategoryImage(category: any) {
-  return getImageUrl(category.image) || getImageUrl(category.icon)
-}
-
-// Helper to get category children grouped
-function getCategoryChildren(categoryId: number) {
-  try {
-    const catalogStore = useCatalogStore()
-    return catalogStore.categories.filter(c => c.parent_id === categoryId)
-  } catch {
-    return []
-  }
-}
 </script>
 
 <template>
@@ -116,137 +196,52 @@ function getCategoryChildren(categoryId: number) {
     </p>
 
     <header class="relative bg-white">
-      <nav aria-label="Top" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <nav aria-label="Top" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="border-b border-gray-200">
-          <div class="flex h-16 items-center">
-            <!-- Mobile menu button -->
-            <button
-              type="button"
-              class="relative rounded-md bg-white p-2 text-gray-400 lg:hidden"
-              @click="isMobileMenuOpen = true"
-            >
-              <span class="absolute -inset-0.5" />
-              <span class="sr-only">Open menu</span>
-              <Menu class="size-6" />
-            </button>
+          <div class="flex h-16 items-center justify-between">
+            <div class="flex items-center flex-shrink-0 min-w-0">
+              <!-- Mobile menu button -->
+              <button
+                type="button"
+                class="relative rounded-md bg-white p-2 text-gray-400 lg:hidden flex-shrink-0"
+                @click="isMobileMenuOpen = true"
+              >
+                <span class="absolute -inset-0.5" />
+                <span class="sr-only">Open menu</span>
+                <Menu class="size-6" />
+              </button>
 
-            <!-- Logo -->
-            <div class="ml-4 flex lg:ml-0">
-              <NuxtLink to="/">
-                <span class="sr-only">Your Company</span>
-                <span class="text-2xl font-bold text-indigo-600">Nexora</span>
-              </NuxtLink>
+              <!-- Logo -->
+              <div class="ml-2 sm:ml-4 flex lg:ml-0 flex-shrink-0">
+                <NuxtLink to="/">
+                  <span class="sr-only">Your Company</span>
+                  <span class="text-xl sm:text-2xl font-bold text-indigo-600 whitespace-nowrap">Nexora</span>
+                </NuxtLink>
+              </div>
             </div>
 
             <!-- Desktop Navigation with Mega Menus -->
-            <div class="hidden lg:ml-8 lg:block lg:self-stretch">
+            <div class="hidden lg:ml-8 lg:block lg:self-stretch lg:flex-shrink-0">
               <div class="flex h-full space-x-8">
-                <!-- Category menus -->
+                <!-- Catalog button with mega menu -->
                 <div
-                  v-for="(category, index) in categoryTabs"
-                  :key="category.id"
-                  class="group/popover flex"
-                  data-popover
+                  class="group/catalog relative flex"
+                  data-catalog-menu
+                  @mouseenter="openCatalogMenu"
+                  @mouseleave="closeCatalogMenu"
                 >
-                  <div class="relative flex">
-                    <button
-                      class="relative flex items-center justify-center text-sm font-medium transition-colors duration-200 ease-out"
-                      :class="openPopoverId === `menu-${category.id}` ? 'text-indigo-600' : 'text-gray-700 hover:text-gray-800'"
-                      @click.stop="togglePopover(`menu-${category.id}`)"
-                    >
-                      {{ category.title || category.name }}
-                      <span
-                        aria-hidden="true"
-                        class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in"
-                        :class="openPopoverId === `menu-${category.id}` ? 'bg-indigo-600' : ''"
-                      />
-                    </button>
-                  </div>
-
-                  <!-- Mega Menu Popover -->
-                  <Transition
-                    enter-active-class="transition transition-discrete duration-200 ease-out"
-                    enter-from-class="opacity-0"
-                    enter-to-class="opacity-100"
-                    leave-active-class="transition transition-discrete duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
+                  <button
+                    class="relative flex items-center justify-center text-sm font-medium transition-colors duration-200 ease-out"
+                    :class="isCatalogMenuOpen ? 'text-indigo-600' : 'text-gray-700 hover:text-gray-800'"
                   >
-                    <div
-                      v-if="openPopoverId === `menu-${category.id}`"
-                      class="absolute left-1/2 top-full z-50 w-screen -translate-x-1/2 bg-white text-sm text-gray-500 shadow-lg"
-                      @click.stop
-                    >
-                      <div aria-hidden="true" class="absolute inset-0 top-1/2 bg-white shadow-sm" />
-                      <div class="relative bg-white">
-                        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                          <div class="grid grid-cols-2 gap-x-8 gap-y-10 py-16">
-                            <!-- Category images -->
-                            <div class="col-start-2 grid grid-cols-2 gap-x-8">
-                              <div
-                                v-for="(child, idx) in getCategoryChildren(category.id).slice(0, 2)"
-                                :key="child.id"
-                                class="group relative text-base sm:text-sm"
-                              >
-                                <NuxtImg
-                                  v-if="getCategoryImage(child)"
-                                  :src="getCategoryImage(child)"
-                                  :alt="child.title || child.name || 'Category'"
-                                  class="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
-                                />
-                                <NuxtLink
-                                  :to="`/catalog/${child.slug}`"
-                                  class="mt-6 block font-medium text-gray-900"
-                                  @click="closePopover"
-                                >
-                                  <span aria-hidden="true" class="absolute inset-0 z-10" />
-                                  {{ child.title || child.name }}
-                                </NuxtLink>
-                                <p aria-hidden="true" class="mt-1">Shop now</p>
-                              </div>
-                            </div>
-
-                            <!-- Category links -->
-                            <div class="row-start-1 grid grid-cols-3 gap-x-8 gap-y-10 text-sm">
-                              <div>
-                                <p :id="`${category.slug}-heading`" class="font-medium text-gray-900">
-                                  Categories
-                                </p>
-                                <ul
-                                  role="list"
-                                  :aria-labelledby="`${category.slug}-heading`"
-                                  class="mt-6 space-y-6 sm:mt-4 sm:space-y-4"
-                                >
-                                  <li
-                                    v-for="child in getCategoryChildren(category.id)"
-                                    :key="child.id"
-                                    class="flex"
-                                  >
-                                    <NuxtLink
-                                      :to="`/catalog/${child.slug}`"
-                                      class="hover:text-gray-800"
-                                      @click="closePopover"
-                                    >
-                                      {{ child.title || child.name }}
-                                    </NuxtLink>
-                                  </li>
-                                </ul>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Transition>
+                    Catalog
+                    <span
+                      aria-hidden="true"
+                      class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in"
+                      :class="isCatalogMenuOpen ? 'bg-indigo-600' : ''"
+                    />
+                  </button>
                 </div>
-
-                <!-- All Categories link -->
-                <NuxtLink
-                  to="/catalog"
-                  class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
-                >
-                  All Categories
-                </NuxtLink>
 
                 <!-- Other links -->
                 <NuxtLink
@@ -257,9 +252,23 @@ function getCategoryChildren(categoryId: number) {
                 </NuxtLink>
               </div>
             </div>
+            
+            <!-- Mega Menu Component - positioned relative to nav container -->
+            <div
+              v-if="menuItems.length > 0 && isCatalogMenuOpen"
+              class="absolute left-0 right-0 top-full z-50 hidden lg:block"
+              @mouseenter="openCatalogMenu"
+              @mouseleave="closeCatalogMenu"
+            >
+              <LayoutMegaMenu
+                :menu-items="menuItems"
+                :is-open="isCatalogMenuOpen"
+                @close="closeCatalogMenu"
+              />
+            </div>
 
             <!-- Right side actions -->
-            <div class="ml-auto flex items-center">
+            <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <!-- Auth links (desktop) -->
               <div class="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
                 <NuxtLink
@@ -297,16 +306,26 @@ function getCategoryChildren(categoryId: number) {
                 </button>
               </div>
 
-              <!-- Search -->
-              <div class="flex lg:ml-6 w-64">
+              <!-- Search Desktop -->
+              <div class="hidden sm:flex lg:ml-6 sm:w-48 lg:w-64 flex-shrink-0">
                 <SearchLiveSearch
                   placeholder="Search products..."
                   @select="handleSearchSelect"
                 />
               </div>
 
+              <!-- Search Mobile Icon -->
+              <button
+                type="button"
+                class="sm:hidden -m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
+                @click="openMobileSearch"
+              >
+                <span class="sr-only">Search</span>
+                <Search class="size-6" />
+              </button>
+
               <!-- Cart -->
-              <div class="ml-4 flow-root lg:ml-6">
+              <div class="flow-root flex-shrink-0">
                 <NuxtLink to="/cart" class="group -m-2 flex items-center p-2">
                   <svg
                     viewBox="0 0 24 24"
@@ -323,7 +342,7 @@ function getCategoryChildren(categoryId: number) {
                       stroke-linejoin="round"
                     />
                   </svg>
-                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
+                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
                     {{ cartItemCount }}
                   </span>
                   <span class="sr-only">items in cart, view bag</span>
@@ -340,6 +359,206 @@ function getCategoryChildren(categoryId: number) {
       v-model="isMobileMenuOpen"
       :categories="categories"
       :category-tabs="categoryTabs"
+      :menu-items="menuItems"
     />
+
+    <!-- Mobile Search Overlay -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-150 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="isMobileSearchOpen"
+          class="fixed inset-0 z-50 sm:hidden"
+        >
+          <!-- Backdrop -->
+          <div
+            class="fixed inset-0 bg-black/50"
+            @click="closeMobileSearch"
+          />
+
+          <!-- Search Panel -->
+          <Transition
+            enter-active-class="transition-transform duration-200 ease-out"
+            enter-from-class="translate-y-[-100%]"
+            enter-to-class="translate-y-0"
+            leave-active-class="transition-transform duration-150 ease-in"
+            leave-from-class="translate-y-0"
+            leave-to-class="translate-y-[-100%]"
+          >
+            <div
+              v-if="isMobileSearchOpen"
+              class="fixed inset-x-0 top-0 z-50 bg-white shadow-lg"
+            >
+              <!-- Header -->
+              <div class="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
+                <button
+                  type="button"
+                  class="-m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
+                  @click="closeMobileSearch"
+                >
+                  <span class="sr-only">Close search</span>
+                  <X class="size-6" />
+                </button>
+                
+                <!-- Search Input -->
+                <div class="flex-1">
+                  <SearchLiveSearch
+                    ref="mobileSearchRef"
+                    placeholder="Search products..."
+                    :hide-dropdown="true"
+                    @select="handleSearchSelect"
+                  />
+                </div>
+              </div>
+
+              <!-- Search Results / Info -->
+              <div class="border-b border-gray-200 bg-gray-50 max-h-[calc(100vh-200px)] overflow-y-auto">
+                <!-- Loading state -->
+                <div v-if="mobileSearchLoading" class="px-4 py-8 flex items-center justify-center">
+                  <Loader2 class="h-6 w-6 animate-spin text-indigo-600" />
+                  <span class="ml-3 text-sm text-gray-600">Searching...</span>
+                </div>
+
+                <!-- Search Results -->
+                <div v-else-if="mobileSearchResults?.data && mobileSearchQuery.length >= 2" class="px-4 py-4 space-y-4">
+                  <!-- Products -->
+                  <div v-if="mobileSearchResults.data.variants && mobileSearchResults.data.variants.length > 0">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Products
+                    </h4>
+                    <div class="space-y-2">
+                      <button
+                        v-for="(variant, index) in mobileSearchResults.data.variants"
+                        :key="variant.id"
+                        type="button"
+                        class="w-full flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left"
+                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, mobileSearchResults.data.suggestions?.length || 0, mobileSearchResults.data.categories?.length || 0, index, 'variant')); closeMobileSearch(); }"
+                      >
+                        <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                          <NuxtImg
+                            v-if="getMobileProductImage(variant)"
+                            :src="getMobileProductImage(variant)!"
+                            :alt="variant.title"
+                            class="w-full h-full object-cover"
+                          />
+                          <div v-else class="w-full h-full flex items-center justify-center">
+                            <span class="text-xs text-gray-400">No image</span>
+                          </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-sm font-medium text-gray-900 line-clamp-1">
+                            {{ variant.title }}
+                          </div>
+                          <div class="mt-1">
+                            <UiPrice :price="variant.price" size="sm" />
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Suggestions -->
+                  <div v-if="mobileSearchResults.data.suggestions && mobileSearchResults.data.suggestions.length > 0">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Suggestions
+                    </h4>
+                    <div class="space-y-1">
+                      <button
+                        v-for="(suggestion, index) in mobileSearchResults.data.suggestions"
+                        :key="index"
+                        type="button"
+                        class="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left text-sm"
+                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, 0, 0, index, 'suggestion')); closeMobileSearch(); }"
+                      >
+                        <Search class="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <span class="font-medium text-gray-700">{{ suggestion.text }}</span>
+                        <span class="ml-auto text-xs text-gray-400">({{ Math.round(suggestion.score * 100) }}%)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Categories -->
+                  <div v-if="mobileSearchResults.data.categories && mobileSearchResults.data.categories.length > 0">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Categories
+                    </h4>
+                    <div class="space-y-1">
+                      <button
+                        v-for="(category, index) in mobileSearchResults.data.categories"
+                        :key="category.id"
+                        type="button"
+                        class="w-full p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left text-sm text-gray-700"
+                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, mobileSearchResults.data.suggestions?.length || 0, 0, index, 'category')); closeMobileSearch(); }"
+                      >
+                        {{ category.title }} <span class="text-gray-400">({{ category.count }})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Brands -->
+                  <div v-if="mobileSearchResults.data.brands && mobileSearchResults.data.brands.length > 0">
+                    <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Brands
+                    </h4>
+                    <div class="space-y-1">
+                      <button
+                        v-for="(brand, index) in mobileSearchResults.data.brands"
+                        :key="brand.id"
+                        type="button"
+                        class="w-full p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left text-sm text-gray-700"
+                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, mobileSearchResults.data.suggestions?.length || 0, mobileSearchResults.data.categories?.length || 0, index, 'brand')); closeMobileSearch(); }"
+                      >
+                        {{ brand.title }} <span class="text-gray-400">({{ brand.count }})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- No results -->
+                  <div v-if="!mobileSearchResults.data.variants?.length && !mobileSearchResults.data.suggestions?.length && !mobileSearchResults.data.categories?.length && !mobileSearchResults.data.brands?.length" class="py-8 text-center">
+                    <p class="text-sm text-gray-500">No results found</p>
+                  </div>
+                </div>
+
+                <!-- Initial Info (when no search query) -->
+                <div v-else class="px-4 py-4">
+                  <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                      <div class="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100">
+                        <Search class="size-5 text-indigo-600" />
+                      </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h3 class="text-sm font-semibold text-gray-900">
+                        Search Products
+                      </h3>
+                      <p class="mt-1 text-sm text-gray-600">
+                        Find products by name, brand, or category. Start typing to see suggestions.
+                      </p>
+                      <div class="mt-3 flex flex-wrap gap-2">
+                        <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
+                          Quick search
+                        </span>
+                        <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
+                          Autocomplete
+                        </span>
+                        <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
+                          Categories
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Transition>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

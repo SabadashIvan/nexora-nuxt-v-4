@@ -376,7 +376,7 @@ const productCategories = computed(() => {
 // Always return at least Catalog + Product to ensure consistent DOM structure
 const breadcrumbs = computed(() => {
   const items: Array<{ label: string; to?: string }> = [
-    { label: 'Catalog', to: '/catalog' },
+    { label: 'Categories', to: '/categories' },
   ]
   
   // Add category breadcrumbs if available
@@ -385,7 +385,7 @@ const breadcrumbs = computed(() => {
     if (mainCategory?.slug) {
       items.push({ 
         label: mainCategory.title || mainCategory.name || 'Category', 
-        to: `/catalog/${mainCategory.slug}` 
+        to: `/categories/${mainCategory.slug}` 
       })
     }
   }
@@ -394,7 +394,7 @@ const breadcrumbs = computed(() => {
   if (product.value?.product?.brand?.slug) {
     items.push({ 
       label: product.value.product.brand.title || 'Brand', 
-      to: `/catalog?brand=${product.value.product.brand.slug}` 
+      to: `/categories?brand=${product.value.product.brand.slug}` 
     })
   }
   

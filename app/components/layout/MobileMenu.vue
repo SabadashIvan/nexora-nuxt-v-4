@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Mobile navigation menu - Tailwind template design with tabs
+ * Mobile navigation menu - Shows menu items from API with icons
  */
-import { X } from 'lucide-vue-next'
-import type { Category } from '~/types'
+import { X, ChevronRight } from 'lucide-vue-next'
+import type { Category, MenuItem } from '~/types'
 import { getImageUrl } from '~/utils/image'
 import { useSystemStore } from '~/stores/system.store'
 
@@ -11,10 +11,12 @@ interface Props {
   modelValue: boolean
   categories: Category[]
   categoryTabs?: Category[]
+  menuItems?: MenuItem[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   categoryTabs: () => [],
+  menuItems: () => [],
 })
 
 const emit = defineEmits<{
@@ -27,12 +29,26 @@ const isOpen = computed({
 })
 
 const activeTab = ref(0)
+const expandedMenuItemId = ref<number | null>(null)
 
 function closeMenu() {
   isOpen.value = false
+  expandedMenuItemId.value = null
 }
 
-// Get categories for active tab
+function toggleMenuItem(itemId: number) {
+  expandedMenuItemId.value = expandedMenuItemId.value === itemId ? null : itemId
+}
+
+// Use menu items from API if available, otherwise fallback to categories
+const displayMenuItems = computed(() => {
+  if (props.menuItems && props.menuItems.length > 0) {
+    return props.menuItems
+  }
+  return []
+})
+
+// Get categories for active tab (fallback)
 const activeTabCategories = computed(() => {
   if (props.categoryTabs.length === 0) return props.categories
   const activeCategory = props.categoryTabs[activeTab.value]
@@ -42,7 +58,7 @@ const activeTabCategories = computed(() => {
   return props.categories.filter(c => c.parent_id === activeCategory.id)
 })
 
-// Get featured categories (first 2 children with images)
+// Get featured categories (first 2 children with images) - fallback
 const featuredCategories = computed(() => {
   if (props.categoryTabs.length === 0) return []
   const activeCategory = props.categoryTabs[activeTab.value]
@@ -53,17 +69,23 @@ const featuredCategories = computed(() => {
     .slice(0, 2)
 })
 
-// Reset active tab when menu opens
+// Reset when menu opens
 watch(isOpen, (value) => {
   if (value) {
     activeTab.value = 0
+    expandedMenuItemId.value = null
   }
   if (import.meta.client) {
     document.body.style.overflow = value ? 'hidden' : ''
   }
 })
 
-// Helper to get category image
+// Helper to get menu item image
+function getMenuItemImage(item: MenuItem) {
+  return getImageUrl(item.icon)
+}
+
+// Helper to get category image (fallback)
 function getCategoryImage(category: Category) {
   return getImageUrl(category.image) || getImageUrl(category.icon)
 }
@@ -125,8 +147,80 @@ const currentCurrency = computed(() => {
                 </button>
               </div>
 
-              <!-- Tabs -->
-              <div v-if="categoryTabs.length > 0" class="mt-2 block">
+              <!-- Menu Items from API (Priority) -->
+              <div v-if="displayMenuItems.length > 0" class="mt-2 space-y-1 px-4 pb-4">
+                <div
+                  v-for="item in displayMenuItems"
+                  :key="item.id"
+                  class="border-b border-gray-200 last:border-b-0"
+                >
+                  <!-- Menu Item with icon and link -->
+                  <div class="flex items-center">
+                    <NuxtLink
+                      :to="item.link"
+                      :target="item.target"
+                      class="flex flex-1 items-center gap-3 py-4 text-base font-medium text-gray-900"
+                      @click="closeMenu"
+                    >
+                      <!-- Icon if available -->
+                      <NuxtImg
+                        v-if="getMenuItemImage(item)"
+                        :src="getMenuItemImage(item)!"
+                        :alt="item.title"
+                        class="size-8 shrink-0 rounded-lg bg-gray-100 object-cover"
+                      />
+                      <span class="flex-1">{{ item.title }}</span>
+                    </NuxtLink>
+                    
+                    <!-- Expand button if has children -->
+                    <button
+                      v-if="item.children && item.children.length > 0"
+                      type="button"
+                      class="ml-2 flex items-center p-2 text-gray-400"
+                      @click="toggleMenuItem(item.id)"
+                    >
+                      <ChevronRight
+                        class="size-5 transition-transform"
+                        :class="expandedMenuItemId === item.id ? 'rotate-90' : ''"
+                      />
+                    </button>
+                  </div>
+                  
+                  <!-- Children submenu -->
+                  <Transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="opacity-0 max-h-0"
+                    enter-to-class="opacity-100 max-h-96"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100 max-h-96"
+                    leave-to-class="opacity-0 max-h-0"
+                  >
+                    <div
+                      v-if="expandedMenuItemId === item.id && item.children && item.children.length > 0"
+                      class="overflow-hidden pl-4 pb-2"
+                    >
+                      <ul class="space-y-2">
+                        <li
+                          v-for="child in item.children"
+                          :key="child.id"
+                        >
+                          <NuxtLink
+                            :to="child.link"
+                            :target="child.target"
+                            class="block py-2 text-sm text-gray-600"
+                            @click="closeMenu"
+                          >
+                            {{ child.title }}
+                          </NuxtLink>
+                        </li>
+                      </ul>
+                    </div>
+                  </Transition>
+                </div>
+              </div>
+
+              <!-- Fallback: Tabs (if no menu items) -->
+              <div v-else-if="categoryTabs.length > 0" class="mt-2 block">
                 <div class="border-b border-gray-200">
                   <div class="-mb-px flex space-x-8 px-4">
                     <button
@@ -158,7 +252,7 @@ const currentCurrency = computed(() => {
                         class="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
                       />
                       <NuxtLink
-                        :to="`/catalog/${category.slug}`"
+                        :to="`/categories/${category.slug}`"
                         class="mt-6 block font-medium text-gray-900"
                         @click="closeMenu"
                       >
@@ -179,7 +273,7 @@ const currentCurrency = computed(() => {
                         class="flow-root"
                       >
                         <NuxtLink
-                          :to="`/catalog/${category.slug}`"
+                          :to="`/categories/${category.slug}`"
                           class="-m-2 block p-2 text-gray-500"
                           @click="closeMenu"
                         >
@@ -202,7 +296,7 @@ const currentCurrency = computed(() => {
                       class="flow-root"
                     >
                       <NuxtLink
-                        :to="`/catalog/${category.slug}`"
+                        :to="`/categories/${category.slug}`"
                         class="-m-2 block p-2 text-gray-500"
                         @click="closeMenu"
                       >
@@ -217,7 +311,7 @@ const currentCurrency = computed(() => {
               <div class="space-y-6 border-t border-gray-200 px-4 py-6">
                 <div class="flow-root">
                   <NuxtLink
-                    to="/catalog"
+                    to="/categories"
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
                   >

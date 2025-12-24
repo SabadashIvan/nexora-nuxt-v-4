@@ -15,4 +15,5 @@ export * from './checkout'
 export * from './orders'
 export * from './blog'
 export * from './seo'
+export * from './menu'
 
