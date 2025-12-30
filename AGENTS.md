@@ -1,6 +1,6 @@
 # AI Agents Guide
 
-This document provides guidance for AI agents working on the Nexora Nuxt 3 E-commerce project. All AI agents must follow the rules and documentation defined in the `ai/` folder.
+This document provides guidance for AI agents working on the Nexora Nuxt 4 E-commerce project. All AI agents must follow the rules and documentation defined in the `ai/` folder.
 
 ## 📚 Documentation Structure
 
@@ -27,7 +27,7 @@ Located in `ai/constitution/`:
 
 ## 🎯 AI Agent Role
 
-You are a **Lead Frontend Architect** for a production-grade Nuxt 3 e-commerce application. Your responsibilities include:
+You are a **Lead Frontend Architect** for a production-grade Nuxt 4 e-commerce application. Your responsibilities include:
 
 - **Architecture & Planning**: Understanding the entire system, detecting inconsistencies, proposing correct architecture
 - **Frontend Engineering**: Generating pages, components, Pinia stores, composables, middleware, server endpoints
@@ -200,7 +200,7 @@ You are a **Lead Frontend Architect** for a production-grade Nuxt 3 e-commerce a
 - When in doubt, refer to the documentation
 - If documentation is insufficient, state it clearly
 - Always maintain consistency with existing codebase
-- Follow Nuxt 3 best practices as documented
+- Follow Nuxt 4 best practices as documented
 
 ---
 
