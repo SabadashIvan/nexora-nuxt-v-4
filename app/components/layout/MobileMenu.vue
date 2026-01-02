@@ -2,10 +2,11 @@
 /**
  * Mobile navigation menu - Shows menu items from API with icons
  */
-import { X, ChevronRight } from 'lucide-vue-next'
+import { X, ChevronRight, LogOut } from 'lucide-vue-next'
 import type { Category, MenuItem } from '~/types'
 import { getImageUrl } from '~/utils/image'
 import { useSystemStore } from '~/stores/system.store'
+import { useAuthStore } from '~/stores/auth.store'
 
 interface Props {
   modelValue: boolean
@@ -98,6 +99,43 @@ const currentCurrency = computed(() => {
     return { code: 'USD', symbol: '$', name: 'US Dollar' }
   }
 })
+
+// Auth state
+const isAuthenticated = computed(() => {
+  try {
+    return useAuthStore().isAuthenticated
+  } catch {
+    return false
+  }
+})
+
+const userName = computed(() => {
+  try {
+    return useAuthStore().userName
+  } catch {
+    return null
+  }
+})
+
+// Logout handler
+const router = useRouter()
+const isLoggingOut = ref(false)
+
+async function handleLogout() {
+  if (isLoggingOut.value) return
+  
+  isLoggingOut.value = true
+  try {
+    const authStore = useAuthStore()
+    await authStore.logout()
+    closeMenu()
+    await router.push('/')
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    isLoggingOut.value = false
+  }
+}
 </script>
 
 <template>
@@ -331,24 +369,49 @@ const currentCurrency = computed(() => {
 
               <!-- Auth links -->
               <div class="space-y-6 border-t border-gray-200 px-4 py-6">
-                <div class="flow-root">
-                  <NuxtLink
-                    to="/auth/login"
-                    class="-m-2 block p-2 font-medium text-gray-900"
-                    @click="closeMenu"
-                  >
-                    Sign in
-                  </NuxtLink>
-                </div>
-                <div class="flow-root">
-                  <NuxtLink
-                    to="/auth/register"
-                    class="-m-2 block p-2 font-medium text-gray-900"
-                    @click="closeMenu"
-                  >
-                    Create account
-                  </NuxtLink>
-                </div>
+                <template v-if="!isAuthenticated">
+                  <div class="flow-root">
+                    <NuxtLink
+                      to="/auth/login"
+                      class="-m-2 block p-2 font-medium text-gray-900"
+                      @click="closeMenu"
+                    >
+                      Sign in
+                    </NuxtLink>
+                  </div>
+                  <div class="flow-root">
+                    <NuxtLink
+                      to="/auth/register"
+                      class="-m-2 block p-2 font-medium text-gray-900"
+                      @click="closeMenu"
+                    >
+                      Create account
+                    </NuxtLink>
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flow-root">
+                    <NuxtLink
+                      to="/profile"
+                      class="-m-2 block p-2 font-medium text-gray-900"
+                      @click="closeMenu"
+                    >
+                      <span v-if="userName">Profile ({{ userName }})</span>
+                      <span v-else>Profile</span>
+                    </NuxtLink>
+                  </div>
+                  <div class="flow-root">
+                    <button
+                      type="button"
+                      :disabled="isLoggingOut"
+                      @click="handleLogout"
+                      class="-m-2 flex items-center gap-2 w-full p-2 font-medium text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <LogOut class="h-5 w-5" />
+                      <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+                    </button>
+                  </div>
+                </template>
               </div>
 
               <!-- Currency -->

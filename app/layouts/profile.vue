@@ -2,10 +2,27 @@
 /**
  * Profile layout with sidebar navigation
  */
-import { User, Package, MapPin, Settings, Bell, CreditCard } from 'lucide-vue-next'
+import { User, Package, MapPin, Settings, Bell, CreditCard, LogOut } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
+
+const isLoggingOut = ref(false)
+
+async function handleLogout() {
+  if (isLoggingOut.value) return
+  
+  isLoggingOut.value = true
+  try {
+    await authStore.logout()
+    await router.push('/')
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    isLoggingOut.value = false
+  }
+}
 
 const navigation = [
   { name: 'Dashboard', to: '/profile', icon: User, exact: true },
@@ -51,7 +68,7 @@ const isActive = (item: { to: string; exact?: boolean }) => {
             </div>
 
             <!-- Navigation -->
-            <nav class="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden">
+            <nav class="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden mb-6">
               <NuxtLink
                 v-for="item in navigation"
                 :key="item.to"
@@ -67,6 +84,19 @@ const isActive = (item: { to: string; exact?: boolean }) => {
                 {{ item.name }}
               </NuxtLink>
             </nav>
+
+            <!-- Logout button -->
+            <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden">
+              <button
+                type="button"
+                :disabled="isLoggingOut"
+                @click="handleLogout"
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <LogOut class="h-5 w-5" />
+                <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+              </button>
+            </div>
           </aside>
 
           <!-- Main content -->

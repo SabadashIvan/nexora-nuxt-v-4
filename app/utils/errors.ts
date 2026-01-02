@@ -12,6 +12,7 @@ export const ERROR_CODES = {
   NOT_FOUND: 404,
   CSRF_MISMATCH: 419,
   VALIDATION_ERROR: 422,
+  RATE_LIMIT: 429,
   SERVER_ERROR: 500,
 } as const
 
@@ -23,7 +24,31 @@ export const ERROR_MESSAGES: Record<number, string> = {
   404: 'The requested resource was not found.',
   419: 'Session expired. Please try again.',
   422: 'Validation failed. Please check your input.',
+  429: 'Too many requests. Please try again later.',
   500: 'An unexpected error occurred. Please try again later.',
+}
+
+// Auth endpoint types for specific error messages
+export type AuthEndpoint = 'login' | 'register' | 'forgot-password' | 'reset-password'
+
+// Auth-specific error messages by endpoint and status code
+export const AUTH_ERROR_MESSAGES: Record<AuthEndpoint, Record<number, string>> = {
+  'login': {
+    422: 'The provided credentials are incorrect.',
+    429: 'Too many login attempts. Please try again in {time} seconds.',
+  },
+  'register': {
+    422: 'Registration failed. Please check your input.',
+    429: 'Too many registration attempts. Please try again in {time} seconds.',
+  },
+  'forgot-password': {
+    422: 'The provided email is invalid.',
+    429: 'Too many password reset requests. Please try again in {time} seconds.',
+  },
+  'reset-password': {
+    422: 'The reset token is invalid or expired.',
+    429: 'Too many password reset attempts. Please try again in {time} seconds.',
+  },
 }
 
 // Checkout-specific errors
@@ -54,7 +79,7 @@ export function parseApiError(error: unknown): ApiError {
     if ('data' in err && typeof err.data === 'object' && err.data !== null) {
       const data = err.data as Record<string, unknown>
       return {
-        message: (data.message as string) || ERROR_MESSAGES[500],
+        message: (data.message as string) || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
         errors: data.errors as Record<string, string[]> | undefined,
         status: (err.status as number) || (data.status as number) || 500,
       }
@@ -62,14 +87,14 @@ export function parseApiError(error: unknown): ApiError {
 
     // Direct error object
     return {
-      message: (err.message as string) || ERROR_MESSAGES[500],
+      message: (err.message as string) || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
       errors: err.errors as Record<string, string[]> | undefined,
       status: (err.status as number) || 500,
     }
   }
 
   return {
-    message: ERROR_MESSAGES[500],
+    message: ERROR_MESSAGES[500] || 'An unexpected error occurred.',
     status: 500,
   }
 }
@@ -82,7 +107,7 @@ export function getErrorMessage(error: ApiError | unknown): string {
     ? error as ApiError 
     : parseApiError(error)
   
-  return parsed.message || ERROR_MESSAGES[parsed.status] || ERROR_MESSAGES[500]
+  return parsed.message || ERROR_MESSAGES[parsed.status] || ERROR_MESSAGES[500] || 'An unexpected error occurred.'
 }
 
 /**
@@ -146,8 +171,85 @@ export function isCheckoutError(error: ApiError): boolean {
 export function createApiError(status: number, message?: string, errors?: Record<string, string[]>): ApiError {
   return {
     status,
-    message: message || ERROR_MESSAGES[status] || ERROR_MESSAGES[500],
+    message: message || ERROR_MESSAGES[status] || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
     errors,
   }
+}
+
+/**
+ * Check if error is a rate limit error (429)
+ */
+export function isRateLimitError(error: ApiError | unknown): boolean {
+  const parsed = error && typeof error === 'object' && 'status' in error 
+    ? error as ApiError 
+    : parseApiError(error)
+  return parsed.status === ERROR_CODES.RATE_LIMIT
+}
+
+/**
+ * Extract retry time (in seconds) from error response
+ * Supports multiple formats:
+ * - { "retry_after": 60 }
+ * - { "message": "...try again in 60 seconds..." }
+ * - Direct message with time pattern
+ */
+export function extractRetryTime(error: ApiError): number | null {
+  // Check for retry_after field in error data
+  const errorData = error as ApiError & { retry_after?: number }
+  if (typeof errorData.retry_after === 'number') {
+    return errorData.retry_after
+  }
+
+  // Try to extract time from message using regex
+  // Matches patterns like "in 60 seconds", "in 120 seconds", etc.
+  if (error.message) {
+    const match = error.message.match(/in\s+(\d+)\s+seconds?/i)
+    if (match && match[1]) {
+      return parseInt(match[1], 10)
+    }
+  }
+
+  // Default retry time if none found
+  return null
+}
+
+/**
+ * Get auth-specific error message based on endpoint and status
+ * Falls back to backend message if available, then to default messages
+ */
+export function getAuthErrorMessage(
+  endpoint: AuthEndpoint,
+  error: ApiError
+): string {
+  const status = error.status
+  const defaultMessage = ERROR_MESSAGES[500] ?? 'An unexpected error occurred.'
+
+  // For 429 errors, try to extract retry time and format message
+  if (status === ERROR_CODES.RATE_LIMIT) {
+    const retryTime = extractRetryTime(error)
+    const template = AUTH_ERROR_MESSAGES[endpoint]?.[429] ?? ERROR_MESSAGES[429] ?? 'Too many requests.'
+    
+    if (retryTime !== null) {
+      return template.replace('{time}', String(retryTime))
+    }
+    // If no retry time found, use backend message or remove placeholder
+    if (error.message && !error.message.includes('{time}')) {
+      return error.message
+    }
+    return template.replace(' in {time} seconds', '')
+  }
+
+  // For 422 errors, prefer backend message if it's specific (not generic)
+  if (status === ERROR_CODES.VALIDATION_ERROR) {
+    // If backend provides a specific message, use it
+    if (error.message && error.message !== ERROR_MESSAGES[422]) {
+      return error.message
+    }
+    // Fall back to auth-specific message
+    return AUTH_ERROR_MESSAGES[endpoint]?.[422] ?? ERROR_MESSAGES[422] ?? 'Validation failed.'
+  }
+
+  // For other errors, use backend message or generic message
+  return error.message || (ERROR_MESSAGES[status] ?? defaultMessage)
 }
 

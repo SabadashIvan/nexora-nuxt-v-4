@@ -73,11 +73,14 @@ Body:
   "password_confirmation": "password"
 }
 
-Response:
+Response (success):
 
-{
-  "user": {...}
-}
+204 No Content
+
+Error responses:
+
+- 422: Validation error (e.g., email already registered, password too weak)
+- 429: Too many registration attempts. Please try again in {time} seconds.
 
 1.2 Login (SPA / Sanctum)
 POST /login
@@ -89,16 +92,23 @@ Body:
   "password": "password"
 }
 
-Response:
+Response (success):
 
-{
-  "user": {...}
-}
+204 No Content
+
+Error responses:
+
+- 422: The provided credentials are incorrect.
+- 429: Too many login attempts. Please try again in {time} seconds.
 
 1.3 Logout
 POST /logout
 
 Requires authentication via cookies.
+
+Response (success):
+
+204 No Content
 
 1.4 Get Profile
 GET /api/v1/identity/me/profile
@@ -178,10 +188,14 @@ Body:
   "email": "user@mail.com"
 }
 
-
-Response:
+Response (success):
 
 204 No Content
+
+Error responses:
+
+- 422: The provided email is invalid.
+- 429: Too many password reset requests. Please try again in {time} seconds.
 
 3.2 Reset Password
 POST /reset-password
@@ -194,6 +208,15 @@ Body:
   "password": "newpass",
   "password_confirmation": "newpass"
 }
+
+Response (success):
+
+204 No Content
+
+Error responses:
+
+- 422: The reset token is invalid or expired.
+- 429: Too many password reset attempts. Please try again in {time} seconds.
 
 4. System API
 4.1 Get System Config

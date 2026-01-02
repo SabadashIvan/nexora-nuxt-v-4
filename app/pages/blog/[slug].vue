@@ -210,6 +210,11 @@ useHead({
           </div>
         </div>
       </article>
+
+      <!-- Comments -->
+      <ClientOnly>
+        <BlogComments v-if="post" :post-id="post.id" />
+      </ClientOnly>
     </main>
   </div>
 </template>

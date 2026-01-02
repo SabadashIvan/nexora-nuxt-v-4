@@ -18,4 +18,6 @@ export * from './seo'
 export * from './menu'
 export * from './notifications'
 export * from './audience'
+export * from './comments'
+export * from './reviews'
 
