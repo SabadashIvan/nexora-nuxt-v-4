@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  CSRF_MISMATCH: 419,
   VALIDATION_ERROR: 422,
   SERVER_ERROR: 500,
 } as const
@@ -20,6 +21,7 @@ export const ERROR_MESSAGES: Record<number, string> = {
   401: 'You are not authenticated. Please log in.',
   403: 'You do not have permission to access this resource.',
   404: 'The requested resource was not found.',
+  419: 'Session expired. Please try again.',
   422: 'Validation failed. Please check your input.',
   500: 'An unexpected error occurred. Please try again later.',
 }
@@ -114,6 +116,17 @@ export function isAuthError(error: ApiError | unknown): boolean {
     ? error as ApiError 
     : parseApiError(error)
   return parsed.status === ERROR_CODES.UNAUTHORIZED
+}
+
+/**
+ * Check if error is a CSRF token mismatch error (419)
+ * Laravel returns 419 when XSRF token is invalid or expired
+ */
+export function isCsrfError(error: ApiError | unknown): boolean {
+  const parsed = error && typeof error === 'object' && 'status' in error 
+    ? error as ApiError 
+    : parseApiError(error)
+  return parsed.status === ERROR_CODES.CSRF_MISMATCH
 }
 
 /**

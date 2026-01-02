@@ -6,7 +6,7 @@
 import { useNuxtApp, useRouter, useRuntimeConfig, useCookie, useRequestEvent } from '#app'
 import { getCookie } from 'h3'
 import type { ApiError } from '~/types'
-import { parseApiError, isAuthError } from '~/utils/errors'
+import { parseApiError, isAuthError, isCsrfError } from '~/utils/errors'
 import { generateUUID } from '~/utils/tokens'
 import { useAuthStore } from '~/stores/auth.store'
 
@@ -63,7 +63,7 @@ function getXsrfToken(): string | null {
   
   // Laravel stores XSRF token in a cookie named XSRF-TOKEN
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
-  if (match) {
+  if (match && match[1]) {
     // The cookie value is URL-encoded
     return decodeURIComponent(match[1])
   }
@@ -250,19 +250,20 @@ export function useApi() {
   }
 
   /**
-   * Core fetch function
+   * Core fetch function with automatic CSRF retry
    */
   async function request<T>(
     endpoint: string,
-    options: ApiRequestOptions = {}
+    options: ApiRequestOptions = {},
+    _csrfRetried = false // Internal flag to prevent infinite retry loops
   ): Promise<T> {
     const { method = 'GET', body, query, retry = 0, credentials = true, ...headerOptions } = options
-    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-    const requiresCsrf = shouldSkipPrefix(normalizedEndpoint)
+    const isMutationRequest = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
     
-    // For modifying requests (POST, PUT, PATCH, DELETE), ensure CSRF cookie is fetched
+    // For ALL modifying requests (POST, PUT, PATCH, DELETE), ensure CSRF cookie is fetched
+    // XSRF is required for: Auth, Identity, Cart, Checkout, Favorites, Comparison, Notifications, Audience
     // Only on client-side and only if XSRF token is not already available
-    if (import.meta.client && requiresCsrf && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    if (import.meta.client && isMutationRequest) {
       const xsrfToken = getXsrfToken()
       if (!xsrfToken) {
         // Fetch CSRF cookie before making the request
@@ -272,7 +273,9 @@ export function useApi() {
     
     const path = buildUrl(endpoint, query, headerOptions)
     const headers = buildHeaders(headerOptions)
-    if (!requiresCsrf) {
+    
+    // For GET requests, XSRF token is not needed
+    if (!isMutationRequest) {
       delete headers['X-XSRF-TOKEN']
     }
 
@@ -285,7 +288,8 @@ export function useApi() {
       authPath => endpoint.startsWith(authPath) || endpoint.includes(authPath)
     )
 
-    // 2. Используем runWithContext, чтобы Nuxt "помнил" себя внутри асинхронного вызова
+    // Используем runWithContext, чтобы Nuxt "помнил" себя внутри асинхронного вызова
+    // Используем явное приведение типа для обхода проблемы "Excessive stack depth" в TypeScript
     return nuxtApp.runWithContext(async () => {
       try {
         return await $fetch<T>(url, {
@@ -295,11 +299,24 @@ export function useApi() {
           retry,
           // Include credentials for session-based auth (cookies)
           credentials: credentials ? 'include' : 'omit',
-        })
+        }) as T
       } catch (error: unknown) {
         const apiError = parseApiError(error)
         
-        // Обработка 401 ошибки
+        // Handle 419 CSRF token mismatch - refresh token and retry once
+        if (isCsrfError(apiError) && !_csrfRetried && import.meta.client && isMutationRequest) {
+          try {
+            // Refresh CSRF token
+            await fetchCsrfCookie()
+            // Retry the request once with fresh token
+            return await request<T>(endpoint, options, true)
+          } catch (retryError) {
+            // If retry fails, throw the original error
+            throw apiError
+          }
+        }
+        
+        // Handle 401 authentication error
         if (isAuthError(apiError) && !isAuthEndpoint && import.meta.client) {
           try {
             // Передаем $pinia явно, чтобы стор не пытался найти её через контекст
@@ -316,7 +333,7 @@ export function useApi() {
         
         throw apiError
       }
-    })
+    }) as Promise<T>
   }
 
   /**

@@ -111,12 +111,7 @@ project/
 │   │   ├─ favorites.vue
 │   │   ├─ comparison.vue
 │   │   │
-│   │   ├─ checkout/
-│   │   │   ├─ index.vue             # /checkout  → start session
-│   │   │   ├─ address.vue           # /checkout/address
-│   │   │   ├─ shipping.vue          # /checkout/shipping
-│   │   │   ├─ payment.vue           # /checkout/payment
-│   │   │   └─ confirm.vue           # /checkout/confirm
+│   │   ├─ checkout.vue              # /checkout → Single-Page Checkout (SPC)
 │   │   │
 │   │   ├─ profile/
 │   │   │   ├─ index.vue
@@ -150,7 +145,7 @@ project/
 │   │   └─ shared/
 │   │
 │   ├─ stores/
-│   │   ├─ auth.store.ts
+│   │   ├─ identity.store.ts         # Identity API (auth, profile, addresses)
 │   │   ├─ system.store.ts
 │   │   ├─ cart.store.ts
 │   │   ├─ catalog.store.ts
@@ -160,11 +155,13 @@ project/
 │   │   ├─ checkout.store.ts
 │   │   ├─ orders.store.ts
 │   │   ├─ blog.store.ts
-│   │   └─ seo.store.ts
+│   │   ├─ seo.store.ts
+│   │   ├─ notifications.store.ts    # Notifications API
+│   │   └─ audience.store.ts         # Audience/Email Marketing API
 │   │
 │   ├─ composables/
 │   │   ├─ useApi.ts
-│   │   ├─ useAuth.ts
+│   │   ├─ useIdentity.ts            # Identity API composable
 │   │   ├─ useCart.ts
 │   │   ├─ useCheckout.ts
 │   │   ├─ useFavorites.ts
@@ -174,7 +171,9 @@ project/
 │   │   ├─ useSeo.ts
 │   │   ├─ useLocaleCurrency.ts
 │   │   ├─ usePagination.ts
-│   │   └─ useDebounce.ts
+│   │   ├─ useDebounce.ts
+│   │   ├─ useNotifications.ts       # Notifications composable
+│   │   └─ useAudience.ts            # Audience composable
 │   │
 │   ├─ middleware/
 │   │   ├─ auth.global.ts
@@ -284,44 +283,74 @@ CSR updates prices based on selected currency
 
 4. Token Architecture
 
-The platform uses three guest tokens and one user token.
+The platform uses three guest tokens and cookie-based authentication.
 
-4.1. User token
-Authorization: Bearer <token>
+4.1. Authentication (Cookie-Based)
 
+**SPA Authorization via Laravel Sanctum (Cookie-Based)**
 
-Stored in:
+Rules:
+- Authentication is session-based via HTTP-only cookies
+- Frontend MUST NOT use Bearer tokens
+- Authorization header is NOT required for authenticated requests
+- CSRF protection is mandatory
 
-Pinia
+Login flow:
+1. `GET /sanctum/csrf-cookie`
+2. `POST /login`
 
-Cookies (SSR safe)
+Logout:
+- `POST /logout`
+
+All authenticated requests rely on HTTP-only session cookies — NOT Authorization headers.
+
+The useApi() composable automatically handles:
+- CSRF cookie retrieval before authenticated requests
+- Session cookie management (HTTP-only, secure)
+- SSR-safe cookie reading
+- Automatic cookie attachment to all requests
+
+### CSRF / XSRF Rules (MANDATORY)
+
+This project uses Laravel Sanctum with cookie-based SPA authorization.
+
+Rules:
+- Any state-changing request (POST, PUT, DELETE) sent from the browser
+  MUST include a valid XSRF token.
+- This applies to BOTH authenticated users and guests.
+
+XSRF is REQUIRED for:
+- Auth & Identity endpoints
+- Address management
+- Notifications
+- Audience (email subscription)
+- Cart mutations (items, options, coupons)
+- Checkout steps
+- Payment initialization
+- Favorites & Comparison mutations
+
+XSRF is NOT required for:
+- Public GET endpoints (catalog, blog, system, SEO)
+
+Frontend MUST:
+1. Call `GET /sanctum/csrf-cookie` once on app init
+2. Ensure all mutation requests include XSRF token automatically
 
 4.2. Guest Tokens
+
 1) X-Guest-Id
-
-Used by:
-
-Favorites
+- Used by: Favorites
+- Stored in: localStorage (CSR) + cookies (SSR fallback)
 
 2) X-Cart-Token
-
-Used by:
-
-Cart
-
-Checkout start
+- Used by: Cart, Checkout start
+- Stored in: localStorage (CSR) + cookies (SSR fallback)
 
 3) X-Comparison-Token
+- Used by: Comparison table
+- Stored in: localStorage (CSR) + cookies (SSR fallback)
 
-Used by:
-
-Comparison table
-
-These are stored in:
-
-localStorage (CSR)
-
-cookies (SSR fallback)
+**Important:** Guest tokens MUST NOT be mixed with authentication cookies.
 
 5. API Access Layer (useApi.ts)
 
@@ -352,12 +381,16 @@ Accept-Language
 Accept-Currency
 
 Header Model:
-Authorization: Bearer ...
-X-Cart-Token: ...
-X-Guest-Id: ...
-X-Comparison-Token: ...
-Accept-Language: en
-Accept-Currency: USD
+X-Cart-Token: ...                    # Guest token (if exists)
+X-Guest-Id: ...                      # Guest token (if exists)
+X-Comparison-Token: ...              # Guest token (if exists)
+Accept-Language: <locale>            # REQUIRED for all requests
+Accept-Currency: <currency>          # REQUIRED for all requests
+
+**Authentication:**
+- Session cookies automatically attached (Laravel Sanctum)
+- NO Authorization: Bearer headers
+- CSRF cookie retrieved before authenticated requests (handled by useApi())
 
 🟦 END OF PART 1
 
@@ -376,43 +409,42 @@ ChatGPT said:
 
 📘 architecture.md — PART 2
 
-+# Identity Module Architecture (NEW)
-+
-+The backend now exposes a new Identity subsystem under:
-+
-+```
-+/api/v1/identity/*
-+```
-+
-+This module replaces or extends the legacy authentication endpoints.
-+
-+### Identity Components:
-+
-+1. **Authentication**
-+   - POST /identity/auth/register  
-+   - POST /identity/auth/login  
-+   - POST /identity/auth/logout  
-+
-+2. **Profile**
-+   - GET /identity/me/profile  
-+
-+3. **Addresses**
-+   - GET /identity/addresses  
-+   - POST /identity/addresses  
-+   - PUT /identity/addresses/{id}  
-+   - DELETE /identity/addresses/{id}
-+
-+### Identity Responsibilities:
-+- centralized authentication
-+- profile detail loading
-+- standardized address CRUD
-+- consistent structure for future modules
-+
-+### Frontend Architecture Impact:
-+- auth.store must use identity API
-+- profile pages must consume identity API
-+- address management must move into identity.store
-+- checkout may reuse identity addresses if available
+6. Identity Module Architecture
+
+The backend exposes an Identity subsystem under `/api/v1/identity/*`.
+
+**Important:** Authentication endpoints use simplified paths (no `/api/v1/identity/auth/` prefix):
+- `POST /register`
+- `POST /login`
+- `POST /logout`
+
+### Identity Components:
+
+1. **Authentication**
+   - POST /register
+   - POST /login (SPA / Sanctum)
+   - POST /logout
+
+2. **Profile**
+   - GET /api/v1/identity/me/profile
+
+3. **Addresses**
+   - GET /api/v1/identity/addresses
+   - POST /api/v1/identity/addresses
+   - PUT /api/v1/identity/addresses/{id}
+   - DELETE /api/v1/identity/addresses/{id}
+
+### Identity Responsibilities:
+- Centralized authentication (cookie-based, Sanctum)
+- Profile detail loading
+- Standardized address CRUD
+- Consistent structure for future modules
+
+### Frontend Architecture Impact:
+- identity.store.ts replaces auth.store.ts
+- Profile pages consume identity API
+- Address management in identity.store
+- Checkout may reuse identity addresses if available
 
 
 (Full Detailed English Version)
@@ -436,134 +468,62 @@ Strong error handling
 
 Below is the complete specification for all stores.
 
-6.1 Auth Store (auth.store.ts)
+6.1 Identity Store (identity.store.ts)
+
+**Replaces:** auth.store.ts
 
 Handles:
-
-registration
-
-login
-
-logout
-
-user hydration
-
-password reset
-
-email verification
-
-profile update
+- registration
+- login (cookie-based, Sanctum)
+- logout
+- user profile hydration
+- password reset
+- email verification
+- address management
 
 State:
+```typescript
 user: null | User
-token: string | null
 loading: boolean
 error: string | null
+addresses: Address[]
 emailVerificationStatus: "idle" | "sent" | "verified" | "error"
 passwordResetStatus: "idle" | "sent" | "reset" | "error"
+```
 
 Actions:
-register(payload)
-
-Calls:
-
-POST /auth/register
-
-login(payload)
-
-Calls:
-
-POST /auth/login
-
-logout()
-
-Calls:
-
-POST /auth/logout
-
-fetchUser()
-
-Calls:
-
-GET /auth/user
+- `register(payload)` → POST /register
+- `login(payload)` → POST /login (with CSRF cookie first)
+- `logout()` → POST /logout
+- `fetchProfile()` → GET /api/v1/identity/me/profile
+- `fetchAddresses()` → GET /api/v1/identity/addresses
+- `createAddress(payload)` → POST /api/v1/identity/addresses
+- `updateAddress(id, payload)` → PUT /api/v1/identity/addresses/{id}
+- `deleteAddress(id)` → DELETE /api/v1/identity/addresses/{id}
 
 Password Reset:
-POST /forgot-password
-POST /reset-password
+- `requestPasswordReset(email)` → POST /forgot-password
+- `resetPassword(payload)` → POST /reset-password
 
 Email Verification:
-GET /verify-email/{id}/{hash}
-POST /email/verification-notification
+- `verifyEmail(id, hash)` → GET /verify-email/{id}/{hash}
+- `resendVerification()` → POST /email/verification-notification
+
+**Authentication Model:**
+- Cookie-based (Laravel Sanctum)
+- HTTP-only session cookies
+- NO Bearer tokens
+- CSRF protection mandatory
 
 
 
-+### Brands (NEW)
-+The catalog now exposes a public list of brands:
-+```
-+GET /api/v1/catalog/brands
-+```
-+This must be integrated into:
-+- catalog.store.ts  
 - brand filters  
 - brand pages (optional)  
 
 
-+# Notifications Architecture (NEW)
-+
-+A brand-new notification subsystem is available under:
-+
-+```
-+/api/v1/notifications/*
-+```
-+
-+This module provides:
-+- notification list  
-- unread counter  
-- notification preferences  
-- read-status update  
-+
-+### Frontend Responsibilities:
-+1. **notifications.store.ts** (NEW)
-+   - fetch notifications  
-+   - mark notification as read  
-+   - load unread count  
-+   - manage preferences  
-+
-+2. **UI**
-+   - notification bell in header  
-+   - unread badge  
-+   - notification center page  
-+   - preferences page  
-+
-+### Notes:
-+- Unread counter must update automatically  
 
 
 
-+---
-+# Audience / Email Marketing Architecture (NEW)
-+
-+The backend now provides a dedicated audience subscription module:
-+
-+```
-+POST   /api/v1/audience/subscribe
-+POST   /api/v1/audience/confirm
-+DELETE /api/v1/audience/unsubscribe
-+```
-+
-+### Purpose:
-+- email marketing  
-- newsletter subscription  
-- subscription confirmation  
-- safe unsubscribe flows  
-+
-+### Frontend Architecture:
-+- audience.store.ts (NEW)
-+  - subscribe()
-+  - confirm()
-+  - unsubscribe()
-+- subscribe form component  
-+- confirmation page (optional)
 
 
 6.2 System Store (system.store.ts)
@@ -591,45 +551,27 @@ GET /system/config
 PUT /system/currency
 PUT /system/locale
 
-6.3 Catalog Store (catalog.store.ts)
-
-Handles:
-
-category listing
-
-product listings
-
-filters
-
-sorting
-
-pagination
-
-State:
-categories: []
-products: []
-filters: {}
-sorting: "default"
-pagination: {
-  page: 1,
-  perPage: 20,
-  total: 0,
-  lastPage: 1
-}
-loading: false
-
 6.4 Product Store (product.store.ts)
 
 Loads a single product variant and its options.
 
+**Variant Resolution:**
+The `{idOrSlug}` parameter supports:
+- numeric variant ID
+- string slug
+
+Frontend must not assume slug-only resolution.
+
 State:
-product: null
-variants: []
-selectedVariant: null
-loading: false
+```typescript
+product: ProductVariant | null
+variants: ProductVariant[]
+selectedVariant: ProductVariant | null
+loading: boolean
+```
 
 API:
-GET /catalog/variants/{idOrSlug}
+- GET /api/v1/catalog/variants/{idOrSlug}
 
 6.5 Cart Store (cart.store.ts)
 
@@ -662,88 +604,92 @@ error: null
 appliedCoupons: []
 
 API:
-Load Cart
-GET /cart
+- Load Cart: GET /api/v1/cart
+- Add Item: POST /api/v1/cart/items
+- Update Item Qty: PUT /api/v1/cart/items/{id}
+- Delete Item: DELETE /api/v1/cart/items/{id}
+- Attach Guest Cart on Login: POST /api/v1/cart/attach
 
-Add Item
-POST /cart/items
+**Cart Coupons (belong to Cart domain, NOT checkout):**
+- Apply Coupon: POST /api/v1/cart/coupons
+- Remove Coupon: DELETE /api/v1/cart/coupons/{code}
 
-Update Item Qty
-PUT /cart/items/{id}
+**Cart Item Options:**
+- Update Item Options: PUT /api/v1/cart/items/{itemId}/options
 
-Delete Item
-DELETE /cart/items/{id}
-
-Attach Guest Cart on Login
-POST /cart/attach
-
-Cart Coupons:
-POST /cart/coupons
-DELETE /cart/coupons/{code}
-
-Cart Item Options:
-PUT /cart/items/{itemId}/options
+**Important:** 
+- Coupons and item options belong to Cart domain
+- Checkout must NOT manage coupons
+- Any cart change (items, quantity, options, coupons) invalidates active checkout session
 
 6.6 Favorites Store (favorites.store.ts)
 
 Stores:
-
-all favorite items
-
-adds/removes favorites
-
-uses guest token (X-Guest-Id)
+- all favorite items
+- adds/removes favorites
+- uses guest token (X-Guest-Id)
 
 API:
-GET /catalog/favorites
-POST /catalog/favorites/{variantId}
-DELETE catalog/favorites/{variantId}
+- GET /api/v1/catalog/favorites
+- POST /api/v1/catalog/favorites/{variantId}
+- DELETE /api/v1/catalog/favorites/{variantId}
 
 6.7 Comparison Store (comparison.store.ts)
 
-Uses token:
-
-X-Comparison-Token
+Uses token: X-Comparison-Token
 
 API:
-GET /catalog/comparison
-POST /catalog/comparison/items
-DELETE /catalog/comparison/items/{id}
-DELETE /catalog/comparison
+- GET /api/v1/catalog/comparison
+- POST /api/v1/catalog/comparison/items
+- DELETE /api/v1/catalog/comparison/items/{variantId} (note: variantId, not id)
+- DELETE /api/v1/catalog/comparison
 
 6.8 Checkout Store (checkout.store.ts)
 
 Handles EVERYTHING related to checkout.
 
+**Single-Page Checkout (SPC):**
+- All steps on one page (`/checkout`)
+- NO separate routes (`/checkout/address`, `/checkout/payment`, etc.)
+- Dynamic UI state management
+
 State (full):
-checkoutId: null
-items: []
+```typescript
+checkoutId: string | null
+currentStep: 'address' | 'shipping' | 'payment' | 'confirm'
+items: CheckoutItem[]
 addresses: {
-  shipping: null,
-  billing: null,
-  billingSameAsShipping: true
+  shipping: Address | null,
+  billing: Address | null,
+  billingSameAsShipping: boolean
 }
-shippingMethods: []
-selectedShipping: null
-paymentProviders: []
-selectedPayment: null
+shippingMethods: ShippingMethod[]
+selectedShippingMethod: ShippingMethod | null
+paymentProviders: PaymentProvider[]
+selectedPaymentProvider: PaymentProvider | null
 pricing: {
-  items: 0,
-  shipping: 0,
-  discounts: 0,
-  total: 0
+  items: number,
+  shipping: number,
+  discounts: number,
+  total: number
 }
-loading: false
-error: null
-status: "idle" | "address" | "shipping" | "payment" | "confirm"
+loading: boolean
+error: string | null
+```
 
 API:
-POST /checkout/start
-PUT /checkout/{id}/address
-GET /shipping/methods
-PUT /checkout/{id}/shipping-method
-PUT /checkout/{id}/payment-provider
-POST /checkout/{id}/confirm
+- POST /api/v1/checkout/start
+- PUT /api/v1/checkout/{id}/address
+- GET /api/v1/shipping/methods
+- PUT /api/v1/checkout/{id}/shipping-method
+- PUT /api/v1/checkout/{id}/payment-provider
+- POST /api/v1/checkout/{id}/confirm
+
+**Important Notes:**
+- Checkout API is responsible ONLY for: order preparation, address, shipping, payment provider selection, order confirmation
+- Checkout does NOT initialize payments
+- Payment initialization happens via: POST /api/v1/payments/{provider}/init (after order confirmation)
+- Any cart change invalidates checkout session → must restart checkout
 
 6.9 Orders Store (orders.store.ts)
 API:
@@ -998,427 +944,3 @@ It is entirely client-side, due to token dependence and user interactivity.
  # Checkout Architecture
  (существующая секция)
 
-+---
-+# Single-Page Checkout Architecture (NEW)
-+
-+The checkout flow must be implemented as a **Single-Page Checkout (SPC)**.
-+
-+This means:
-+- all checkout steps are displayed on **one page**  
-- no multi-page routing (`/checkout/address`, `/checkout/shipping`, etc.)  
-- the user should never leave `/checkout`
-+
-+### The SPA Checkout page must include:
-+1. **Customer information block**
-+   - name
-+   - phone
-+   - email (optional)
-+   - billing details if required
-+
-+2. **Shipping address**
-+   - address form
-+   - “billing = shipping” toggle
-+
-+3. **Shipping methods panel**
-+   - load available shipping methods
-+   - select method
-+
-+4. **Payment methods panel**
-+   - list payment providers
-+   - select provider
-+
-+5. **Cart summary / order summary**
-+   - items
-+   - discounts
-+   - shipping price
-+   - total price
-+
-+6. **Coupons (if available)**
-+   - apply coupon
-+   - remove coupon
-+
-+7. **Order Comments (optional)**
-+
-+8. **Place Order button**
-+
-+All sections must be available on a single page and updated dynamically using:
-+- checkout.store.ts  
-- cart.store.ts  
-- system.store.ts (for currency updates)
-+
-+### API interaction rules remain sequential:
-+1. POST /checkout/start  
-+2. PUT /checkout/{id}/address  
-+3. PUT /checkout/{id}/shipping-method  
-+4. PUT /checkout/{id}/payment-provider  
-+5. POST /checkout/{id}/confirm  
-+
-+However, **the frontend UI must not use separate pages** for these steps.
-+
-+All actions occur dynamically through asynchronous requests from a single Nuxt page:
-+```
-+/checkout
-+```
-+
-+This ensures:
-+- higher conversion
-+- fewer navigation steps
-+- persistent user context
-+- simpler mobile UX
-
-
-9.1 Checkout Steps & Routes
-Step	Route	API
-Start	/checkout	POST /checkout/start
-Shipping/Billing Address	/checkout/address	PUT /checkout/{id}/address
-Shipping Method	/checkout/shipping	GET /shipping/methods
-Payment Provider	/checkout/payment	PUT /checkout/{id}/payment-provider
-Confirm Order	/checkout/confirm	POST /checkout/{id}/confirm
-9.2 Checkout Session Model
-
-Example session object:
-
-{
-  id: "chk_123",
-  items: [ ... ],
-  addresses: {
-    shipping: { ... },
-    billing: { ... },
-    billingSameAsShipping: true
-  },
-  pricing: {
-    items: 10000,
-    shipping: 1500,
-    discounts: 0,
-    total: 11500
-  },
-  selectedShippingMethod: null,
-  selectedPaymentProvider: null
-}
-
-9.3 Error Handling (Edge Cases)
-❗ Cart Changed During Checkout
-
-If prices or quantity changed:
-
-422 CART_CHANGED
-→ reload cart
-→ restart checkout
-
-❗ Shipping method invalid
-
-Customer selected outdated shipping method.
-
-422 INVALID_SHIPPING
-→ fetch shipping methods again
-
-❗ Payment provider unavailable
-
-If provider is temporarily disabled → show error & reload providers.
-
-9.4 Checkout Must Be CSR Only
-
-Reasons:
-
-Depends on local guest/cart tokens
-
-Sensitive payment provider logic
-
-Prevents double-charging
-
-SSR has no access to payment redirects
-
-SSR mismatches would break checkout
-
-9.5 Checkout UI Components
-
-CheckoutStepper.vue
-
-AddressForm.vue
-
-ShippingMethodCard.vue
-
-PaymentProviderCard.vue
-
-OrderSummary.vue
-
-CheckoutButton.vue
-
-10. Component Architecture (Atomic Design)
-
-The entire UI is organized into:
-
-atoms
-molecules
-organisms
-templates
-pages
-
-10.1 Atoms
-
-Smallest reusable components.
-
-Examples:
-
-Buttons
-
-Inputs
-
-Radio / Checkbox
-
-Badge
-
-Price formatting block
-
-Stars rating
-
-10.2 Molecules
-
-Combination of atoms.
-
-Examples:
-
-ProductCard
-
-Pagination
-
-Breadcrumbs
-
-Filter tags
-
-BlogPostCard
-
-10.3 Organisms
-
-Full-featured UI blocks.
-
-Examples:
-
-FiltersSidebar
-
-ProductGallery
-
-CartItem
-
-CheckoutForm
-
-BlogArticle
-
-10.4 Templates
-
-Page layouts.
-
-DefaultLayout.vue
-
-CheckoutLayout.vue
-
-ProfileLayout.vue
-
-11. Data Flow Architecture
-
-Below are high-level system flows.
-
-11.1 Product Page Load Flow
-SSR Request
- → load system config
- → load SEO metadata
- → GET /catalog/variants/{idOrSlug}
- → hydrate product.store
- → render product page
-client hydration
-
-11.2 Catalog Filter Flow
-UI filters changed
- → store.updateFilters()
- → GET /catalog/products?filters...
- → update product list
-
-11.3 Favorites Flow
-toggle favorite
- → POST/DELETE /favorites/{id}
- → refetch /favorites
-
-11.4 Comparison Flow
-add item
- → POST /comparison/items
-load
- → GET /comparison
-remove item
- → DELETE /comparison/items/{id}
-
-11.5 Cart Flow
-Add item
- → POST /cart/items
-Update qty
- → PUT /cart/items/{id}
-Apply coupon
- → POST /cart/coupons
-Update item options
- → PUT /cart/items/{itemId}/options
-
-11.6 Checkout Flow
-Load cart
- → POST /checkout/start
-Provide address
- → PUT /checkout/{id}/address
-Load shipping methods
- → GET /shipping/methods
-Select method
- → PUT /checkout/{id}/shipping-method
-Select payment
- → PUT /checkout/{id}/payment-provider
-Confirm
- → POST /checkout/{id}/confirm
-Redirect to order
-
-12. ERD Models
-
-(High-level conceptual diagrams)
-
-12.1 Product Variant ERD
-Product
- ├─ id
- ├─ title
- └─ variants[]
-        ├─ id
-        ├─ sku
-        ├─ slug
-        ├─ attribute_values[]
-        └─ images[]
-
-12.2 Cart ERD
-Cart
- ├─ id
- ├─ items[]
- │    ├─ id
- │    ├─ variant
- │    ├─ quantity
- │    ├─ price_minor
- │    └─ total_minor
- └─ totals{}
-
-12.3 Checkout ERD
-Checkout
- ├─ id
- ├─ items[]
- ├─ addresses{}
- ├─ shipping_method
- ├─ payment_provider
- ├─ pricing{}
- └─ status
-
-13. Security Architecture
-13.1 Auth
-
-Bearer token auth
-
-Sensitive auth pages CSR
-
-No SSR with user tokens
-
-13.2 Input Validation
-
-Use shared validators for:
-
-Address
-
-Phone
-
-Email
-
-Password
-
-13.3 CSRF
-
-Not required for REST API (token based).
-Nuxt handles cookies in SSR context.
-
-13.4 Payments
-
-
-
-No sensitive data stored on frontend
-
-Redirects must happen in CSR mode
-
-Payment provider selection is validated server-side
-
-14. Performance Strategy
-14.1 Catalog
-
-SSR cache
-
-Lazy loading filters
-
-Component-level caching
-
-14.2 Product
-
-Lazy load images
-
-Prefetch gallery preview
-
-14.3 Blog
-
-Pagination
-
-Partial SSR hydration
-
-14.4 Checkout
-
-Optimize requests:
-
-debounce address changes
-
-preload methods
-
-15. Error Handling Strategy
-15.1 Centralized Error Layer (utils/errors.ts)
-
-Handles:
-
-400 — invalid input
-
-401 — unauthorized
-
-403 — forbidden
-
-404 — not found
-
-422 — validation
-
-500 — server error
-
-15.2 Global Error UI
-
-ErrorBanner
-
-Inline field errors
-
-Retry button
-
-Toast notifications
-
-15.3 SSR Errors
-
-Pages must gracefully fall back to client rendering.
-
-🟦 END OF PART 3
-
-
-
-## Currency & Locale Reactive Update Rules (ADDED)
-
-Whenever the user changes currency or locale, the frontend must automatically refresh
-any price-dependent or locale-dependent data.
-
-- cart store reloads totals
-- product store reloads variant
-- catalog listing reloads products
-- checkout pricing refreshed
-- SEO metadata refreshed
-
-## Locale-Specific SEO Metadata (ADDED)
-
-SEO metadata is locale-dependent and must always be fetched through:
-Accept-Language: <currentLocale>

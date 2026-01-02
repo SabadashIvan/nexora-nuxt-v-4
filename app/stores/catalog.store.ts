@@ -333,18 +333,35 @@ export const useCatalogStore = defineStore('catalog', {
     },
 
     /**
-     * Fetch brands
+     * Fetch all brands
+     * GET /api/v1/catalog/brands
      * @param providedApi - Optional API instance (to preserve context after await)
      */
     async fetchBrands(providedApi?: ReturnType<typeof useApi>): Promise<void> {
       // Use provided API if available, otherwise create new one (for client-side calls)
       const api = providedApi || useApi()
+      this.loading = true
 
       try {
-        const brands = await api.get<Brand[]>('/catalog/brands')
+        const response = await api.get<Brand[] | { data: Brand[] }>('/catalog/brands')
+        
+        // Handle both direct response and wrapped response
+        let brands: Brand[]
+        if (Array.isArray(response)) {
+          brands = response
+        } else if (response && 'data' in response && Array.isArray(response.data)) {
+          brands = response.data
+        } else {
+          console.warn('Unexpected brands response format:', response)
+          brands = []
+        }
+        
         this.brands = brands
       } catch (error) {
         console.error('Fetch brands error:', error)
+        this.brands = []
+      } finally {
+        this.loading = false
       }
     },
 

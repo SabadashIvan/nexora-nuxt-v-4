@@ -63,7 +63,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.first_name"
           type="text"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('first_name') }"
         >
         <p v-if="getError('first_name')" class="mt-1 text-sm text-red-500">
@@ -80,7 +80,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.last_name"
           type="text"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('last_name') }"
         >
         <p v-if="getError('last_name')" class="mt-1 text-sm text-red-500">
@@ -97,7 +97,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.phone"
           type="tel"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('phone') }"
         >
         <p v-if="getError('phone')" class="mt-1 text-sm text-red-500">
@@ -113,7 +113,7 @@ function getError(field: keyof Address): string | undefined {
         <input
           v-model="form.email"
           type="email"
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('email') }"
         >
         <p v-if="getError('email')" class="mt-1 text-sm text-red-500">
@@ -130,7 +130,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.country"
           type="text"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('country') }"
         >
         <p v-if="getError('country')" class="mt-1 text-sm text-red-500">
@@ -147,7 +147,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.region"
           type="text"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('region') }"
         >
         <p v-if="getError('region')" class="mt-1 text-sm text-red-500">
@@ -164,7 +164,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.city"
           type="text"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('city') }"
         >
         <p v-if="getError('city')" class="mt-1 text-sm text-red-500">
@@ -181,7 +181,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.postal"
           type="text"
           required
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('postal') }"
         >
         <p v-if="getError('postal')" class="mt-1 text-sm text-red-500">
@@ -199,7 +199,7 @@ function getError(field: keyof Address): string | undefined {
           type="text"
           required
           placeholder="Street address"
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
           :class="{ 'ring-2 ring-red-500': getError('address_line_1') }"
         >
         <p v-if="getError('address_line_1')" class="mt-1 text-sm text-red-500">
@@ -216,7 +216,7 @@ function getError(field: keyof Address): string | undefined {
           v-model="form.address_line_2"
           type="text"
           placeholder="Optional"
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-indigo-500"
         >
       </div>
     </div>
