@@ -12,16 +12,15 @@ import type {
   LoginPayload, 
   RegisterPayload, 
   ForgotPasswordPayload,
-  ForgotPasswordResponse,
   ResetPasswordPayload,
-  ResetPasswordResponse,
   EmailVerificationStatus,
   PasswordResetStatus,
   IdentityAddress,
   CreateAddressPayload,
   UpdateAddressPayload,
 } from '~/types'
-import { parseApiError, getFieldErrors, getErrorMessage } from '~/utils/errors'
+import type { ApiResponse } from '~/types/common'
+import { parseApiError, getFieldErrors, getErrorMessage, getAuthErrorMessage } from '~/utils/errors'
 
 interface AuthState {
   user: User | null
@@ -61,7 +60,7 @@ export const useAuthStore = defineStore('auth', {
      * Get user's name
      */
     userName: (state): string | null => {
-      return state.user?.name || null
+      return state.user?.full_name || null
     },
 
     /**
@@ -133,10 +132,11 @@ export const useAuthStore = defineStore('auth', {
         await nuxtApp.runWithContext(async () => await api.post('/login', payload))
         
         // Fetch user data via Identity API
-        const user = await nuxtApp.runWithContext(async () => 
-          await api.get<User>('/identity/me/profile')
+        const response = await nuxtApp.runWithContext(async () => 
+          await api.get<ApiResponse<User> | User>('/identity/me/profile')
         )
-        this.user = user
+        // Handle wrapped response - check if data is wrapped
+        this.user = ('data' in response && response.data) ? response.data : response as User
 
         // Attach guest cart to user - capture store before await
         const cartStore = useCartStore()
@@ -145,7 +145,7 @@ export const useAuthStore = defineStore('auth', {
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        this.error = apiError.message
+        this.error = getAuthErrorMessage('login', apiError)
         this.fieldErrors = getFieldErrors(apiError)
         return false
       } finally {
@@ -170,15 +170,16 @@ export const useAuthStore = defineStore('auth', {
         await nuxtApp.runWithContext(async () => await api.post('/register', payload))
         
         // Fetch user data via Identity API
-        const user = await nuxtApp.runWithContext(async () => 
-          await api.get<User>('/identity/me/profile')
+        const response = await nuxtApp.runWithContext(async () => 
+          await api.get<ApiResponse<User> | User>('/identity/me/profile')
         )
-        this.user = user
+        // Handle wrapped response - check if data is wrapped
+        this.user = ('data' in response && response.data) ? response.data : response as User
 
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        this.error = apiError.message
+        this.error = getAuthErrorMessage('register', apiError)
         this.fieldErrors = getFieldErrors(apiError)
         return false
       } finally {
@@ -221,10 +222,11 @@ export const useAuthStore = defineStore('auth', {
       this.clearErrors()
 
       try {
-        const user = await nuxtApp.runWithContext(async () => 
-          await api.get<User>('/identity/me/profile')
+        const response = await nuxtApp.runWithContext(async () => 
+          await api.get<ApiResponse<User> | User>('/identity/me/profile')
         )
-        this.user = user
+        // Handle wrapped response - check if data is wrapped
+        this.user = ('data' in response && response.data) ? response.data : response as User
         return true
       } catch {
         // Session is invalid or expired
@@ -238,6 +240,7 @@ export const useAuthStore = defineStore('auth', {
     /**
      * Request password reset email
      * CSRF cookie is automatically handled by useApi() with 419 retry
+     * Returns 204 No Content on success
      */
     async forgotPassword(payload: ForgotPasswordPayload): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -248,16 +251,15 @@ export const useAuthStore = defineStore('auth', {
       this.passwordResetStatus = 'idle'
 
       try {
-        const response = await nuxtApp.runWithContext(async () => 
-          await api.post<ForgotPasswordResponse>('/forgot-password', payload)
+        // Returns 204 No Content on success
+        await nuxtApp.runWithContext(async () => 
+          await api.post<void>('/forgot-password', payload)
         )
         this.passwordResetStatus = 'sent'
-        // Response contains: { status: "We have emailed your password reset link." }
-        console.log('Password reset email sent:', response.status)
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        this.error = apiError.message
+        this.error = getAuthErrorMessage('forgot-password', apiError)
         this.fieldErrors = getFieldErrors(apiError)
         this.passwordResetStatus = 'error'
         return false
@@ -269,6 +271,7 @@ export const useAuthStore = defineStore('auth', {
     /**
      * Reset password with token
      * CSRF cookie is automatically handled by useApi() with 419 retry
+     * Returns 204 No Content on success
      */
     async resetPassword(payload: ResetPasswordPayload): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -278,16 +281,15 @@ export const useAuthStore = defineStore('auth', {
       this.clearErrors()
 
       try {
-        const response = await nuxtApp.runWithContext(async () => 
-          await api.post<ResetPasswordResponse>('/reset-password', payload)
+        // Returns 204 No Content on success
+        await nuxtApp.runWithContext(async () => 
+          await api.post<void>('/reset-password', payload)
         )
         this.passwordResetStatus = 'reset'
-        // Response contains: { status: "Your password has been reset." }
-        console.log('Password reset successful:', response.status)
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        this.error = apiError.message
+        this.error = getAuthErrorMessage('reset-password', apiError)
         this.fieldErrors = getFieldErrors(apiError)
         this.passwordResetStatus = 'error'
         return false

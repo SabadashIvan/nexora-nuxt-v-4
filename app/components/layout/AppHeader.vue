@@ -8,6 +8,7 @@ import {
   Search,
   X,
   Loader2,
+  LogOut,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
@@ -61,6 +62,14 @@ const isAuthenticated = computed(() => {
   }
 })
 
+const userName = computed(() => {
+  try {
+    return useAuthStore().userName
+  } catch {
+    return null
+  }
+})
+
 const categories = computed(() => {
   try {
     return useCatalogStore().rootCategories
@@ -82,6 +91,25 @@ const currentCurrency = computed(() => {
     return { code: 'USD', symbol: '$', name: 'US Dollar' }
   }
 })
+
+// Logout handler
+const isLoggingOut = ref(false)
+const router = useRouter()
+
+async function handleLogout() {
+  if (isLoggingOut.value) return
+  
+  isLoggingOut.value = true
+  try {
+    const authStore = useAuthStore()
+    await authStore.logout()
+    await router.push('/')
+  } catch (error) {
+    console.error('Logout error:', error)
+  } finally {
+    isLoggingOut.value = false
+  }
+}
 
 function handleSearchSelect(query: string) {
   navigateTo({
@@ -271,28 +299,40 @@ onMounted(async () => {
             <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
               <!-- Auth links (desktop) -->
               <div class="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
-                <NuxtLink
-                  v-if="!isAuthenticated"
-                  to="/auth/login"
-                  class="text-sm font-medium text-gray-700 hover:text-gray-800"
-                >
-                  Sign in
-                </NuxtLink>
-                <span v-if="!isAuthenticated" aria-hidden="true" class="h-6 w-px bg-gray-200" />
-                <NuxtLink
-                  v-if="!isAuthenticated"
-                  to="/auth/register"
-                  class="text-sm font-medium text-gray-700 hover:text-gray-800"
-                >
-                  Create account
-                </NuxtLink>
-                <NuxtLink
-                  v-else
-                  to="/profile"
-                  class="text-sm font-medium text-gray-700 hover:text-gray-800"
-                >
-                  Profile
-                </NuxtLink>
+                <template v-if="!isAuthenticated">
+                  <NuxtLink
+                    to="/auth/login"
+                    class="text-sm font-medium text-gray-700 hover:text-gray-800"
+                  >
+                    Sign in
+                  </NuxtLink>
+                  <span aria-hidden="true" class="h-6 w-px bg-gray-200" />
+                  <NuxtLink
+                    to="/auth/register"
+                    class="text-sm font-medium text-gray-700 hover:text-gray-800"
+                  >
+                    Create account
+                  </NuxtLink>
+                </template>
+                <template v-else>
+                  <NuxtLink
+                    to="/profile"
+                    class="text-sm font-medium text-gray-700 hover:text-gray-800"
+                  >
+                    <span v-if="userName">Profile ({{ userName }})</span>
+                    <span v-else>Profile</span>
+                  </NuxtLink>
+                  <span aria-hidden="true" class="h-6 w-px bg-gray-200" />
+                  <button
+                    type="button"
+                    :disabled="isLoggingOut"
+                    @click="handleLogout"
+                    class="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <LogOut class="h-4 w-4" />
+                    <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+                  </button>
+                </template>
               </div>
 
               <!-- Currency selector (desktop) -->

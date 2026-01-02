@@ -835,6 +835,13 @@ const gridImages = computed(() => {
             </div>
           </div>
         </div>
+
+        <!-- Product Reviews Section -->
+        <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8 pb-16">
+          <ClientOnly>
+            <ProductReviews :product-id="product.product_id" />
+          </ClientOnly>
+        </div>
       </div>
     </div>
   </div>
