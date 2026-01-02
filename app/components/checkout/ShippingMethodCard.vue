@@ -24,7 +24,7 @@ const emit = defineEmits<{
     class="w-full p-4 rounded-lg border-2 text-left transition-colors"
     :class="[
       selected
-        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600',
     ]"
     @click="emit('select')"
@@ -35,7 +35,7 @@ const emit = defineEmits<{
         class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
         :class="[
           selected 
-            ? 'bg-primary-500 text-white' 
+            ? 'bg-indigo-500 text-white' 
             : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
         ]"
       >
@@ -61,7 +61,7 @@ const emit = defineEmits<{
       <!-- Check mark -->
       <div 
         v-if="selected"
-        class="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center"
+        class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center"
       >
         <Check class="h-4 w-4 text-white" />
       </div>

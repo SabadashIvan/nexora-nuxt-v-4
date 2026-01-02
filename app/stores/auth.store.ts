@@ -1,7 +1,8 @@
 /**
- * Auth Store
- * Handles user authentication, registration, password reset, email verification
+ * Auth Store (Identity Store)
+ * Handles user authentication, registration, password reset, email verification, addresses
  * Uses Laravel Sanctum session-based SPA authentication
+ * Identity API: /api/v1/identity/*
  */
 
 import { defineStore } from 'pinia'
@@ -16,12 +17,17 @@ import type {
   ResetPasswordResponse,
   EmailVerificationStatus,
   PasswordResetStatus,
+  IdentityAddress,
+  CreateAddressPayload,
+  UpdateAddressPayload,
 } from '~/types'
-import { parseApiError, getFieldErrors } from '~/utils/errors'
+import { parseApiError, getFieldErrors, getErrorMessage } from '~/utils/errors'
 
 interface AuthState {
   user: User | null
+  addresses: IdentityAddress[]
   loading: boolean
+  addressLoading: boolean
   error: string | null
   fieldErrors: Record<string, string>
   emailVerificationStatus: EmailVerificationStatus
@@ -33,7 +39,9 @@ interface AuthState {
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
+    addresses: [],
     loading: false,
+    addressLoading: false,
     error: null,
     fieldErrors: {},
     emailVerificationStatus: 'idle',
@@ -69,6 +77,34 @@ export const useAuthStore = defineStore('auth', {
     isEmailVerified: (state): boolean => {
       return !!state.user?.email_verified_at
     },
+
+    /**
+     * Get default shipping address
+     */
+    defaultShippingAddress: (state): IdentityAddress | null => {
+      return state.addresses.find(a => a.type === 'shipping' && a.is_default) || null
+    },
+
+    /**
+     * Get default billing address
+     */
+    defaultBillingAddress: (state): IdentityAddress | null => {
+      return state.addresses.find(a => a.type === 'billing' && a.is_default) || null
+    },
+
+    /**
+     * Get shipping addresses
+     */
+    shippingAddresses: (state): IdentityAddress[] => {
+      return state.addresses.filter(a => a.type === 'shipping')
+    },
+
+    /**
+     * Get billing addresses
+     */
+    billingAddresses: (state): IdentityAddress[] => {
+      return state.addresses.filter(a => a.type === 'billing')
+    },
   },
 
   actions: {
@@ -82,9 +118,7 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * Login user (session-based)
-     * 1. Fetch CSRF cookie
-     * 2. POST to /login
-     * 3. Fetch user data
+     * CSRF cookie is automatically handled by useApi() with 419 retry
      */
     async login(payload: LoginPayload): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -94,15 +128,13 @@ export const useAuthStore = defineStore('auth', {
       this.clearErrors()
 
       try {
-        // Step 1: Get CSRF cookie
-        await nuxtApp.runWithContext(async () => await api.fetchCsrfCookie())
-        
-        // Step 2: Login (returns 204 No Content)
+        // Login (returns 204 No Content)
+        // CSRF is auto-fetched by useApi if missing, and auto-retried on 419
         await nuxtApp.runWithContext(async () => await api.post('/login', payload))
         
-        // Step 3: Fetch user data
+        // Fetch user data via Identity API
         const user = await nuxtApp.runWithContext(async () => 
-          await api.get<User>('/auth/user')
+          await api.get<User>('/identity/me/profile')
         )
         this.user = user
 
@@ -123,9 +155,7 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * Register new user (session-based)
-     * 1. Fetch CSRF cookie
-     * 2. POST to /register
-     * 3. Fetch user data
+     * CSRF cookie is automatically handled by useApi() with 419 retry
      */
     async register(payload: RegisterPayload): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -135,15 +165,13 @@ export const useAuthStore = defineStore('auth', {
       this.clearErrors()
 
       try {
-        // Step 1: Get CSRF cookie
-        await nuxtApp.runWithContext(async () => await api.fetchCsrfCookie())
-        
-        // Step 2: Register (returns 204 No Content)
+        // Register (returns 204 No Content)
+        // CSRF is auto-fetched by useApi if missing, and auto-retried on 419
         await nuxtApp.runWithContext(async () => await api.post('/register', payload))
         
-        // Step 3: Fetch user data
+        // Fetch user data via Identity API
         const user = await nuxtApp.runWithContext(async () => 
-          await api.get<User>('/auth/user')
+          await api.get<User>('/identity/me/profile')
         )
         this.user = user
 
@@ -181,8 +209,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /**
-     * Fetch current user (session-based)
-     * Tries to get user data using existing session cookie
+     * Fetch current user profile (session-based)
+     * Tries to get user data using existing session cookie via Identity API
      */
     async fetchUser(): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -194,7 +222,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const user = await nuxtApp.runWithContext(async () => 
-          await api.get<User>('/auth/user')
+          await api.get<User>('/identity/me/profile')
         )
         this.user = user
         return true
@@ -209,6 +237,7 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * Request password reset email
+     * CSRF cookie is automatically handled by useApi() with 419 retry
      */
     async forgotPassword(payload: ForgotPasswordPayload): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -219,9 +248,6 @@ export const useAuthStore = defineStore('auth', {
       this.passwordResetStatus = 'idle'
 
       try {
-        // Get CSRF cookie first
-        await nuxtApp.runWithContext(async () => await api.fetchCsrfCookie())
-        
         const response = await nuxtApp.runWithContext(async () => 
           await api.post<ForgotPasswordResponse>('/forgot-password', payload)
         )
@@ -242,6 +268,7 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * Reset password with token
+     * CSRF cookie is automatically handled by useApi() with 419 retry
      */
     async resetPassword(payload: ResetPasswordPayload): Promise<boolean> {
       // Capture Nuxt context at the start to preserve it after await
@@ -251,9 +278,6 @@ export const useAuthStore = defineStore('auth', {
       this.clearErrors()
 
       try {
-        // Get CSRF cookie first
-        await nuxtApp.runWithContext(async () => await api.fetchCsrfCookie())
-        
         const response = await nuxtApp.runWithContext(async () => 
           await api.post<ResetPasswordResponse>('/reset-password', payload)
         )
@@ -344,12 +368,115 @@ export const useAuthStore = defineStore('auth', {
       this.initialized = true
     },
 
+    // ==========================================
+    // Address Management (Identity API)
+    // ==========================================
+
+    /**
+     * Fetch user addresses
+     * GET /api/v1/identity/addresses
+     */
+    async fetchAddresses(): Promise<void> {
+      const api = useApi()
+      this.addressLoading = true
+      this.error = null
+
+      try {
+        const addresses = await api.get<IdentityAddress[]>('/identity/addresses')
+        this.addresses = addresses
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        console.error('Fetch addresses error:', error)
+      } finally {
+        this.addressLoading = false
+      }
+    },
+
+    /**
+     * Create new address
+     * POST /api/v1/identity/addresses
+     */
+    async createAddress(payload: CreateAddressPayload): Promise<IdentityAddress | null> {
+      const api = useApi()
+      this.addressLoading = true
+      this.error = null
+      this.fieldErrors = {}
+
+      try {
+        const address = await api.post<IdentityAddress>('/identity/addresses', payload)
+        this.addresses.push(address)
+        return address
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Create address error:', error)
+        return null
+      } finally {
+        this.addressLoading = false
+      }
+    },
+
+    /**
+     * Update existing address
+     * PUT /api/v1/identity/addresses/{id}
+     */
+    async updateAddress(id: number, payload: UpdateAddressPayload): Promise<IdentityAddress | null> {
+      const api = useApi()
+      this.addressLoading = true
+      this.error = null
+      this.fieldErrors = {}
+
+      try {
+        const address = await api.put<IdentityAddress>(`/identity/addresses/${id}`, payload)
+        // Update in local state
+        const index = this.addresses.findIndex(a => a.id === id)
+        if (index !== -1) {
+          this.addresses[index] = address
+        }
+        return address
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Update address error:', error)
+        return null
+      } finally {
+        this.addressLoading = false
+      }
+    },
+
+    /**
+     * Delete address
+     * DELETE /api/v1/identity/addresses/{id}
+     */
+    async deleteAddress(id: number): Promise<boolean> {
+      const api = useApi()
+      this.addressLoading = true
+      this.error = null
+
+      try {
+        await api.delete(`/identity/addresses/${id}`)
+        // Remove from local state
+        this.addresses = this.addresses.filter(a => a.id !== id)
+        return true
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        console.error('Delete address error:', error)
+        return false
+      } finally {
+        this.addressLoading = false
+      }
+    },
+
     /**
      * Reset store state
      */
     reset() {
       this.user = null
+      this.addresses = []
       this.loading = false
+      this.addressLoading = false
       this.error = null
       this.fieldErrors = {}
       this.emailVerificationStatus = 'idle'

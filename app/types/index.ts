@@ -16,4 +16,6 @@ export * from './orders'
 export * from './blog'
 export * from './seo'
 export * from './menu'
+export * from './notifications'
+export * from './audience'
 

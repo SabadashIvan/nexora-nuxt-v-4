@@ -1,5 +1,5 @@
 /**
- * Authentication domain types
+ * Authentication & Identity domain types
  * Session-based authentication (Laravel Sanctum SPA mode)
  */
 
@@ -10,6 +10,49 @@ export interface User {
   email_verified_at?: string | null
   created_at?: string
   updated_at?: string
+}
+
+/**
+ * Identity Address types for /api/v1/identity/addresses
+ */
+export type IdentityAddressType = 'shipping' | 'billing'
+
+export interface IdentityAddress {
+  id: number
+  type: IdentityAddressType
+  first_name: string
+  last_name: string
+  street: string
+  city: string
+  country: string
+  postal_code: string
+  phone?: string
+  is_default?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface CreateAddressPayload {
+  type: IdentityAddressType
+  first_name: string
+  last_name: string
+  street: string
+  city: string
+  country: string
+  postal_code: string
+  phone?: string
+  is_default?: boolean
+}
+
+export interface UpdateAddressPayload {
+  first_name?: string
+  last_name?: string
+  street?: string
+  city?: string
+  country?: string
+  postal_code?: string
+  phone?: string
+  is_default?: boolean
 }
 
 export interface LoginPayload {

@@ -9,9 +9,9 @@ import { getActivePinia } from 'pinia'
 import { useAuthStore } from '~/stores/auth.store'
 
 // Routes that require authentication
+// Note: /checkout is NOT protected - guest checkout is allowed with X-Cart-Token
 const PROTECTED_ROUTES = [
   '/profile',
-  '/checkout',
 ]
 
 // Routes only for guests (logged-out users)

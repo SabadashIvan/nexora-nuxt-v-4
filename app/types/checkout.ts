@@ -25,15 +25,35 @@ export interface CheckoutAddresses {
   billingSameAsShipping: boolean
 }
 
+/**
+ * Shipping method from API
+ * Uses code as identifier, price_minor in cents
+ */
 export interface ShippingMethod {
-  id: number
+  /** Unique method code (used for selection) */
   code: string
+  /** Display name */
   name: string
-  description?: string
-  price: number
+  /** Source of the shipping method */
+  source: string
+  /** Price in minor units (cents) */
+  price_minor: number
+  /** Estimated time of arrival (can be null) */
+  eta: string | null
+  /** Quote ID for this shipping option */
+  quote_id: string
+}
+
+/**
+ * API response for shipping methods
+ */
+export interface ShippingMethodsResponse {
+  /** Currency for all prices */
   currency: string
-  estimated_days?: number
-  estimated_delivery?: string
+  /** Available shipping methods */
+  methods: ShippingMethod[]
+  /** Cache TTL in seconds */
+  cache_ttl_seconds: number
 }
 
 export interface PaymentProvider {
@@ -75,6 +95,7 @@ export interface CheckoutState {
   items: CheckoutItem[]
   addresses: CheckoutAddresses
   shippingMethods: ShippingMethod[]
+  shippingCurrency: string | null
   selectedShipping: ShippingMethod | null
   paymentProviders: PaymentProvider[]
   selectedPayment: PaymentProvider | null
@@ -84,14 +105,35 @@ export interface CheckoutState {
   error: string | null
 }
 
-export interface UpdateAddressPayload {
+// Start checkout payload
+export interface StartCheckoutPayload {
+  billing_same_as_shipping: boolean
+}
+
+// Start checkout response
+export interface StartCheckoutResponse {
+  id: string
+  items: CheckoutItem[]
+  pricing: CheckoutPricing
+  addresses: CheckoutAddresses
+}
+
+// API response wrapper (backend may wrap in { data: ... })
+export interface CheckoutApiResponse<T> {
+  data: T
+}
+
+export interface CheckoutUpdateAddressPayload {
   shipping_address: Address
   billing_address?: Address
   billing_same_as_shipping: boolean
 }
 
 export interface SetShippingMethodPayload {
-  method_id: number
+  /** Shipping method code */
+  method_code: string
+  /** Quote ID from shipping methods response */
+  quote_id?: string
 }
 
 export interface SetPaymentProviderPayload {

@@ -25,15 +25,44 @@ authentication rules
 
 notes and constraints
 
-1. Authentication API
+## Authentication & Security Model
 
-Authentication is token-based (Bearer <token>).
+This API uses **SPA Authorization via Laravel Sanctum (cookie-based)**.
 
-Guest access is allowed for most public endpoints.
-User-specific endpoints require authorization.
+Rules:
+- Authentication is session-based
+- Frontend MUST NOT use Bearer tokens
+- Authorization header is NOT required for authenticated requests
+- CSRF protection is mandatory
 
-1.1 Register User
-POST /api/v1/auth/register
+Frontend login flow:
+1. `GET /sanctum/csrf-cookie`
+2. `POST /login`
+
+All authenticated requests rely on HTTP-only cookies.
+
+### ⚠️ Legacy Authentication (DEPRECATED)
+
+The following endpoints are deprecated and must NOT be used by frontend:
+
+- `/api/v1/auth/login`
+- `/api/v1/auth/register`
+- `/api/v1/auth/logout`
+- `/api/v1/auth/user`
+
+Use **Identity API** instead:
+- `/login`
+- `/register`
+- `/logout`
+- `/api/v1/identity/me/profile`
+
+1. Identity API (NEW)
+
+Identity API is cookie-based (Sanctum).
+Do NOT use Bearer tokens on frontend.
+
+1.1 Register
+POST /register
 
 Body:
 
@@ -44,16 +73,14 @@ Body:
   "password_confirmation": "password"
 }
 
-
 Response:
 
 {
-  "user": {...},
-  "token": "..."
+  "user": {...}
 }
 
-1.2 Login
-POST /api/v1/auth/login
+1.2 Login (SPA / Sanctum)
+POST /login
 
 Body:
 
@@ -62,23 +89,21 @@ Body:
   "password": "password"
 }
 
-
 Response:
 
 {
-  "user": {...},
-  "token": "..."
+  "user": {...}
 }
 
 1.3 Logout
-POST /api/v1/auth/logout
+POST /logout
 
-Requires Authorization header
+Requires authentication via cookies.
 
-1.4 Get Authenticated User
-GET /api/v1/auth/user
+1.4 Get Profile
+GET /api/v1/identity/me/profile
 
-Requires user token.
+Requires authentication via cookies.
 
 Response:
 
@@ -87,6 +112,43 @@ Response:
   "name": "John Doe",
   "email": "..."
 }
+
+1.5 Addresses
+
+1.5.1 Get Addresses
+GET /api/v1/identity/addresses
+
+1.5.2 Create Address
+POST /api/v1/identity/addresses
+
+Body:
+
+{
+  "type": "shipping",
+  "first_name": "John",
+  "last_name": "Doe",
+  "street": "123 Main St",
+  "city": "New York",
+  "country": "US",
+  "postal_code": "10001"
+}
+
+1.5.3 Update Address
+PUT /api/v1/identity/addresses/{id}
+
+Body:
+
+{
+  "first_name": "John",
+  "last_name": "Doe",
+  "street": "123 Main St",
+  "city": "New York",
+  "country": "US",
+  "postal_code": "10001"
+}
+
+1.5.4 Delete Address
+DELETE /api/v1/identity/addresses/{id}
 
 2. Email Verification API
 
@@ -151,22 +213,6 @@ feature toggles
 
 
 
-+# Notifications API (NEW)
-+
-+### Get Notifications
-+**GET** `/api/v1/notifications`
-+
-+### Get Unread Count
-+**GET** `/api/v1/notifications/count`
-+
-+### Update Notification Preferences
-+**POST** `/api/v1/notifications/preferences`
-+
-+### Update Specific Channel Preferences
-+**PUT** `/api/v1/notifications/preferences/{channel}/{group}`
-+
-+### Mark Notification as Read
-+**POST** `/api/v1/notifications/{id}/read`
 
 4.2 Set Locale
 PUT /api/v1/system/locale
@@ -186,24 +232,100 @@ Body:
 GET /api/v1/system/locales
 4.5 List Currencies
 GET /api/v1/system/currencies
-5. Catalog API
-5.1 Get All Categories
+
+5. Notifications API (NEW)
+
+5.1 List Notifications
+GET /api/v1/notifications
+
+Query params:
+
+page
+per_page
+
+Response:
+
+{
+  "data": [...],
+  "meta": {
+    "current_page": 1,
+    "total": 10,
+    "last_page": 1
+  }
+}
+
+5.2 Get Unread Count
+GET /api/v1/notifications/count
+
+Response:
+
+{
+  "count": 5
+}
+
+5.3 Update Preferences (Bulk)
+POST /api/v1/notifications/preferences
+
+Body:
+
+{
+  "email": true,
+  "sms": false,
+  "push": true
+}
+
+5.4 Update Preferences by Channel/Group
+PUT /api/v1/notifications/preferences/{channel}/{group}
+
+Example: PUT /api/v1/notifications/preferences/email/orders
+
+Body:
+
+{
+  "enabled": true
+}
+
+5.5 Mark Notification as Read
+POST /api/v1/notifications/{id}/read
+
+Response:
+
+{
+  "status": "success"
+}
+
+6. Catalog API
+
+6.1 Get All Categories
 GET /api/v1/catalog/categories
 
 Returns nested category tree.
 
+6.2 Get Brands
+GET /api/v1/catalog/brands
 
-+### Brands (NEW)
-+**GET** `/api/v1/catalog/brands`
+Returns list of all available brands.
 
-5.2 Get Category by Slug
+Response:
+
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Brand Name",
+      "slug": "brand-name"
+    }
+  ]
+}
+
+6.3 Get Category by Slug
 GET /api/v1/catalog/categories/{slug}
 
 Query params:
 
 withProducts (optional)
 
-5.3 Get Product Listing
+6.4 Get Product Listing
 GET /api/v1/catalog/products
 
 Filters:
@@ -236,8 +358,16 @@ Response:
   "filters": {...}
 }
 
-5.4 Get Product Variant by Slug
-+**GET** `/api/v1/catalog/variants/{idOrSlug}`
+6.5 Get Product Variant by ID or Slug
+GET /api/v1/catalog/variants/{idOrSlug}
+
+### Variant resolution
+
+The `{idOrSlug}` parameter supports:
+- numeric variant ID
+- string slug
+
+Frontend must not assume slug-only resolution.
 
 Response fields:
 
@@ -253,9 +383,30 @@ price & effective price
 
 variant options
 
+6.6 List All Variants
+GET /api/v1/catalog/variants
 
-+### List All Variants (NEW)
-+**GET** `/api/v1/catalog/variants`
+Query params:
+
+category
+search
+price[min]
+price[max]
+attributes[]
+sort
+page
+per_page
+
+Response:
+
+{
+  "data": [...],
+  "meta": {
+    "current_page": 1,
+    "total": 100,
+    "last_page": 10
+  }
+}
 
 🟦 END OF PART 1
 
@@ -274,14 +425,27 @@ ChatGPT said:
 
 (Full detailed, professional English version)
 
-6. Cart API
+7. Cart API
 
 The cart system is token-based (guest or user).
 Tokens must be provided via:
 
 X-Cart-Token: <string>
 
-6.1 Get Cart
+> NOTE:
+> Coupons and item options belong to Cart domain:
+> - **POST** `/api/v1/cart/coupons`
+> - **DELETE** `/api/v1/cart/coupons/{code}`
+> - **PUT** `/api/v1/cart/items/{itemId}/options`
+> Checkout must NOT manage coupons.
+
+### Checkout invalidation rule
+
+Any cart change (items, quantity, options, coupons) invalidates the active checkout session.
+
+Frontend MUST restart checkout after cart changes.
+
+7.1 Get Cart
 GET /api/v1/cart
 
 Returns the current cart by token.
@@ -300,7 +464,7 @@ Response:
   "token": "abc123"
 }
 
-6.2 Add Item to Cart
+7.2 Add Item to Cart
 POST /api/v1/cart/items
 
 Body:
@@ -310,39 +474,33 @@ Body:
   "quantity": 1
 }
 
-
 Response:
 
 Updated cart
 
-6.3 Update Item Quantity
+7.3 Update Item Quantity
 PUT /api/v1/cart/items/{id}
 
 Body:
 
 { "quantity": 3 }
 
-6.4 Remove Item
+7.4 Remove Item
 DELETE /api/v1/cart/items/{id}
 
 Removes the cart line item.
 
-6.5 Attach Cart After Login
+7.5 Attach Cart After Login
 POST /api/v1/cart/attach
 
 Used when a guest becomes authenticated.
 
-🚨 6.6 Cart Coupons API (missing in your docs — now added)
-
-These endpoints allow applying promo or discount codes.
-
-6.6.1 Apply Coupon
+7.6 Apply Coupon
 POST /api/v1/cart/coupons
 
 Body:
 
 { "code": "PROMO2025" }
-
 
 Response:
 
@@ -351,24 +509,20 @@ Response:
   "totals": {...}
 }
 
-6.6.2 Remove Coupon
+7.7 Remove Coupon
 DELETE /api/v1/cart/coupons/{code}
-🚨 6.7 Cart Item Options API (missing in your docs — now added)
+
+7.8 Update Item Options
+PUT /api/v1/cart/items/{itemId}/options
 
 This enables selecting product options such as:
 
 size
-
 color
-
 personalization
-
 custom fields
 
-6.7.1 Update Item Options
-PUT /api/v1/cart/items/{itemId}/options
-
-Body example:
+Body:
 
 {
   "options": {
@@ -377,38 +531,44 @@ Body example:
   }
 }
 
-7. Favorites API
+8. Favorites API
 
 Favorites are tied to:
 
 X-Guest-Id
 
-7.1 Get Favorites
+8.1 Get Favorites
 GET /api/v1/catalog/favorites
-7.2 Add Favorite
+
+8.2 Add Favorite
 POST /api/v1/catalog/favorites/{variantId}
-7.3 Remove Favorite
+
+8.3 Remove Favorite
 DELETE /api/v1/catalog/favorites/{variantId}
-8. Comparison API
+
+9. Comparison API
 
 Comparison table uses:
 
 X-Comparison-Token
 
-8.1 Get Comparison Table
+9.1 Get Comparison Table
 GET /api/v1/catalog/comparison
-8.2 Add Item to Comparison
+
+9.2 Add Item to Comparison
 POST /api/v1/catalog/comparison/items
 
 Body:
 
 { "variant_id": 123 }
 
-8.3 Remove Item from Comparison
-DELETE /api/v1/catalog/comparison/items/{id}
-8.4 Clear Comparison Table
+9.3 Remove Item from Comparison
+DELETE /api/v1/catalog/comparison/items/{variantId}
+
+9.4 Clear Comparison Table
 DELETE /api/v1/catalog/comparison
-9. Checkout API
+
+10. Checkout API
 
 The full checkout flow consists of:
 
@@ -419,7 +579,21 @@ The full checkout flow consists of:
 /checkout/{id}/payment-provider
 /checkout/{id}/confirm
 
-9.1 Start Checkout Session
+### Important note
+
+Checkout API is responsible ONLY for:
+- order preparation
+- address
+- shipping
+- payment provider selection
+- order confirmation
+
+Checkout does NOT initialize payments.
+
+Payment initialization happens exclusively via:
+**POST** `/api/v1/payments/{provider}/init`
+
+10.1 Start Checkout Session
 POST /api/v1/checkout/start
 
 Returns:
@@ -432,7 +606,7 @@ pricing
 
 addresses
 
-9.2 Update Address
+10.2 Update Address
 PUT /api/v1/checkout/{id}/address
 
 Body:
@@ -443,7 +617,7 @@ Body:
   "billing_same_as_shipping": true
 }
 
-9.3 Get Shipping Methods
+10.3 Get Shipping Methods
 GET /api/v1/shipping/methods
 
 Query:
@@ -456,40 +630,42 @@ city
 
 postal
 
-9.4 Set Shipping Method
+10.4 Set Shipping Method
 PUT /api/v1/checkout/{id}/shipping-method
 
 Body:
 
 { "method_id": 4 }
 
-9.5 Set Payment Provider
+10.5 Set Payment Provider
 PUT /api/v1/checkout/{id}/payment-provider
 
 Body:
 
 { "provider_code": "stripe" }
 
-9.6 Confirm Checkout (Create Order)
+10.6 Confirm Checkout (Create Order)
 POST /api/v1/checkout/{id}/confirm
 
 Response:
 
 { "order_id": 9831 }
 
-10. Shipping API
-10.1 Get Shipping Providers (Optional)
+11. Shipping API
+
+11.1 Get Shipping Providers (Optional)
 GET /api/v1/shipping/providers
-10.2 Get Shipping Methods
+
+11.2 Get Shipping Methods
 GET /api/v1/shipping/methods
 
 Used mainly by checkout.
 
-11. Payments API
+12. Payments API
 
 Handles listing payment providers and initiating payments.
 
-11.1 Get Payment Providers
+12.1 Get Payment Providers
 GET /api/v1/payments/providers
 
 Response example:
@@ -499,13 +675,12 @@ Response example:
   { "code": "cod", "name": "Cash on Delivery", "type": "offline" }
 ]
 
-11.2 Initialize Payment
+12.2 Initialize Payment
 POST /api/v1/payments/{provider}/init
 
 Body:
 
 { "order_id": 123 }
-
 
 Response:
 
@@ -531,8 +706,9 @@ ChatGPT said:
 
 (Professional, complete English version)
 
-12. Orders API
-12.1 Get User Orders
+13. Orders API
+
+13.1 Get User Orders
 GET /api/v1/orders
 
 Query params:
@@ -552,7 +728,7 @@ Response:
   }
 }
 
-12.2 Get Order Details
+13.2 Get Order Details
 GET /api/v1/orders/{id}
 
 Response includes:
@@ -567,15 +743,17 @@ payment status
 
 customer info
 
-13. Blog API
+14. Blog API
 
 The blog module is fully public and SEO-oriented.
 
-13.1 Get Blog Categories
+14.1 Get Blog Categories
 GET /api/v1/blog/categories
-13.2 Get Category by Slug
+
+14.2 Get Category by Slug
 GET /api/v1/blog/categories/{slug}
-13.3 Get Blog Posts
+
+14.3 Get Blog Posts
 GET /api/v1/blog/posts
 
 Query params:
@@ -674,7 +852,7 @@ meta.pagination.per_page (number): Number of items per page
 
 meta.pagination.total (number): Total number of posts
 
-13.4 Get Blog Post by Slug
+14.4 Get Blog Post by Slug
 GET /api/v1/blog/posts/{slug}
 
 Response:
@@ -781,11 +959,11 @@ seo.text (string | null): SEO text content (can be null)
 
 seo.og_image (string | null | ""): Open Graph image URL (can be null or empty string)
 
-14. Leads API
+15. Leads API
 
 Used for contact forms.
 
-14.1 Contact Form Submission
+15.1 Contact Form Submission
 POST /api/v1/leads
 
 Body:
@@ -796,56 +974,61 @@ Body:
   "message": "Please contact me"
 }
 
+16. Audience API (NEW)
 
-+# Audience API (NEW)
-+
-+### 1. Subscribe to Audience
-+**POST** `/api/v1/audience/subscribe`
-+
-+Body:
-+```json
-+{
-+  "email": "user@example.com"
-+}
-+```
-+
-+---
-+### 2. Confirm Subscription
-+**POST** `/api/v1/audience/confirm`
-+
-+Body:
-+```json
-+{
-+  "token": "<confirmation-token>"
-+}
-+```
-+
-+---
-+### 3. Unsubscribe
-+**DELETE** `/api/v1/audience/unsubscribe`
-+
-+Body:
-+```json
-+{
-+  "email": "user@example.com"
-+}
-
-
-14.2 Callback Request
-POST /api/v1/leads/callback
+16.1 Subscribe to Audience
+POST /api/v1/audience/subscribe
 
 Body:
 
 {
-  "name": "John",
-  "phone": "+123456789"
+  "email": "user@example.com"
 }
 
-15. SEO API
+Response:
+
+{
+  "status": "success",
+  "message": "Subscription confirmation email sent"
+}
+
+16.2 Confirm Subscription
+POST /api/v1/audience/confirm
+
+Body:
+
+{
+  "token": "<confirmation-token>"
+}
+
+Response:
+
+{
+  "status": "success",
+  "message": "Subscription confirmed"
+}
+
+16.3 Unsubscribe
+DELETE /api/v1/audience/unsubscribe
+
+Body:
+
+{
+  "email": "user@example.com"
+}
+
+Response:
+
+{
+  "status": "success",
+  "message": "Unsubscribed successfully"
+}
+
+17. SEO API
 
 Core endpoint for SEO metadata.
 
-15.1 Get SEO Metadata for a Page
+17.1 Get SEO Metadata for a Page
 GET /api/v1/site?url={path}
 
 Query:
@@ -866,8 +1049,9 @@ Response:
   "seoable_type": "product"
 }
 
-16. System Health API
-16.1 Health Check
+18. System Health API
+
+18.1 Health Check
 GET /api/v1/health
 
 Response:
@@ -878,13 +1062,61 @@ Response:
   "version": "..."
 }
 
-17. Common API Rules
-17.1 Authentication
+19. Common API Rules
 
-User-only endpoints require:
+19.1 Required Headers
+
+All frontend requests MUST include:
+
+```
+Accept-Language: <locale>
+Accept-Currency: <currency>
+```
+
+Additionally, guest-related headers are required when applicable:
+
+```
+X-Cart-Token
+X-Guest-Id
+X-Comparison-Token
+```
+
+These headers are automatically attached by the frontend API client.
+
+19.2 CSRF / XSRF Rules (MANDATORY)
+
+This project uses Laravel Sanctum with cookie-based SPA authorization.
+
+Rules:
+- Any state-changing request (POST, PUT, DELETE) sent from the browser
+  MUST include a valid XSRF token.
+- This applies to BOTH authenticated users and guests.
+
+XSRF is REQUIRED for:
+- Auth & Identity endpoints
+- Address management
+- Notifications
+- Audience (email subscription)
+- Cart mutations (items, options, coupons)
+- Checkout steps
+- Payment initialization
+- Favorites & Comparison mutations
+
+XSRF is NOT required for:
+- Public GET endpoints (catalog, blog, system, SEO)
+
+Frontend MUST:
+1. Call `GET /sanctum/csrf-cookie` once on app init
+2. Ensure all mutation requests include XSRF token automatically
+
+19.3 Authentication
+
+Identity API endpoints use cookie-based authentication (Sanctum).
+Do NOT use Bearer tokens for Identity API endpoints.
+
+For other endpoints, user-only endpoints require:
 
 Authorization: Bearer <token>
-
 
 Guest token headers:
 
@@ -892,7 +1124,7 @@ X-Guest-Id
 X-Cart-Token
 X-Comparison-Token
 
-17.2 Error Format
+19.4 Error Format
 
 All error responses follow:
 
@@ -902,7 +1134,8 @@ All error responses follow:
   "status": 422
 }
 
-17.3 Pagination Format
+19.5 Pagination Format
+
 {
   "data": [...],
   "meta": {
@@ -913,21 +1146,27 @@ All error responses follow:
   }
 }
 
-18. Full API Index (62 endpoints)
-
-(Cross-checked with YAML part 1 + part 2)
+20. Full API Index
 
 Below is a simplified index of all endpoints for quick reference.
 
-Auth (4 endpoints)
+Identity (7 endpoints)
 
-POST /auth/register
+POST /register
 
-POST /auth/login
+POST /login
 
-POST /auth/logout
+POST /logout
 
-GET /auth/user
+GET /api/v1/identity/me/profile
+
+GET /identity/addresses
+
+POST /identity/addresses
+
+PUT /identity/addresses/{id}
+
+DELETE /identity/addresses/{id}
 
 Email Verification (2 endpoints)
 
@@ -953,17 +1192,33 @@ GET /system/locales
 
 GET /system/currencies
 
-Catalog (4 endpoints)
+Notifications (5 endpoints)
+
+GET /notifications
+
+GET /notifications/count
+
+POST /notifications/preferences
+
+PUT /notifications/preferences/{channel}/{group}
+
+POST /notifications/{id}/read
+
+Catalog (6 endpoints)
 
 GET /catalog/categories
 
 GET /catalog/categories/{slug}
 
+GET /catalog/brands
+
 GET /catalog/products
 
-GET /catalog/variants/{slug}
+GET /catalog/variants
 
-Cart (10 endpoints)
+GET /catalog/variants/{idOrSlug}
+
+Cart (8 endpoints)
 
 GET /cart
 
@@ -981,27 +1236,23 @@ DELETE /cart/coupons/{code}
 
 PUT /cart/items/{itemId}/options
 
-(possible internal) /cart/v ← ignored
-
-(token handling) guest
-
 Favorites (3 endpoints)
 
-GET /favorites
+GET /catalog/favorites
 
-POST /favorites/{id}
+POST /catalog/favorites/{variantId}
 
-DELETE /favorites/{id}
+DELETE /catalog/favorites/{variantId}
 
 Comparison (4 endpoints)
 
-GET /comparison
+GET /catalog/comparison
 
-POST /comparison/items
+POST /catalog/comparison/items
 
-DELETE /comparison/items/{id}
+DELETE /catalog/comparison/items/{variantId}
 
-DELETE /comparison
+DELETE /catalog/comparison
 
 Checkout (6 endpoints)
 
@@ -1017,7 +1268,9 @@ PUT /checkout/{id}/payment-provider
 
 POST /checkout/{id}/confirm
 
-Shipping (1 endpoint)
+Shipping (2 endpoints)
+
+GET /shipping/providers
 
 GET /shipping/methods
 
@@ -1043,14 +1296,24 @@ GET /blog/posts
 
 GET /blog/posts/{slug}
 
-Leads (2 endpoints)
+Leads (1 endpoint)
 
-POST /leads/contacts
+POST /leads
 
-POST /leads/callback
+Audience (3 endpoints)
+
+POST /audience/subscribe
+
+POST /audience/confirm
+
+DELETE /audience/unsubscribe
 
 SEO (1 endpoint)
 
 GET /site?url=/...
+
+Health (1 endpoint)
+
+GET /health
 
 🟦 END OF API.md (complete)
