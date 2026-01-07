@@ -92,6 +92,9 @@ const currentCurrency = computed(() => {
   }
 })
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Logout handler
 const isLoggingOut = ref(false)
 const router = useRouter()
@@ -103,7 +106,7 @@ async function handleLogout() {
   try {
     const authStore = useAuthStore()
     await authStore.logout()
-    await router.push('/')
+    await router.push(localePath('/'))
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
@@ -113,7 +116,7 @@ async function handleLogout() {
 
 function handleSearchSelect(query: string) {
   navigateTo({
-    path: '/categories',
+    path: localePath('/categories'),
     query: { q: query },
   })
   // Close mobile search after selection
@@ -241,7 +244,7 @@ onMounted(async () => {
 
               <!-- Logo -->
               <div class="ml-2 sm:ml-4 flex lg:ml-0 flex-shrink-0">
-                <NuxtLink to="/">
+                <NuxtLink :to="localePath('/')">
                   <span class="sr-only">Your Company</span>
                   <span class="text-xl sm:text-2xl font-bold text-indigo-600 whitespace-nowrap">Nexora</span>
                 </NuxtLink>
@@ -273,7 +276,7 @@ onMounted(async () => {
 
                 <!-- Other links -->
                 <NuxtLink
-                  to="/blog"
+                  :to="localePath('/blog')"
                   class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
                 >
                   Blog
@@ -301,14 +304,14 @@ onMounted(async () => {
               <div class="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
                 <template v-if="!isAuthenticated">
                   <NuxtLink
-                    to="/auth/login"
+                    :to="localePath('/auth/login')"
                     class="text-sm font-medium text-gray-700 hover:text-gray-800"
                   >
                     Sign in
                   </NuxtLink>
                   <span aria-hidden="true" class="h-6 w-px bg-gray-200" />
                   <NuxtLink
-                    to="/auth/register"
+                    :to="localePath('/auth/register')"
                     class="text-sm font-medium text-gray-700 hover:text-gray-800"
                   >
                     Create account
@@ -316,7 +319,7 @@ onMounted(async () => {
                 </template>
                 <template v-else>
                   <NuxtLink
-                    to="/profile"
+                    :to="localePath('/profile')"
                     class="text-sm font-medium text-gray-700 hover:text-gray-800"
                   >
                     <span v-if="userName">Profile ({{ userName }})</span>
@@ -333,6 +336,11 @@ onMounted(async () => {
                     <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
                   </button>
                 </template>
+              </div>
+
+              <!-- Language switcher (desktop) -->
+              <div class="hidden lg:ml-8 lg:flex">
+                <UiLanguageSwitcher />
               </div>
 
               <!-- Currency selector (desktop) -->
@@ -366,7 +374,7 @@ onMounted(async () => {
 
               <!-- Cart -->
               <div class="flow-root flex-shrink-0">
-                <NuxtLink to="/cart" class="group -m-2 flex items-center p-2">
+                <NuxtLink :to="localePath('/cart')" class="group -m-2 flex items-center p-2">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"

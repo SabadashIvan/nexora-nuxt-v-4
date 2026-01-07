@@ -11,6 +11,9 @@ import type { ProductPrice } from '~/types/catalog'
 
 const route = useRoute()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const slug = computed(() => route.params.slug as string)
 
 // Fetch product with SSR + client-side navigation support
@@ -376,7 +379,7 @@ const productCategories = computed(() => {
 // Always return at least Catalog + Product to ensure consistent DOM structure
 const breadcrumbs = computed(() => {
   const items: Array<{ label: string; to?: string }> = [
-    { label: 'Categories', to: '/categories' },
+    { label: 'Categories', to: localePath('/categories') },
   ]
   
   // Add category breadcrumbs if available
@@ -385,7 +388,7 @@ const breadcrumbs = computed(() => {
     if (mainCategory?.slug) {
       items.push({ 
         label: mainCategory.title || mainCategory.name || 'Category', 
-        to: `/categories/${mainCategory.slug}` 
+        to: localePath(`/categories/${mainCategory.slug}`) 
       })
     }
   }
@@ -394,7 +397,7 @@ const breadcrumbs = computed(() => {
   if (product.value?.product?.brand?.slug) {
     items.push({ 
       label: product.value.product.brand.title || 'Brand', 
-      to: `/categories?brand=${product.value.product.brand.slug}` 
+      to: localePath(`/categories?brand=${product.value.product.brand.slug}`) 
     })
   }
   

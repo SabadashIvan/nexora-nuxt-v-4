@@ -265,6 +265,7 @@ export const useCartStore = defineStore('cart', {
     /**
      * Ensure cart version is available for If-Match header
      * Fetches version if not already cached
+     * Falls back to loading full cart if version endpoint fails
      * @returns Current cart version or null if unavailable
      */
     async ensureCartVersion(): Promise<number | null> {
@@ -274,8 +275,36 @@ export const useCartStore = defineStore('cart', {
         return existingVersion
       }
 
-      // Fetch version from lightweight endpoint
-      return await this.fetchCartVersion()
+      // Try to fetch version from lightweight endpoint first
+      const version = await this.fetchCartVersion()
+      if (version !== null) {
+        return version
+      }
+
+      // Fallback: if version endpoint fails, try loading the full cart
+      // This ensures we get the version even if /api/v1/cart/v doesn't exist
+      if (this.cartToken) {
+        try {
+          await this.loadCart()
+          // After loading cart, check if we now have a version
+          const loadedVersion = this.cartVersion ?? this.cart?.version
+          if (loadedVersion !== undefined && loadedVersion !== null) {
+            return loadedVersion
+          }
+        } catch (error) {
+          // If cart load fails with 404, cart doesn't exist on backend
+          // This will be handled by the caller (e.g., addItem will clear token)
+          const apiError = parseApiError(error)
+          if (apiError.status === 404) {
+            // Cart expired or doesn't exist - clear token
+            this.cartToken = null
+            removeToken(TOKEN_KEYS.CART)
+          }
+          console.warn('Failed to load cart for version:', error)
+        }
+      }
+
+      return null
     },
 
     /**
@@ -376,14 +405,30 @@ export const useCartStore = defineStore('cart', {
 
         const headers: Record<string, string> = {}
         
-        // Check if we have an existing cart
+        // Check if we have an existing cart token
+        // Restore token if not set (but don't create new one)
+        if (!this.cartToken) {
+          this.restoreToken()
+        }
+        
         const hasExistingCart = !!this.cartToken
 
         if (hasExistingCart) {
           // Existing cart: need If-Match header with version
-          await this.ensureCartVersion()
-          const version = this.getCurrentVersion()
-          if (version !== null) {
+          // ensureCartVersion will try to fetch version and fallback to loading cart
+          const version = await this.ensureCartVersion()
+          
+          // If version is still null after ensureCartVersion, cart might be expired
+          // ensureCartVersion already cleared the token if cart was 404, so check again
+          if (version === null && this.cartToken) {
+            // Version unavailable but token still exists - this shouldn't happen
+            // but if it does, clear token and proceed as new cart
+            console.warn('Cart version unavailable, clearing token and creating new cart')
+            this.cartToken = null
+            removeToken(TOKEN_KEYS.CART)
+            // Proceed without If-Match header (new cart)
+          } else if (version !== null) {
+            // We have a version, add If-Match header
             headers['If-Match'] = String(version)
           }
         }
@@ -395,9 +440,12 @@ export const useCartStore = defineStore('cart', {
           headers['Idempotency-Key'] = idempotencyKey
         }
 
+        // Re-check hasExistingCart in case token was cleared
+        const finalHasExistingCart = !!this.cartToken
+
         const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
           // Only include cart token if we have existing cart
-          cart: hasExistingCart,
+          cart: finalHasExistingCart,
           headers: Object.keys(headers).length > 0 ? headers : undefined
         })
         
@@ -413,6 +461,59 @@ export const useCartStore = defineStore('cart', {
         
         return true
       } catch (error) {
+        const apiError = parseApiError(error)
+        
+        // Handle 422 error with IF_MATCH_REQUIRED - this means cart exists but version was missing
+        if (apiError.status === 422 && apiError.errors?.If-Match === 'IF_MATCH_REQUIRED') {
+          // Cart exists but we didn't send If-Match - try to get version and retry once
+          if (this.cartToken) {
+            try {
+              // Force reload cart to get version
+              await this.loadCart()
+              const version = this.getCurrentVersion()
+              if (version !== null) {
+                // Retry the request with If-Match header
+                const payload: AddToCartPayload = { qty: quantity }
+                if (variantId) {
+                  payload.variant_id = variantId
+                } else if (sku) {
+                  payload.sku = sku
+                }
+                
+                const retryHeaders: Record<string, string> = {
+                  'If-Match': String(version)
+                }
+                if (idempotencyKey) {
+                  retryHeaders['Idempotency-Key'] = idempotencyKey
+                }
+                
+                const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
+                  cart: true,
+                  headers: retryHeaders
+                })
+                
+                const cart = this.extractCart(response)
+                this.cart = cart
+                if (cart.token) {
+                  this.cartToken = cart.token
+                  setToken(TOKEN_KEYS.CART, cart.token)
+                }
+                this.updateVersion(cart.version)
+                return true
+              }
+            } catch (retryError) {
+              // Retry failed, fall through to error handling
+              console.error('Retry after IF_MATCH_REQUIRED failed:', retryError)
+            }
+          }
+        }
+        
+        // Handle 404 - cart doesn't exist, clear token
+        if (apiError.status === 404) {
+          this.cartToken = null
+          removeToken(TOKEN_KEYS.CART)
+        }
+        
         this.error = getErrorMessage(error)
         console.error('Add to cart error:', error)
         return false
@@ -450,6 +551,14 @@ export const useCartStore = defineStore('cart', {
         this.updateVersion(cart.version)
         return true
       } catch (error) {
+        const apiError = parseApiError(error)
+        
+        // Handle 404 - cart doesn't exist, clear token
+        if (apiError.status === 404) {
+          this.cartToken = null
+          removeToken(TOKEN_KEYS.CART)
+        }
+        
         this.error = getErrorMessage(error)
         console.error('Update cart item error:', error)
         return false
@@ -485,6 +594,14 @@ export const useCartStore = defineStore('cart', {
         this.updateVersion(cart.version)
         return true
       } catch (error) {
+        const apiError = parseApiError(error)
+        
+        // Handle 404 - cart doesn't exist, clear token
+        if (apiError.status === 404) {
+          this.cartToken = null
+          removeToken(TOKEN_KEYS.CART)
+        }
+        
         this.error = getErrorMessage(error)
         console.error('Remove cart item error:', error)
         return false
@@ -521,6 +638,14 @@ export const useCartStore = defineStore('cart', {
         this.updateVersion(cart.version)
         return true
       } catch (error) {
+        const apiError = parseApiError(error)
+        
+        // Handle 404 - cart doesn't exist, clear token
+        if (apiError.status === 404) {
+          this.cartToken = null
+          removeToken(TOKEN_KEYS.CART)
+        }
+        
         this.error = getErrorMessage(error)
         console.error('Update item options error:', error)
         return false
@@ -567,6 +692,13 @@ export const useCartStore = defineStore('cart', {
         return true
       } catch (error) {
         const apiError = parseApiError(error)
+        
+        // Handle 404 - cart doesn't exist, clear token
+        if (apiError.status === 404) {
+          this.cartToken = null
+          removeToken(TOKEN_KEYS.CART)
+        }
+        
         this.error = apiError.message
         console.error('Apply coupon error:', error)
         return false
@@ -603,6 +735,14 @@ export const useCartStore = defineStore('cart', {
         this.appliedCoupons = this.appliedCoupons.filter(c => c.code !== code)
         return true
       } catch (error) {
+        const apiError = parseApiError(error)
+        
+        // Handle 404 - cart doesn't exist, clear token
+        if (apiError.status === 404) {
+          this.cartToken = null
+          removeToken(TOKEN_KEYS.CART)
+        }
+        
         this.error = getErrorMessage(error)
         console.error('Remove coupon error:', error)
         return false

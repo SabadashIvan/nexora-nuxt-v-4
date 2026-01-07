@@ -10,6 +10,9 @@ definePageMeta({
   layout: 'profile',
 })
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const ordersStore = shallowRef<ReturnType<typeof useOrdersStore> | null>(null)
 
 const defaultPagination = {
@@ -137,7 +140,7 @@ function getStatusVariant(status: string) {
     >
       <template #action>
         <NuxtLink
-          to="/categories"
+          :to="localePath('/categories')"
           class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
         >
           Start Shopping

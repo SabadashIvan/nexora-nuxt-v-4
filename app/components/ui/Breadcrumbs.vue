@@ -3,6 +3,9 @@
  * Breadcrumb navigation component
  */
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 interface BreadcrumbItem {
   label: string
   to?: string
@@ -19,9 +22,15 @@ const props = withDefaults(defineProps<Props>(), {
 
 const allItems = computed(() => {
   if (props.showHome) {
-    return [{ label: 'Home', to: '/' }, ...props.items]
+    return [{ label: 'Home', to: localePath('/') }, ...props.items.map(item => ({
+      ...item,
+      to: item.to ? localePath(item.to) : undefined
+    }))]
   }
-  return props.items
+  return props.items.map(item => ({
+    ...item,
+    to: item.to ? localePath(item.to) : undefined
+  }))
 })
 </script>
 

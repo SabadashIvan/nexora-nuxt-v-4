@@ -6,6 +6,9 @@
 import { ShoppingBag, ArrowLeft, AlertTriangle } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const cartStore = useCartStore()
 
 // Load cart on mount if not already loaded (CSR only)
@@ -51,7 +54,7 @@ function getItemWarning(itemId: string) {
       >
         <template #action>
           <NuxtLink
-            to="/categories"
+            :to="localePath('/categories')"
             class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
           >
             Continue Shopping
@@ -89,7 +92,7 @@ function getItemWarning(itemId: string) {
 
           <!-- Continue shopping -->
           <NuxtLink 
-            to="/categories" 
+            :to="localePath('/categories')" 
             class="inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:underline mt-4"
           >
             <ArrowLeft class="h-4 w-4" />

@@ -6,6 +6,9 @@ import { Heart, ShoppingCart, Trash2 } from 'lucide-vue-next'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useCartStore } from '~/stores/cart.store'
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Load favorites on mount - access store inside onMounted
 onMounted(async () => {
   const favoritesStore = useFavoritesStore()
@@ -83,7 +86,7 @@ async function removeFromFavorites(variantId: number) {
     >
       <template #action>
         <NuxtLink
-          to="/categories"
+          :to="localePath('/categories')"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
           Browse Products

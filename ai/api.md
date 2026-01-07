@@ -256,6 +256,51 @@ GET /api/v1/system/locales
 4.5 List Currencies
 GET /api/v1/system/currencies
 
+4.6 Get Active Languages
+GET /api/v1/app/languages
+
+Returns a list of active site languages and the default language code.
+
+Response:
+
+{
+  "data": [
+    {
+      "code": "en",
+      "title": "Английский",
+      "is_default": false
+    },
+    {
+      "code": "ru",
+      "title": "Русский",
+      "is_default": true
+    },
+    {
+      "code": "awa",
+      "title": "Авадхи",
+      "is_default": false
+    }
+  ],
+  "meta": {
+    "default": "ru"
+  }
+}
+
+Response fields:
+
+data (array): Array of language objects
+data[].code (string): Language code (ISO 639-1 or custom code)
+data[].title (string): Language display title
+data[].is_default (boolean): Whether this is the default language
+meta (object): Metadata
+meta.default (string): Default language code
+
+This endpoint is used by the frontend to:
+- Load available languages dynamically
+- Configure @nuxtjs/i18n module
+- Display language switcher UI
+- Set default locale from API
+
 5. Notifications API (NEW)
 
 5.1 List Notifications

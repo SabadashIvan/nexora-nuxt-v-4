@@ -17,6 +17,9 @@ const reviewsStore = useReviewsStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const isInitialized = ref(false)
 const showSuccessMessage = ref(false)
 
@@ -81,7 +84,7 @@ async function handleReviewSubmit(rating: number, body: string, pros?: string, c
 }
 
 function goToLogin() {
-  router.push('/auth/login')
+  router.push(localePath('/auth/login'))
 }
 </script>
 

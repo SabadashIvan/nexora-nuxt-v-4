@@ -8,6 +8,9 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const form = reactive({
   password: '',
   password_confirmation: '',
@@ -25,7 +28,7 @@ const status = computed(() => authStore.passwordResetStatus)
 
 // Redirect if no token
 if (!token.value || !email.value) {
-  router.push('/auth/forgot-password')
+  router.push(localePath('/auth/forgot-password'))
 }
 
 async function handleSubmit() {
@@ -48,7 +51,7 @@ async function handleSubmit() {
   if (success) {
     // Redirect to login after short delay
     setTimeout(() => {
-      router.push('/auth/login')
+      router.push(localePath('/auth/login'))
     }, 2000)
   }
 }
@@ -59,7 +62,7 @@ async function handleSubmit() {
     <div class="max-w-md w-full">
       <!-- Header -->
       <div class="text-center mb-8">
-        <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+        <NuxtLink :to="localePath('/')" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
           Nexora
         </NuxtLink>
         <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-gray-100">

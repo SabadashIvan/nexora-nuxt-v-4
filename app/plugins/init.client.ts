@@ -40,15 +40,36 @@ export default defineNuxtPlugin(async () => {
     }
   }
 
-  // Step 2: Initialize system config (locales, currencies)
+  // Step 2: Initialize languages and system config
   if (!systemStore.initialized) {
     try {
+      // Fetch languages first (from /app/languages)
+      if (systemStore.locales.length === 0) {
+        await systemStore.fetchLanguages()
+      }
+      
+      // Fetch system config (currencies, etc. - without locales)
       await systemStore.fetchSystemConfig()
+      
       systemStore.initialized = true
     } catch (error) {
       console.error('Failed to initialize system config:', error)
     }
   }
+  
+  // Sync with i18n after app is mounted (defer to avoid initialization errors)
+  // Use app:mounted hook to ensure i18n is fully initialized
+  nuxtApp.hook('app:mounted', async () => {
+    if (systemStore.initialized && systemStore.locales.length > 0) {
+      try {
+        // Add a small delay to ensure i18n module is ready
+        await new Promise(resolve => setTimeout(resolve, 100))
+        await systemStore.syncWithI18n()
+      } catch (error) {
+        console.warn('Could not sync with i18n after mount:', error)
+      }
+    }
+  })
 
   // Step 3: Try to restore auth from session cookie (Laravel Sanctum)
   try {

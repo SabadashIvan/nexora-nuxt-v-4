@@ -28,8 +28,11 @@ const posts = computed(() => blogStore.posts)
 const categories = computed(() => blogStore.categories)
 const pagination = computed(() => blogStore.pagination)
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 function handlePageChange(newPage: number) {
-  navigateTo({ path: '/blog', query: { page: newPage.toString() } })
+  navigateTo({ path: localePath('/blog'), query: { page: newPage.toString() } })
 }
 </script>
 
@@ -54,7 +57,7 @@ function handlePageChange(newPage: number) {
       <!-- Categories -->
       <div v-if="categories.length" class="flex flex-wrap gap-2 mt-6 pb-6 border-b border-gray-200">
         <NuxtLink
-          to="/blog"
+          :to="localePath('/blog')"
           class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium"
           :class="[
             !route.query.category 
@@ -67,7 +70,7 @@ function handlePageChange(newPage: number) {
         <NuxtLink
           v-for="category in categories"
           :key="category.id"
-          :to="`/blog/category/${category.slug}`"
+          :to="localePath(`/blog/category/${category.slug}`)"
           class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
         >
           {{ category.title || category.name }}

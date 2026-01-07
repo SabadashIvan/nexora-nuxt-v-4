@@ -253,7 +253,8 @@ async function handlePageChange(page: number) {
   
   // Navigate to update URL - this will trigger useLazyAsyncData to refetch
   // The watch on routeQuery will detect the change and reload data
-  await navigateTo({ path: '/categories', query }, { replace: true })
+  const localePath = useLocalePath()
+  await navigateTo({ path: localePath('/categories'), query }, { replace: true })
   
   // Force refresh to ensure data is reloaded
   await refresh()
@@ -336,7 +337,8 @@ async function handleReset() {
   const catalogStore = useCatalogStore()
   catalogStore.resetFilters()
   await catalogStore.fetchProducts()
-  navigateTo('/categories')
+  const localePath = useLocalePath()
+  navigateTo(localePath('/categories'))
 }
 
 // Update URL with current filters
@@ -384,7 +386,8 @@ function updateUrl() {
     query.page = catalogStore.pagination.page.toString()
   }
   
-  navigateTo({ path: '/categories', query }, { replace: true })
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath('/categories'), query }, { replace: true })
 }
 </script>
 

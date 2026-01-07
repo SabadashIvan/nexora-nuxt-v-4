@@ -4,8 +4,8 @@
  */
 
 import { defineStore } from 'pinia'
-import type { SystemConfig, Locale, Currency } from '~/types'
-import { setToken, TOKEN_KEYS } from '~/utils/tokens'
+import type { SystemConfig, Locale, Currency, LanguagesResponse } from '~/types'
+import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
 
 interface SystemState {
   locales: Locale[]
@@ -22,7 +22,7 @@ export const useSystemStore = defineStore('system', {
   state: (): SystemState => ({
     locales: [],
     currencies: [],
-    currentLocale: 'en',
+    currentLocale: 'ru', // Must match nuxt.config.ts i18n.defaultLocale
     currentCurrency: 'USD',
     systemConfig: null,
     loading: false,
@@ -63,7 +63,63 @@ export const useSystemStore = defineStore('system', {
 
   actions: {
     /**
-     * Fetch system configuration from API
+     * Fetch active languages from API
+     */
+    async fetchLanguages() {
+      const api = useApi()
+      this.loading = true
+      this.error = null
+
+      try {
+        const response = await api.get<LanguagesResponse>('/app/languages')
+        
+        this.locales = response.data
+
+        // Don't set default locale from API - use config defaultLocale instead
+        // Only set currentLocale if not already stored (use config default 'ru')
+        const storedLocale = getToken(TOKEN_KEYS.LOCALE)
+        if (!storedLocale) {
+          // Use default locale from config (nuxt.config.ts i18n.defaultLocale)
+          this.currentLocale = 'ru'
+          setToken(TOKEN_KEYS.LOCALE, 'ru')
+        }
+
+        // Don't sync with i18n here - it may be called during SSR or before i18n is ready
+        // Sync will happen in plugin after mount
+      } catch (error) {
+        this.error = 'Failed to load languages'
+        console.error('Languages fetch error:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Sync locales with @nuxtjs/i18n module
+     */
+    async syncWithI18n() {
+      if (import.meta.client) {
+        try {
+          // useI18n is auto-imported by @nuxtjs/i18n
+          const i18n = useI18n()
+          
+          // Check if i18n is properly initialized
+          if (!i18n || !i18n.locale || !this.currentLocale) {
+            return
+          }
+          
+          // Update i18n locale if current locale is set
+          // Type assertion needed because i18n expects specific locale union type
+          await i18n.setLocale(this.currentLocale as 'ru' | 'en' | 'uk' | 'awa')
+        } catch (error) {
+          // i18n might not be available yet, that's okay
+          console.warn('Could not sync with i18n:', error)
+        }
+      }
+    },
+
+    /**
+     * Fetch system configuration from API (without locales - they come from /app/languages)
      */
     async fetchSystemConfig() {
       const api = useApi()
@@ -74,13 +130,10 @@ export const useSystemStore = defineStore('system', {
         const config = await api.get<SystemConfig>('/system/config')
         
         this.systemConfig = config
-        this.locales = config.locales
+        // Don't set locales here - they come from /app/languages
         this.currencies = config.currencies
 
-        // Set defaults if not already set
-        if (!this.currentLocale && config.default_locale) {
-          this.currentLocale = config.default_locale
-        }
+        // Set default currency if not already set
         if (!this.currentCurrency && config.default_currency) {
           this.currentCurrency = config.default_currency
         }
@@ -93,52 +146,61 @@ export const useSystemStore = defineStore('system', {
     },
 
     /**
-     * Set current locale
+     * Set current locale (state and cookie only)
+     * Note: Locale is managed via cookie, which is automatically sent as Accept-Language header
+     * No API call needed - backend reads locale from Accept-Language header
+     * 
+     * IMPORTANT: This method does NOT handle i18n navigation.
+     * Components should handle i18n.setLocale() and navigation separately.
+     * useI18n() can only be called at the top level of setup functions.
      */
-    async setLocale(locale: string) {
-      const api = useApi()
-      const previousLocale = this.currentLocale
-
-      try {
-        // Optimistic update
-        this.currentLocale = locale
-        setToken(TOKEN_KEYS.LOCALE, locale)
-
-        // Notify backend (optional - some backends track user preferences)
-        await api.put('/system/locale', { locale })
-
-        // Trigger reactive updates across stores
-        await this.onLocaleChange()
-      } catch (error) {
-        // Rollback on failure
-        this.currentLocale = previousLocale
-        setToken(TOKEN_KEYS.LOCALE, previousLocale)
-        console.error('Failed to set locale:', error)
+    setLocale(locale: string) {
+      // Only proceed if locale is different
+      if (locale === this.currentLocale) {
+        return
       }
+
+      // Update store and cookie
+      // Cookie will be automatically sent as Accept-Language header in all API requests
+      this.currentLocale = locale
+      setToken(TOKEN_KEYS.LOCALE, locale)
+
+      // Trigger reactive updates across stores
+      // Note: onLocaleChange is async but we don't await it here to keep method synchronous
+      // Components can await it if needed
+      this.onLocaleChange().catch(error => {
+        console.error('Failed to trigger locale change updates:', error)
+      })
     },
 
     /**
      * Set current currency
+     * Note: Currency is managed via cookie, which is automatically sent as Accept-Currency header
+     * No API call needed - backend reads currency from Accept-Currency header
      */
     async setCurrency(currency: string) {
-      const api = useApi()
       const previousCurrency = this.currentCurrency
 
       try {
-        // Optimistic update
+        // Only proceed if currency is different
+        if (currency === previousCurrency) {
+          return
+        }
+
+        // Update store and cookie
+        // Cookie will be automatically sent as Accept-Currency header in all API requests
         this.currentCurrency = currency
         setToken(TOKEN_KEYS.CURRENCY, currency)
 
-        // Notify backend
-        await api.put('/system/currency', { currency })
-
         // Trigger reactive updates across stores
+        // Currency change will be reflected in Accept-Currency header on next API request
         await this.onCurrencyChange()
       } catch (error) {
         // Rollback on failure
         this.currentCurrency = previousCurrency
         setToken(TOKEN_KEYS.CURRENCY, previousCurrency)
         console.error('Failed to set currency:', error)
+        throw error
       }
     },
 
@@ -174,7 +236,7 @@ export const useSystemStore = defineStore('system', {
     reset() {
       this.locales = []
       this.currencies = []
-      this.currentLocale = 'en'
+      this.currentLocale = 'ru' // Must match nuxt.config.ts i18n.defaultLocale
       this.currentCurrency = 'USD'
       this.systemConfig = null
       this.loading = false

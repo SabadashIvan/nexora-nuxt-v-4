@@ -5,6 +5,9 @@
  * Used in header navigation
  */
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const cartStore = useCartStore()
 
 // Load cart on mount if we have a token
@@ -17,7 +20,7 @@ onMounted(async () => {
 
 <template>
   <NuxtLink
-    to="/cart"
+    :to="localePath('/cart')"
     class="cart-counter"
     :class="{ 'has-items': cartStore.itemCount > 0 }"
     aria-label="Shopping cart"

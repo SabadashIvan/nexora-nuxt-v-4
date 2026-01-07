@@ -9,6 +9,9 @@ import { useAuthStore } from '~/stores/auth.store'
 const route = useRoute()
 const router = useRouter()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const form = reactive({
   email: '',
   password: '',
@@ -49,7 +52,9 @@ async function handleSubmit() {
   if (success) {
     // Redirect to intended page or home
     const redirect = route.query.redirect as string || '/'
-    router.push(redirect)
+    // If redirect is a relative path, make it locale-aware
+    const redirectPath = redirect.startsWith('http') ? redirect : localePath(redirect)
+    router.push(redirectPath)
   }
 }
 </script>
@@ -59,7 +64,7 @@ async function handleSubmit() {
     <div class="max-w-md w-full">
       <!-- Header -->
       <div class="text-center mb-8">
-        <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+        <NuxtLink :to="localePath('/')" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
           Nexora
         </NuxtLink>
         <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -110,7 +115,7 @@ async function handleSubmit() {
                 Password
               </label>
               <NuxtLink 
-                to="/auth/forgot-password" 
+                :to="localePath('/auth/forgot-password')" 
                 class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
               >
                 Forgot password?
@@ -174,7 +179,7 @@ async function handleSubmit() {
 
         <!-- Register link -->
         <NuxtLink
-          to="/auth/register"
+          :to="localePath('/auth/register')"
           class="w-full flex items-center justify-center py-3 px-4 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Create an Account

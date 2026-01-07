@@ -17,6 +17,9 @@ const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const isInitialized = ref(false)
 const showSuccessMessage = ref(false)
 
@@ -83,7 +86,7 @@ async function handleCommentSubmit(text: string, parentId?: number | null) {
 }
 
 function goToLogin() {
-  router.push('/auth/login')
+  router.push(localePath('/auth/login'))
 }
 </script>
 

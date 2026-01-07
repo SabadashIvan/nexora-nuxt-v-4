@@ -7,6 +7,7 @@ import type { Category, MenuItem } from '~/types'
 import { getImageUrl } from '~/utils/image'
 import { useSystemStore } from '~/stores/system.store'
 import { useAuthStore } from '~/stores/auth.store'
+import { makeLocalePath } from '~/utils/locale-link'
 
 interface Props {
   modelValue: boolean
@@ -117,6 +118,9 @@ const userName = computed(() => {
   }
 })
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Logout handler
 const router = useRouter()
 const isLoggingOut = ref(false)
@@ -129,7 +133,7 @@ async function handleLogout() {
     const authStore = useAuthStore()
     await authStore.logout()
     closeMenu()
-    await router.push('/')
+    await router.push(localePath('/'))
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
@@ -195,7 +199,7 @@ async function handleLogout() {
                   <!-- Menu Item with icon and link -->
                   <div class="flex items-center">
                     <NuxtLink
-                      :to="item.link"
+                      :to="makeLocalePath(item.link, localePath)"
                       :target="item.target"
                       class="flex flex-1 items-center gap-3 py-4 text-base font-medium text-gray-900"
                       @click="closeMenu"
@@ -243,7 +247,7 @@ async function handleLogout() {
                           :key="child.id"
                         >
                           <NuxtLink
-                            :to="child.link"
+                            :to="makeLocalePath(child.link, localePath)"
                             :target="child.target"
                             class="block py-2 text-sm text-gray-600"
                             @click="closeMenu"
@@ -290,7 +294,7 @@ async function handleLogout() {
                         class="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
                       />
                       <NuxtLink
-                        :to="`/categories/${category.slug}`"
+                        :to="localePath(`/categories/${category.slug}`)"
                         class="mt-6 block font-medium text-gray-900"
                         @click="closeMenu"
                       >
@@ -311,7 +315,7 @@ async function handleLogout() {
                         class="flow-root"
                       >
                         <NuxtLink
-                          :to="`/categories/${category.slug}`"
+                          :to="localePath(`/categories/${category.slug}`)"
                           class="-m-2 block p-2 text-gray-500"
                           @click="closeMenu"
                         >
@@ -334,7 +338,7 @@ async function handleLogout() {
                       class="flow-root"
                     >
                       <NuxtLink
-                        :to="`/categories/${category.slug}`"
+                        :to="localePath(`/categories/${category.slug}`)"
                         class="-m-2 block p-2 text-gray-500"
                         @click="closeMenu"
                       >
@@ -349,7 +353,7 @@ async function handleLogout() {
               <div class="space-y-6 border-t border-gray-200 px-4 py-6">
                 <div class="flow-root">
                   <NuxtLink
-                    to="/categories"
+                    :to="localePath('/categories')"
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
                   >
@@ -358,7 +362,7 @@ async function handleLogout() {
                 </div>
                 <div class="flow-root">
                   <NuxtLink
-                    to="/blog"
+                    :to="localePath('/blog')"
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
                   >
@@ -372,7 +376,7 @@ async function handleLogout() {
                 <template v-if="!isAuthenticated">
                   <div class="flow-root">
                     <NuxtLink
-                      to="/auth/login"
+                      :to="localePath('/auth/login')"
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
@@ -381,7 +385,7 @@ async function handleLogout() {
                   </div>
                   <div class="flow-root">
                     <NuxtLink
-                      to="/auth/register"
+                      :to="localePath('/auth/register')"
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
@@ -392,7 +396,7 @@ async function handleLogout() {
                 <template v-else>
                   <div class="flow-root">
                     <NuxtLink
-                      to="/profile"
+                      :to="localePath('/profile')"
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
@@ -412,6 +416,11 @@ async function handleLogout() {
                     </button>
                   </div>
                 </template>
+              </div>
+
+              <!-- Language Switcher -->
+              <div class="border-t border-gray-200 px-4 py-6">
+                <UiLanguageSwitcher />
               </div>
 
               <!-- Currency -->

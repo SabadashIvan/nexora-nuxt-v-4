@@ -4,9 +4,15 @@
 
 export interface Locale {
   code: string
-  name: string
-  native_name?: string
+  title: string
   is_default?: boolean
+}
+
+export interface LanguagesResponse {
+  data: Locale[]
+  meta: {
+    default: string
+  }
 }
 
 export interface Currency {
