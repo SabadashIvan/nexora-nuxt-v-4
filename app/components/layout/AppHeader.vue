@@ -9,11 +9,13 @@ import {
   X,
   Loader2,
   LogOut,
+  Heart,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
+import { useFavoritesStore } from '~/stores/favorites.store'
 import type { MenuItem, MenuTreeResponse } from '~/types'
 import { useApi } from '~/composables/useApi'
 import { getImageUrl } from '~/utils/image'
@@ -54,6 +56,14 @@ const cartItemCount = computed(() => {
   }
 })
 
+const favoritesCount = computed(() => {
+  try {
+    return useFavoritesStore().count
+  } catch {
+    return 0
+  }
+})
+
 const isAuthenticated = computed(() => {
   try {
     return useAuthStore().isAuthenticated
@@ -83,14 +93,6 @@ const categoryTabs = computed(() => {
   return categories.value.slice(0, 2)
 })
 
-// Current currency
-const currentCurrency = computed(() => {
-  try {
-    return useSystemStore().currentCurrencyObject || { code: 'USD', symbol: '$', name: 'US Dollar' }
-  } catch {
-    return { code: 'USD', symbol: '$', name: 'US Dollar' }
-  }
-})
 
 // Locale-aware navigation
 const localePath = useLocalePath()
@@ -343,15 +345,9 @@ onMounted(async () => {
                 <UiLanguageSwitcher />
               </div>
 
-              <!-- Currency selector (desktop) -->
+              <!-- Currency switcher (desktop) -->
               <div class="hidden lg:ml-8 lg:flex">
-                <button
-                  type="button"
-                  class="flex items-center text-gray-700 hover:text-gray-800"
-                >
-                  <span class="block text-sm font-medium">{{ currentCurrency.code }}</span>
-                  <span class="sr-only">, change currency</span>
-                </button>
+                <UiCurrencySwitcher />
               </div>
 
               <!-- Search Desktop -->
@@ -371,6 +367,20 @@ onMounted(async () => {
                 <span class="sr-only">Search</span>
                 <Search class="size-6" />
               </button>
+
+              <!-- Favorites -->
+              <div class="flow-root flex-shrink-0">
+                <NuxtLink :to="localePath('/favorites')" class="group -m-2 flex items-center p-2">
+                  <Heart
+                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                    :class="{ 'fill-current': favoritesCount > 0 }"
+                  />
+                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
+                    {{ favoritesCount }}
+                  </span>
+                  <span class="sr-only">favorites, view wishlist</span>
+                </NuxtLink>
+              </div>
 
               <!-- Cart -->
               <div class="flow-root flex-shrink-0">

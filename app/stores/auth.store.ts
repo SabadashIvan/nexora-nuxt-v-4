@@ -142,6 +142,15 @@ export const useAuthStore = defineStore('auth', {
         const cartStore = useCartStore()
         await nuxtApp.runWithContext(async () => await cartStore.attachCart())
 
+        // Refresh favorites to get user's favorites (instead of guest favorites)
+        try {
+          const favoritesStore = useFavoritesStore()
+          await nuxtApp.runWithContext(async () => await favoritesStore.fetchFavorites())
+        } catch (error) {
+          // Don't break login if favorites refresh fails
+          console.warn('Failed to refresh favorites after login:', error)
+        }
+
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -176,6 +185,15 @@ export const useAuthStore = defineStore('auth', {
         // Handle wrapped response - check if data is wrapped
         this.user = ('data' in response && response.data) ? response.data : response as User
 
+        // Refresh favorites to get user's favorites (instead of guest favorites)
+        try {
+          const favoritesStore = useFavoritesStore()
+          await nuxtApp.runWithContext(async () => await favoritesStore.fetchFavorites())
+        } catch (error) {
+          // Don't break registration if favorites refresh fails
+          console.warn('Failed to refresh favorites after registration:', error)
+        }
+
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -206,6 +224,15 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         // Clear local state regardless
         this.user = null
+        
+        // Refresh favorites to get guest favorites (instead of user favorites)
+        try {
+          const favoritesStore = useFavoritesStore()
+          await nuxtApp.runWithContext(async () => await favoritesStore.fetchFavorites())
+        } catch (error) {
+          // Don't break logout if favorites refresh fails
+          console.warn('Failed to refresh favorites after logout:', error)
+        }
       }
     },
 

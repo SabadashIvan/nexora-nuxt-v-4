@@ -54,7 +54,16 @@ export default defineNuxtRouteMiddleware(async () => {
         }
       }
 
-      // Fetch system config (without locales) on first load (SSR)
+      // Fetch currencies from API on first load (SSR)
+      if (systemStore.currencies.length === 0) {
+        try {
+          await systemStore.fetchCurrencies()
+        } catch (error) {
+          console.error('Failed to fetch currencies:', error)
+        }
+      }
+
+      // Fetch system config (without locales and currencies) on first load (SSR)
       if (!systemStore.systemConfig && import.meta.server) {
         try {
           await systemStore.fetchSystemConfig()

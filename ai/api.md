@@ -609,7 +609,13 @@ X-Guest-Id
 GET /api/v1/catalog/favorites
 
 8.2 Add Favorite
-POST /api/v1/catalog/favorites/{variantId}
+POST /api/v1/catalog/favorites
+
+Body:
+
+{
+  "variant_id": 123
+}
 
 8.3 Remove Favorite
 DELETE /api/v1/catalog/favorites/{variantId}
@@ -1308,7 +1314,7 @@ Favorites (3 endpoints)
 
 GET /catalog/favorites
 
-POST /catalog/favorites/{variantId}
+POST /catalog/favorites
 
 DELETE /catalog/favorites/{variantId}
 

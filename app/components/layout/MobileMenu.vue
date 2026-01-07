@@ -5,7 +5,6 @@
 import { X, ChevronRight, LogOut } from 'lucide-vue-next'
 import type { Category, MenuItem } from '~/types'
 import { getImageUrl } from '~/utils/image'
-import { useSystemStore } from '~/stores/system.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { makeLocalePath } from '~/utils/locale-link'
 
@@ -92,14 +91,6 @@ function getCategoryImage(category: Category) {
   return getImageUrl(category.image) || getImageUrl(category.icon)
 }
 
-// Get current currency
-const currentCurrency = computed(() => {
-  try {
-    return useSystemStore().currentCurrencyObject || { code: 'USD', symbol: '$', name: 'US Dollar' }
-  } catch {
-    return { code: 'USD', symbol: '$', name: 'US Dollar' }
-  }
-})
 
 // Auth state
 const isAuthenticated = computed(() => {
@@ -362,6 +353,15 @@ async function handleLogout() {
                 </div>
                 <div class="flow-root">
                   <NuxtLink
+                    :to="localePath('/favorites')"
+                    class="-m-2 block p-2 font-medium text-gray-900"
+                    @click="closeMenu"
+                  >
+                    Favorites
+                  </NuxtLink>
+                </div>
+                <div class="flow-root">
+                  <NuxtLink
                     :to="localePath('/blog')"
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
@@ -407,9 +407,9 @@ async function handleLogout() {
                   <div class="flow-root">
                     <button
                       type="button"
+                      class="-m-2 flex items-center gap-2 w-full p-2 font-medium text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       :disabled="isLoggingOut"
                       @click="handleLogout"
-                      class="-m-2 flex items-center gap-2 w-full p-2 font-medium text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <LogOut class="h-5 w-5" />
                       <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
@@ -423,15 +423,9 @@ async function handleLogout() {
                 <UiLanguageSwitcher />
               </div>
 
-              <!-- Currency -->
+              <!-- Currency Switcher -->
               <div class="border-t border-gray-200 px-4 py-6">
-                <button
-                  type="button"
-                  class="-m-2 flex items-center p-2"
-                >
-                  <span class="block text-base font-medium text-gray-900">{{ currentCurrency.code }}</span>
-                  <span class="sr-only">, change currency</span>
-                </button>
+                <UiCurrencySwitcher />
               </div>
             </div>
           </Transition>

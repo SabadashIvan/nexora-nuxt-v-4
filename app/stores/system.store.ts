@@ -4,8 +4,9 @@
  */
 
 import { defineStore } from 'pinia'
-import type { SystemConfig, Locale, Currency, LanguagesResponse } from '~/types'
+import type { SystemConfig, Locale, Currency, LanguagesResponse, CurrenciesResponse } from '~/types'
 import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
+import { getCurrencySymbol } from '~/utils/price'
 
 interface SystemState {
   locales: Locale[]
@@ -47,10 +48,15 @@ export const useSystemStore = defineStore('system', {
 
     /**
      * Get currency symbol
+     * Uses symbol from loaded currencies, or falls back to utility function
      */
     currencySymbol: (state): string => {
       const currency = state.currencies.find(c => c.code === state.currentCurrency)
-      return currency?.symbol || state.currentCurrency
+      if (currency?.symbol) {
+        return currency.symbol
+      }
+      // Fallback to utility function for symbol mapping
+      return getCurrencySymbol(state.currentCurrency)
     },
 
     /**
@@ -119,7 +125,64 @@ export const useSystemStore = defineStore('system', {
     },
 
     /**
+     * Fetch currencies from API
+     */
+    async fetchCurrencies() {
+      const api = useApi()
+      this.loading = true
+      this.error = null
+
+      try {
+        const response = await api.get<CurrenciesResponse>('/app/currencies')
+        
+        // Map API response to internal Currency format
+        // precision → decimal_places
+        // Generate name from code (e.g., "USD" → "US Dollar")
+        const currencyNameMap: Record<string, string> = {
+          USD: 'US Dollar',
+          EUR: 'Euro',
+          GBP: 'British Pound',
+          UAH: 'Ukrainian Hryvnia',
+          RUB: 'Russian Ruble',
+          PLN: 'Polish Zloty',
+          JPY: 'Japanese Yen',
+          CNY: 'Chinese Yuan',
+          KRW: 'South Korean Won',
+          INR: 'Indian Rupee',
+          BRL: 'Brazilian Real',
+          CAD: 'Canadian Dollar',
+          AUD: 'Australian Dollar',
+        }
+
+        this.currencies = response.data.map((currency) => ({
+          code: currency.code,
+          symbol: currency.symbol,
+          decimal_places: currency.precision,
+          name: currencyNameMap[currency.code] || currency.code,
+          is_default: currency.is_default,
+        }))
+
+        // Sync current currency - similar to how fetchLanguages() handles locale
+        // Don't set default currency from API if already stored
+        // Only set currentCurrency if not already stored (use API default)
+        const storedCurrency = getToken(TOKEN_KEYS.CURRENCY)
+        if (!storedCurrency && response.meta.default) {
+          // Set default currency from API if not stored
+          this.currentCurrency = response.meta.default
+          setToken(TOKEN_KEYS.CURRENCY, response.meta.default)
+        }
+        // If storedCurrency exists, it's already set in middleware or store initialization
+      } catch (error) {
+        this.error = 'Failed to load currencies'
+        console.error('Currencies fetch error:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
      * Fetch system configuration from API (without locales - they come from /app/languages)
+     * Note: Currencies now come from /app/currencies, not from system/config
      */
     async fetchSystemConfig() {
       const api = useApi()
@@ -131,12 +194,7 @@ export const useSystemStore = defineStore('system', {
         
         this.systemConfig = config
         // Don't set locales here - they come from /app/languages
-        this.currencies = config.currencies
-
-        // Set default currency if not already set
-        if (!this.currentCurrency && config.default_currency) {
-          this.currentCurrency = config.default_currency
-        }
+        // Don't set currencies here - they come from /app/currencies
       } catch (error) {
         this.error = 'Failed to load system configuration'
         console.error('System config error:', error)
