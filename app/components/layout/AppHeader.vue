@@ -10,12 +10,14 @@ import {
   Loader2,
   LogOut,
   Heart,
+  GitCompare,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
+import { useComparisonStore } from '~/stores/comparison.store'
 import type { MenuItem, MenuTreeResponse } from '~/types'
 import { useApi } from '~/composables/useApi'
 import { getImageUrl } from '~/utils/image'
@@ -59,6 +61,14 @@ const cartItemCount = computed(() => {
 const favoritesCount = computed(() => {
   try {
     return useFavoritesStore().count
+  } catch {
+    return 0
+  }
+})
+
+const comparisonCount = computed(() => {
+  try {
+    return useComparisonStore().count
   } catch {
     return 0
   }
@@ -379,6 +389,20 @@ onMounted(async () => {
                     {{ favoritesCount }}
                   </span>
                   <span class="sr-only">favorites, view wishlist</span>
+                </NuxtLink>
+              </div>
+
+              <!-- Comparison -->
+              <div class="flow-root flex-shrink-0">
+                <NuxtLink :to="localePath('/comparison')" class="group -m-2 flex items-center p-2">
+                  <GitCompare
+                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                    :class="{ 'fill-current': comparisonCount > 0 }"
+                  />
+                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
+                    {{ comparisonCount }}
+                  </span>
+                  <span class="sr-only">comparison, view comparison</span>
                 </NuxtLink>
               </div>
 

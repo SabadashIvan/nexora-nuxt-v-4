@@ -14,6 +14,7 @@ import { useSystemStore } from '~/stores/system.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
+import { useComparisonStore } from '~/stores/comparison.store'
 
 // Flag to prevent duplicate CSRF initialization
 let _csrfInitialized = false
@@ -107,6 +108,14 @@ export default defineNuxtPlugin(async () => {
     await nuxtApp.runWithContext(async () => await favoritesStore.initialize())
   } catch (error) {
     console.error('Failed to initialize favorites:', error)
+  }
+
+  // Step 6: Initialize comparison
+  try {
+    const comparisonStore = useComparisonStore()
+    await nuxtApp.runWithContext(async () => await comparisonStore.initialize())
+  } catch (error) {
+    console.error('Failed to initialize comparison:', error)
   }
 })
 

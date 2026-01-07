@@ -1,11 +1,13 @@
 <script setup lang="ts">
+/* eslint-disable vue/no-v-html */
 /**
  * Product detail page - SSR for SEO
  */
-import { Heart, ShoppingCart, Minus, Plus, Share2, Truck, Shield, RefreshCw } from 'lucide-vue-next'
+import { Heart, ShoppingCart, Share2, GitCompare } from 'lucide-vue-next'
 import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
+import { useComparisonStore } from '~/stores/comparison.store'
 import type { ProductVariant, ApiResponse } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
@@ -111,7 +113,7 @@ const { data: product, pending, error, refresh } = await useAsyncData(
     server: true,
     // SWR-like behavior: show cached data immediately, then refresh in background
     // On client: try store cache first (from previous navigation)
-    getCachedData: (key) => {
+    getCachedData: (_key) => {
       if (import.meta.client) {
         try {
           const productStore = useProductStore()
@@ -222,7 +224,7 @@ const inStock = computed(() => {
   if (!product.value) return false
   return product.value.is_in_stock ?? product.value.in_stock ?? false
 })
-const hasDiscount = computed(() => {
+const _hasDiscount = computed(() => {
   if (!product.value) return false
   if (typeof product.value.price === 'object' && product.value.price !== null) {
     const list = parseFloat(product.value.price.list_minor.replace(/[^0-9.]/g, '')) || 0
@@ -240,6 +242,18 @@ const isFavorite = computed(() => {
   if (import.meta.client) {
     try {
       return useFavoritesStore().isFavorite(product.value?.id || 0)
+    } catch {
+      return false
+    }
+  }
+  return false
+})
+
+const isInComparison = computed(() => {
+  // On client, check comparison store
+  if (import.meta.client) {
+    try {
+      return useComparisonStore().isInComparison(product.value?.id || 0)
     } catch {
       return false
     }
@@ -335,7 +349,7 @@ const reviewsCount = computed(() => {
     return product.value.rating.count || 0
   }
   // Legacy support
-  return (product.value as any)?.reviews_count || 0
+  return (product.value as ProductVariant & { reviews_count?: number })?.reviews_count || 0
 })
 const productPrice = computed((): ProductPrice | null => {
   if (!product.value) return null
@@ -368,10 +382,10 @@ const priceToDisplay = computed((): ProductPrice | number | null => {
   }
   return null
 })
-const productBrand = computed(() => {
+const _productBrand = computed(() => {
   return product.value?.product?.brand
 })
-const productCategories = computed(() => {
+const _productCategories = computed(() => {
   return product.value?.product?.categories || []
 })
 
@@ -426,11 +440,17 @@ async function toggleFavorite() {
   await favoritesStore.toggleFavorite(product.value.id)
 }
 
-function incrementQuantity() {
+async function toggleComparison() {
+  if (!product.value) return
+  const comparisonStore = useComparisonStore()
+  await comparisonStore.toggleComparison(product.value.id)
+}
+
+function _incrementQuantity() {
   quantity.value++
 }
 
-function decrementQuantity() {
+function _decrementQuantity() {
   if (quantity.value > 1) {
     quantity.value--
   }
@@ -442,7 +462,7 @@ function selectOption(code: string, value: string) {
 }
 
 // Helper to get option value safely
-function getOptionValue(optionValue: any): string {
+function getOptionValue(optionValue: { value?: string; value_id?: number; label?: string }): string {
   if ('value' in optionValue && optionValue.value) {
     return optionValue.value
   }
@@ -453,7 +473,7 @@ function getOptionValue(optionValue: any): string {
 }
 
 // Helper to check if option is available
-function isOptionAvailable(optionValue: any): boolean {
+function isOptionAvailable(optionValue: { is_available?: boolean; is_in_stock?: boolean }): boolean {
   if ('is_available' in optionValue) {
     return optionValue.is_available ?? true
   }
@@ -472,7 +492,7 @@ function isColorOption(optionCode: string, optionName: string): boolean {
 }
 
 // Helper to get color class from value (try to extract color from label/value)
-function getColorClass(value: any): string {
+function getColorClass(value: { label?: string; value?: string }): string {
   const label = (value.label || '').toLowerCase()
   const valueStr = (value.value || '').toLowerCase()
   
@@ -756,6 +776,15 @@ const gridImages = computed(() => {
                 <button
                   type="button"
                   class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
+                  :class="{ 'text-indigo-600': isInComparison }"
+                  @click="toggleComparison"
+                >
+                  <GitCompare class="h-5 w-5" :class="{ 'fill-current': isInComparison }" />
+                  <span class="text-sm">{{ isInComparison ? 'In Comparison' : 'Add to Comparison' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
                 >
                   <Share2 class="h-5 w-5" />
                   <span class="text-sm">Share</span>
@@ -773,6 +802,7 @@ const gridImages = computed(() => {
                 <p v-if="product.short_description || product.product?.description" class="text-base text-gray-900">
                   {{ product.short_description || product.product?.description }}
                 </p>
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div
                   v-if="product.description"
                   class="prose max-w-none text-base text-gray-900"
@@ -801,6 +831,7 @@ const gridImages = computed(() => {
             <div v-if="product.description || product.product?.description" class="mt-10">
               <h2 class="text-sm font-medium text-gray-900">Details</h2>
               <div class="mt-4 space-y-6">
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div
                   v-if="product.description"
                   class="prose max-w-none text-sm text-gray-600"

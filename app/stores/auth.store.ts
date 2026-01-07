@@ -280,7 +280,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         // Returns 204 No Content on success
         await nuxtApp.runWithContext(async () => 
-          await api.post<void>('/forgot-password', payload)
+          await api.post('/forgot-password', payload)
         )
         this.passwordResetStatus = 'sent'
         return true
@@ -310,7 +310,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         // Returns 204 No Content on success
         await nuxtApp.runWithContext(async () => 
-          await api.post<void>('/reset-password', payload)
+          await api.post('/reset-password', payload)
         )
         this.passwordResetStatus = 'reset'
         return true
