@@ -32,7 +32,7 @@ export interface NotificationPreferences {
  * Notification channel preference
  */
 export interface ChannelPreference {
-  channel: NotificationChannel | string
+  channel: NotificationChannel | string // Allow string for backward compatibility
   group: string
   enabled: boolean
 }
