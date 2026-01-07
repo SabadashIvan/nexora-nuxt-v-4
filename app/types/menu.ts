@@ -8,7 +8,7 @@ export interface MenuItem {
   id: number
   title: string
   link: string
-  target: LinkTarget | string
+  target: LinkTarget | string // Allow string for backward compatibility
   css_class: string | null
   icon: string | null
   banner_desktop: string | null
@@ -19,4 +19,3 @@ export interface MenuItem {
 export interface MenuTreeResponse {
   data: MenuItem[]
 }
-

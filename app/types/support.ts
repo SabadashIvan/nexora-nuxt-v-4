@@ -41,7 +41,7 @@ export interface SupportRequestData {
   phone: string | null
   subject: string
   message: string
-  type: string
+  type: SupportRequestType | string // Allow string for backward compatibility
   status: string
   metadata: SupportRequestMetadata
   created_at: string
@@ -66,4 +66,3 @@ export interface SupportState {
   retryAfter: number | null
   fieldErrors: Record<string, string>
 }
-

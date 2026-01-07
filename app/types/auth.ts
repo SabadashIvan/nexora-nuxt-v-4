@@ -21,7 +21,7 @@ export { IdentityAddressType, EmailVerificationStatus, PasswordResetStatus }
 
 export interface IdentityAddress {
   id: number
-  type: IdentityAddressType | string
+  type: IdentityAddressType | string // Allow string for backward compatibility
   first_name: string
   last_name: string
   street: string
@@ -35,7 +35,7 @@ export interface IdentityAddress {
 }
 
 export interface CreateAddressPayload {
-  type: IdentityAddressType | string
+  type: IdentityAddressType | string // Allow string for backward compatibility
   first_name: string
   last_name: string
   street: string
