@@ -32,7 +32,7 @@ export interface NotificationPreferences {
  * Notification channel preference
  */
 export interface ChannelPreference {
-  channel: NotificationChannel
+  channel: NotificationChannel | string
   group: string
   enabled: boolean
 }
@@ -99,4 +99,3 @@ export interface NotificationsState {
     total: number
   }
 }
-

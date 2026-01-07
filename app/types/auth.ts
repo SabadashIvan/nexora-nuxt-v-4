@@ -21,7 +21,7 @@ export { IdentityAddressType, EmailVerificationStatus, PasswordResetStatus }
 
 export interface IdentityAddress {
   id: number
-  type: IdentityAddressType
+  type: IdentityAddressType | string
   first_name: string
   last_name: string
   street: string
@@ -35,7 +35,7 @@ export interface IdentityAddress {
 }
 
 export interface CreateAddressPayload {
-  type: IdentityAddressType
+  type: IdentityAddressType | string
   first_name: string
   last_name: string
   street: string
@@ -90,4 +90,3 @@ export interface ResetPasswordResponse {
 }
 
 // Enums are now imported from ./enums
-
