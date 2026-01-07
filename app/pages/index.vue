@@ -205,24 +205,9 @@ const features = [
           <div class="max-w-xl lg:max-w-lg">
             <h2 class="text-4xl font-semibold tracking-tight text-white">Subscribe to our newsletter</h2>
             <p class="mt-4 text-lg text-gray-300">Nostrud amet eu ullamco nisi aute in ad minim nostrud adipisicing velit quis. Duis tempor incididunt dolore.</p>
-            <form class="mt-6 flex max-w-md gap-x-4" @submit.prevent>
-              <label for="email-address" class="sr-only">Email address</label>
-              <input
-                id="email-address"
-                type="email"
-                name="email"
-                required
-                placeholder="Enter your email"
-                autocomplete="email"
-                class="min-w-0 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
-              >
-              <button
-                type="submit"
-                class="flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-              >
-                Subscribe
-              </button>
-            </form>
+            <div class="mt-6">
+              <AudienceNewsletterForm source="home_form" variant="horizontal" />
+            </div>
           </div>
           <dl class="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:pt-2">
             <div class="flex flex-col items-start">

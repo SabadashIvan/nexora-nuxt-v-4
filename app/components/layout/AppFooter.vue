@@ -69,6 +69,11 @@ const currentYear = new Date().getFullYear()
           </h4>
           <ul class="space-y-3">
             <li>
+              <NuxtLink :to="localePath('/contact')" class="text-sm hover:text-white transition-colors">
+                Contact Us
+              </NuxtLink>
+            </li>
+            <li>
               <NuxtLink :to="localePath('/profile/orders')" class="text-sm hover:text-white transition-colors">
                 Track Order
               </NuxtLink>

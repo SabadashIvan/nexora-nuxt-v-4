@@ -3,6 +3,8 @@
  * Session-based authentication (Laravel Sanctum SPA mode)
  */
 
+import { IdentityAddressType, EmailVerificationStatus, PasswordResetStatus } from './enums'
+
 export interface User {
   user_id: number
   first_name: string
@@ -14,10 +16,8 @@ export interface User {
   updated_at?: string
 }
 
-/**
- * Identity Address types for /api/v1/identity/addresses
- */
-export type IdentityAddressType = 'shipping' | 'billing'
+// Re-export enums for convenience
+export { IdentityAddressType, EmailVerificationStatus, PasswordResetStatus }
 
 export interface IdentityAddress {
   id: number
@@ -89,6 +89,5 @@ export interface ResetPasswordResponse {
   status: string
 }
 
-export type EmailVerificationStatus = 'idle' | 'sent' | 'verified' | 'error'
-export type PasswordResetStatus = 'idle' | 'sent' | 'reset' | 'error'
+// Enums are now imported from ./enums
 

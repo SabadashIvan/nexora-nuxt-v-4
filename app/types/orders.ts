@@ -4,6 +4,7 @@
 
 import type { Address, ShippingMethod, PaymentProvider } from './checkout'
 import type { ImageValue } from './common'
+import { OrderStatus, PaymentStatus } from './enums'
 
 export interface OrderItem {
   id: number
@@ -28,25 +29,14 @@ export interface OrderTotals {
   currency: string
 }
 
-export type OrderStatus = 
-  | 'pending'
-  | 'processing'
-  | 'shipped'
-  | 'delivered'
-  | 'cancelled'
-  | 'refunded'
-
-export type PaymentStatus = 
-  | 'pending'
-  | 'paid'
-  | 'failed'
-  | 'refunded'
+// Re-export enums for convenience
+export { OrderStatus, PaymentStatus }
 
 export interface Order {
   id: number
   order_number: string
-  status: OrderStatus
-  payment_status: PaymentStatus
+  status: OrderStatus | string // Allow string for backward compatibility
+  payment_status: PaymentStatus | string // Allow string for backward compatibility
   items: OrderItem[]
   totals: OrderTotals
   shipping_address: Address
