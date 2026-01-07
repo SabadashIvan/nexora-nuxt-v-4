@@ -8,6 +8,7 @@ import { getImageUrl } from '~/utils'
 
 definePageMeta({
   layout: 'profile',
+  ssr: false,
 })
 
 // Locale-aware navigation
@@ -149,4 +150,3 @@ function getStatusVariant(status: string) {
     </UiEmptyState>
   </div>
 </template>
-

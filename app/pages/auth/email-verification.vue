@@ -4,6 +4,10 @@
  */
 import { Mail, CheckCircle, XCircle, RefreshCw } from 'lucide-vue-next'
 
+definePageMeta({
+  ssr: false,
+})
+
 const route = useRoute()
 const authStore = useAuthStore()
 
@@ -132,4 +136,3 @@ async function resendEmail() {
     </div>
   </div>
 </template>
-
