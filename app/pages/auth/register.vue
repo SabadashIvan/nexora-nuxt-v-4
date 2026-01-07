@@ -4,6 +4,10 @@
  */
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-vue-next'
 
+definePageMeta({
+  ssr: false,
+})
+
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -205,4 +209,3 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
-

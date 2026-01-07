@@ -6,6 +6,7 @@ import { Package, MapPin, Heart, Settings } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'profile',
+  ssr: false,
 })
 
 const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
@@ -122,4 +123,3 @@ const quickLinks = computed(() => [
     </div>
   </div>
 </template>
-

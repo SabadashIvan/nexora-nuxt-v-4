@@ -6,6 +6,10 @@
 import { ShoppingBag, ArrowLeft, AlertTriangle } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 
+definePageMeta({
+  ssr: false,
+})
+
 // Locale-aware navigation
 const localePath = useLocalePath()
 

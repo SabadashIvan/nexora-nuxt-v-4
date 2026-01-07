@@ -6,6 +6,10 @@ import { Heart, ShoppingCart, Trash2 } from 'lucide-vue-next'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useCartStore } from '~/stores/cart.store'
 
+definePageMeta({
+  ssr: false,
+})
+
 // Locale-aware navigation
 const localePath = useLocalePath()
 
@@ -161,4 +165,3 @@ async function removeFromFavorites(variantId: number) {
     </div>
   </div>
 </template>
-

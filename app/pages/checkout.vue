@@ -16,6 +16,7 @@ import { useCountries } from '~/composables/useCountries'
 
 definePageMeta({
   layout: 'checkout',
+  ssr: false,
 })
 
 const router = useRouter()

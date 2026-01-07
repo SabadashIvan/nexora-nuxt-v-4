@@ -6,6 +6,7 @@ import { MapPin, Plus } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'profile',
+  ssr: false,
 })
 
 // This would typically load from an identity store
@@ -53,4 +54,3 @@ const loading = ref(false)
     </UiEmptyState>
   </div>
 </template>
-

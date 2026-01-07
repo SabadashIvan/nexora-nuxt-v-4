@@ -4,6 +4,10 @@
  */
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-vue-next'
 
+definePageMeta({
+  ssr: false,
+})
+
 const authStore = useAuthStore()
 
 // Locale-aware navigation
@@ -106,4 +110,3 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
-

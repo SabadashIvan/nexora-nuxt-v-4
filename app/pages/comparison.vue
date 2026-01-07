@@ -6,6 +6,10 @@ import { GitCompare, ShoppingCart, X } from 'lucide-vue-next'
 import { useComparisonStore } from '~/stores/comparison.store'
 import { useCartStore } from '~/stores/cart.store'
 
+definePageMeta({
+  ssr: false,
+})
+
 // Load comparison on mount - access store inside onMounted
 onMounted(async () => {
   const comparisonStore = useComparisonStore()
@@ -237,4 +241,3 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
     </div>
   </div>
 </template>
-
