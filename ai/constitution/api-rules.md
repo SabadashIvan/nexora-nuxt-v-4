@@ -11,10 +11,14 @@
 ## Headers (automatic)
 Accept-Language
 Accept-Currency
-Authorization (if logged in)
 X-Guest-Id
 X-Cart-Token
 X-Comparison-Token
+
+**Authentication:**
+- Session cookies (HTTP-only) are automatically attached by useApi() composable
+- NO Authorization: Bearer headers required
+- CSRF cookie retrieved before authenticated requests (handled by useApi())
 
 ## CSRF / XSRF Rules (MANDATORY)
 

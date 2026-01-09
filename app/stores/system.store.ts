@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import type { SystemConfig, Locale, Currency, LanguagesResponse, CurrenciesResponse } from '~/types'
+import type { Locale, Currency, LanguagesResponse, CurrenciesResponse } from '~/types'
 import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
 import { getCurrencySymbol } from '~/utils/price'
 
@@ -13,7 +13,6 @@ interface SystemState {
   currencies: Currency[]
   currentLocale: string
   currentCurrency: string
-  systemConfig: SystemConfig | null
   loading: boolean
   error: string | null
   initialized: boolean
@@ -25,7 +24,6 @@ export const useSystemStore = defineStore('system', {
     currencies: [],
     currentLocale: 'ru', // Must match nuxt.config.ts i18n.defaultLocale
     currentCurrency: 'USD',
-    systemConfig: null,
     loading: false,
     error: null,
     initialized: false,
@@ -59,12 +57,6 @@ export const useSystemStore = defineStore('system', {
       return getCurrencySymbol(state.currentCurrency)
     },
 
-    /**
-     * Check if system is configured
-     */
-    isConfigured: (state): boolean => {
-      return state.systemConfig !== null
-    },
   },
 
   actions: {
@@ -180,28 +172,6 @@ export const useSystemStore = defineStore('system', {
       }
     },
 
-    /**
-     * Fetch system configuration from API (without locales - they come from /app/languages)
-     * Note: Currencies now come from /app/currencies, not from system/config
-     */
-    async fetchSystemConfig() {
-      const api = useApi()
-      this.loading = true
-      this.error = null
-
-      try {
-        const config = await api.get<SystemConfig>('/system/config')
-        
-        this.systemConfig = config
-        // Don't set locales here - they come from /app/languages
-        // Don't set currencies here - they come from /app/currencies
-      } catch (error) {
-        this.error = 'Failed to load system configuration'
-        console.error('System config error:', error)
-      } finally {
-        this.loading = false
-      }
-    },
 
     /**
      * Set current locale (state and cookie only)
@@ -296,7 +266,6 @@ export const useSystemStore = defineStore('system', {
       this.currencies = []
       this.currentLocale = 'ru' // Must match nuxt.config.ts i18n.defaultLocale
       this.currentCurrency = 'USD'
-      this.systemConfig = null
       this.loading = false
       this.error = null
       this.initialized = false

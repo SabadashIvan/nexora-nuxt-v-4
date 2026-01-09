@@ -10,13 +10,11 @@ Purpose
 
 Handles:
 
-user authentication
+user authentication (cookie-based, Laravel Sanctum)
 
 registration
 
 logout
-
-token management
 
 user hydration
 
@@ -24,56 +22,70 @@ password reset
 
 email verification
 
-profile updates
+profile management
+
+address management (CRUD)
+
+**Note:** Also referred to as "Identity Store" in code comments, but file name is `auth.store.ts`.
+
+**Authentication Model:**
+- Uses Laravel Sanctum SPA authorization (cookie-based)
+- HTTP-only session cookies (automatically managed)
+- NO Bearer tokens
+- CSRF protection mandatory
 
 State
 user: User | null
-token: string | null
+addresses: IdentityAddress[]
 loading: boolean
+addressLoading: boolean
 error: string | null
-
+fieldErrors: Record<string, string>
 emailVerificationStatus: "idle" | "sent" | "verified" | "error"
 passwordResetStatus: "idle" | "sent" | "reset" | "error"
+initialized: boolean
 
 Getters
 isAuthenticated: boolean
 userName: string | null
 userEmail: string | null
+isEmailVerified: boolean
+defaultShippingAddress: IdentityAddress | null
+defaultBillingAddress: IdentityAddress | null
+shippingAddresses: IdentityAddress[]
+billingAddresses: IdentityAddress[]
 
 Actions
 login(payload)
-POST /auth/login
+POST /login (with CSRF cookie first)
 
-
-Save token
-
+Uses cookie-based authentication (Laravel Sanctum)
 Save user
-
 Sync cart via /cart/attach
 
 register(payload)
-POST /auth/register
+POST /register
 
 logout()
-POST /auth/logout
+POST /logout
 
+Clear user state
 
-Clear token
+fetchProfile()
+GET /api/v1/identity/me/profile
 
-Clear user
-
-fetchUser()
-GET /auth/user
+Address Management:
+- fetchAddresses() → GET /api/v1/identity/addresses
+- createAddress(payload) → POST /api/v1/identity/addresses
+- updateAddress(id, payload) → PUT /api/v1/identity/addresses/{id}
+- deleteAddress(id) → DELETE /api/v1/identity/addresses/{id}
 
 Password Reset Actions
 
 Forgot password
-
 POST /forgot-password
 
-
 Reset password
-
 POST /reset-password
 
 Email Verification Actions
@@ -82,11 +94,11 @@ POST /email/verification-notification
 
 SSR Behavior
 
-On SSR: load user if token cookie exists
+On SSR: load user if session cookie exists
 
-Token stored in cookies for SSR
+Session cookies are HTTP-only (managed by Laravel Sanctum)
 
-Never expose token to HTML
+Never expose session cookies in HTML
 
 Error Handling
 
@@ -714,7 +726,84 @@ SEO middleware calls fetch() on SSR
 
 Client navigation must re-trigger SEO updates
 
-12. Token Notes
+12. Support Store (support.store.ts)
+Purpose
+
+Handles customer support request submissions.
+
+State
+loading: boolean
+error: string | null
+message: string | null
+success: boolean
+retryAfter: number | null
+fieldErrors: Record<string, string>
+
+Actions
+submitRequest(payload)
+POST /api/v1/customer-support/requests
+
+Rate limiting: 3 attempts per 60 minutes per email/IP
+
+SSR Behavior
+
+CSR-only (public endpoint, no authentication required)
+
+13. Comments Store (comments.store.ts)
+Purpose
+
+Handles fetching and creating comments for products and other entities.
+
+State
+comments: Comment[]
+pagination: Pagination
+loading: boolean
+submitting: boolean
+error: string | null
+fieldErrors: Record<string, string>
+
+Actions
+fetchComments(params)
+GET /api/v1/comments (or entity-specific endpoint)
+
+createComment(payload)
+POST /api/v1/comments
+
+SSR Behavior
+
+CSR-only (comments are not SEO-critical)
+
+14. Reviews Store (reviews.store.ts)
+Purpose
+
+Handles fetching and creating product reviews.
+
+State
+reviews: Review[]
+currentPage: number
+hasMorePages: boolean
+loading: boolean
+submitting: boolean
+error: string | null
+fieldErrors: Record<string, string>
+
+Getters
+hasReviews: boolean
+reviewsCount: number
+averageRating: number
+
+Actions
+fetchReviews(params)
+GET /api/v1/reviews (or product-specific endpoint)
+
+createReview(payload)
+POST /api/v1/reviews
+
+SSR Behavior
+
+CSR-only (reviews are not SEO-critical)
+
+15. Token Notes
 
 The following stores require tokens:
 
@@ -723,7 +812,10 @@ cart	X-Cart-Token
 favorites	X-Guest-Id
 comparison	X-Comparison-Token
 checkout	X-Cart-Token
-auth	Bearer token
+auth	Session cookies (HTTP-only, Laravel Sanctum)
+orders	Session cookies (HTTP-only, Laravel Sanctum)
+
+**Note:** Authentication uses cookie-based session (Laravel Sanctum), NOT Bearer tokens.
 
 Stores that require SSR:
 
@@ -740,7 +832,10 @@ cart.store
 favorites.store
 comparison.store
 checkout.store
-auth.store (partial SSR allowed)
+auth.store (partial SSR allowed for user hydration)
 orders.store
+support.store
+comments.store
+reviews.store
 
 🟦 END OF PART 3

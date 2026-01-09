@@ -55,9 +55,6 @@ export default defineNuxtPlugin(async () => {
         await systemStore.fetchCurrencies()
       }
       
-      // Fetch system config (other settings - without locales and currencies)
-      await systemStore.fetchSystemConfig()
-      
       systemStore.initialized = true
     } catch (error) {
       console.error('Failed to initialize system config:', error)

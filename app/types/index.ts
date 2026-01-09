@@ -24,4 +24,5 @@ export * from './audience'
 export * from './comments'
 export * from './reviews'
 export * from './support'
+export * from './banner'
 

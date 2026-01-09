@@ -145,7 +145,7 @@ project/
 │   │   └─ shared/
 │   │
 │   ├─ stores/
-│   │   ├─ identity.store.ts         # Identity API (auth, profile, addresses)
+│   │   ├─ auth.store.ts            # Identity API (auth, profile, addresses)
 │   │   ├─ system.store.ts
 │   │   ├─ cart.store.ts
 │   │   ├─ catalog.store.ts
@@ -441,9 +441,9 @@ The backend exposes an Identity subsystem under `/api/v1/identity/*`.
 - Consistent structure for future modules
 
 ### Frontend Architecture Impact:
-- identity.store.ts replaces auth.store.ts
+- auth.store.ts handles Identity API (also referred to as "Identity Store" in comments)
 - Profile pages consume identity API
-- Address management in identity.store
+- Address management in auth.store
 - Checkout may reuse identity addresses if available
 
 
@@ -468,9 +468,9 @@ Strong error handling
 
 Below is the complete specification for all stores.
 
-6.1 Identity Store (identity.store.ts)
+6.1 Auth Store (auth.store.ts)
 
-**Replaces:** auth.store.ts
+**Note:** Also referred to as "Identity Store" in code comments, but file name is `auth.store.ts`
 
 Handles:
 - registration

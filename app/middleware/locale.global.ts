@@ -63,15 +63,6 @@ export default defineNuxtRouteMiddleware(async () => {
         }
       }
 
-      // Fetch system config (without locales and currencies) on first load (SSR)
-      if (!systemStore.systemConfig && import.meta.server) {
-        try {
-          await systemStore.fetchSystemConfig()
-        } catch (error) {
-          console.error('Failed to fetch system config:', error)
-        }
-      }
-
       // Don't sync with i18n in middleware - it's too early
       // i18n sync will happen in plugin or component after mount
 

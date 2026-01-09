@@ -226,7 +226,7 @@ product.store
 
 system.store
 
-identity.store
+auth.store (Identity API)
 
 notifications.store
 

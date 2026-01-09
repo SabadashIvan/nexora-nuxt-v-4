@@ -94,7 +94,8 @@ The application will be available at `http://localhost:3000`
 
 ### Technical
 - ⚡ **Hybrid Rendering** - SSR for SEO-critical pages, CSR for user-specific pages
-- 🔒 **Token Management** - Secure guest and user token handling
+- 🔒 **Authentication** - Cookie-based authentication (Laravel Sanctum SPA)
+- 🎫 **Token Management** - Secure guest token handling (X-Guest-Id, X-Cart-Token, X-Comparison-Token)
 - 🎯 **Type Safety** - Full TypeScript coverage
 - 📱 **Responsive Design** - Mobile-first approach
 
@@ -141,7 +142,7 @@ ai/                     # Project documentation
 - `/product/*` (product pages)
 - `/blog/*` (blog pages)
 
-**CSR Pages** (client-only, token-dependent):
+**CSR-Only Pages** (client-only, token-dependent):
 - `/cart`
 - `/checkout`
 - `/favorites`
@@ -149,23 +150,30 @@ ai/                     # Project documentation
 - `/profile/*`
 - `/auth/*`
 
-### Token Model
+These pages are client-only because they depend on guest tokens or user session cookies and are not SEO-critical.
 
-The application uses a secure token system:
+### Authentication & Token Model
 
-- **User Token**: `Authorization: Bearer <token>` (for authenticated users)
-- **Guest Tokens**: 
+The application uses **cookie-based authentication** (Laravel Sanctum SPA authorization):
+
+- **Authentication**: HTTP-only session cookies (automatically managed by `useApi()`)
+  - No Bearer tokens required
+  - CSRF protection mandatory for state-changing requests
+  - Session cookies automatically attached to all authenticated requests
+
+- **Guest Tokens** (for guest operations):
   - `X-Guest-Id` (for favorites)
   - `X-Cart-Token` (for cart operations)
   - `X-Comparison-Token` (for comparison)
+  - Stored in localStorage (CSR) + cookies (SSR fallback)
 
-All tokens are handled automatically via the `useApi()` composable.
+All tokens and authentication are handled automatically via the `useApi()` composable.
 
 ### State Management
 
 Business logic is centralized in Pinia stores:
 
-- `auth.store.ts` - Authentication state
+- `auth.store.ts` - Authentication, profile, and address management
 - `cart.store.ts` - Shopping cart management
 - `checkout.store.ts` - Checkout flow state
 - `catalog.store.ts` - Product catalog
@@ -176,16 +184,32 @@ Business logic is centralized in Pinia stores:
 - `blog.store.ts` - Blog content
 - `seo.store.ts` - SEO metadata
 - `system.store.ts` - System config (locale, currency)
+- `notifications.store.ts` - User notifications
+- `audience.store.ts` - Email marketing subscriptions
+- `support.store.ts` - Customer support requests
+- `comments.store.ts` - Product comments
+- `reviews.store.ts` - Product reviews
 
-**Important**: Never implement business logic in components. Always use stores.
+**Important**: 
+- Never implement business logic in components. Always use stores.
+- Never access stores at the top level of script setup. Access stores inside `useAsyncData` callbacks (for SSR), `onMounted` hooks (for CSR), computed properties, or functions.
 
 ### API Integration
 
 All API calls must:
-- Use the `useApi()` composable (never raw `fetch()`)
-- Include required headers automatically
-- Follow endpoints defined in `ai/api.md`
-- Handle errors properly (401 → logout, 422 → validation errors)
+- Use the `useApi()` composable (never raw `fetch()` in components)
+- Include required headers automatically:
+  - `Accept-Language` (from `system.store`)
+  - `Accept-Currency` (from `system.store`)
+  - Session cookies (HTTP-only, automatically attached for authenticated requests)
+  - `X-Guest-Id`, `X-Cart-Token`, `X-Comparison-Token` (when applicable)
+- Follow endpoints defined in `ai/api.md` (never invent endpoints)
+- Handle errors properly:
+  - `401` → auto-logout (handled by `useApi`)
+  - `422` → validation error handling
+  - Never swallow errors, always provide user feedback
+
+**Authentication**: All authentication uses cookie-based session (Laravel Sanctum). Session cookies are automatically attached by `useApi()`. No Bearer tokens required.
 
 ### Multi-language & Multi-currency
 
@@ -193,19 +217,34 @@ All API calls must:
 - **Currency**: Managed via `system.store`, sent as `Accept-Currency` header
 - Changing locale/currency triggers reactive updates across the application
 
+### Middleware
+
+Global middleware (runs on every request):
+- `auth.global.ts` - Authentication state management
+- `cart-token.global.ts` - Cart token initialization
+- `comparison-token.global.ts` - Comparison token initialization
+- `guest-token.global.ts` - Guest ID initialization
+- `locale.global.ts` - Locale detection and management
+- `seo.global.ts` - SEO metadata management
+
+Middleware execution order is critical for proper token and locale handling.
+
 ## 📜 Available Scripts
 
 ```bash
 # Development
-npm run dev          # Start development server
+npm run dev          # Start development server (http://localhost:3000)
 
 # Production
 npm run build        # Build for production
-npm run preview      # Preview production build
-npm run generate     # Generate static site
+npm run preview      # Preview production build locally
+npm run generate     # Generate static site (SSG)
 
 # Code Quality
 npm run lint         # Run ESLint
+
+# Type Generation
+npm run postinstall  # Regenerate Nuxt types (runs automatically after install)
 ```
 
 ## 📚 Documentation
@@ -231,13 +270,15 @@ Key configuration in `nuxt.config.ts`:
 
 ### Route Caching
 
-The application uses SWR (Stale-While-Revalidate) caching:
+The application uses SWR (Stale-While-Revalidate) caching strategy defined in `nuxt.config.ts`:
 
-- Categories: 1 hour
-- Products: 1 hour
-- Blog: 1 hour
-- Homepage: 30 minutes
-- Static pages: 1 hour
+- Categories (`/categories`, `/categories/**`): 1 hour (3600s)
+- Products (`/product/**`): 1 hour (3600s)
+- Blog (`/blog`, `/blog/**`): 1 hour (3600s)
+- Homepage (`/`): 30 minutes (1800s)
+- Static pages (`/faq`, `/shipping`, `/returns`, `/privacy`, `/terms`): 1 hour (3600s)
+
+CSR-only pages (`/cart`, `/checkout`, `/favorites`, `/comparison`, `/profile/**`, `/auth/**`) are not cached and use client-side rendering only.
 
 ## 🚨 Important Rules
 
@@ -260,11 +301,29 @@ See `ai/master-prompt.md` and `AGENTS.md` for complete guidelines.
 
 **Hydration errors**: Ensure SSR data keys are unique (include route params)
 
-**Token issues**: Check middleware execution order and cookie settings
+**Token issues**: 
+- Check middleware execution order and cookie settings
+- Verify tokens are stored in cookies for SSR compatibility
+- Ensure `X-Guest-Id`, `X-Cart-Token`, and `X-Comparison-Token` headers are set correctly
 
-**API errors**: Verify `NUXT_API_BACKEND_URL` is set correctly
+**API errors**: 
+- Verify `NUXT_API_BACKEND_URL` is set correctly
+- Check that all API calls use `useApi()` composable (never raw `fetch()`)
+- Ensure required headers are included automatically
 
-**Type errors**: Run `npm run postinstall` to regenerate types
+**Authentication issues**:
+- Verify session cookies are being set correctly (check browser DevTools)
+- Ensure CSRF cookie is retrieved before authenticated requests
+- Check that `useApi()` is automatically attaching session cookies
+
+**Type errors**: 
+- Run `npm run postinstall` to regenerate types
+- Verify TypeScript types are imported from `app/types/` folder
+
+**Store access errors**:
+- Never access stores at the top level of script setup
+- Access stores inside `useAsyncData`, `onMounted`, computed properties, or functions
+- Check if Pinia is available before accessing stores during SSR
 
 ## 📄 License
 
