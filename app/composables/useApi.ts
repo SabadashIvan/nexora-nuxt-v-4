@@ -79,6 +79,12 @@ export function useApi() {
   const config = useRuntimeConfig()
   const router = useRouter()
   
+  // Create reactive cookie references for locale and currency at top level
+  // This ensures reactivity when cookies are updated (e.g., via language switcher)
+  // Only create on client to avoid SSR issues
+  const localeCookie = import.meta.client ? useCookie('locale') : null
+  const currencyCookie = import.meta.client ? useCookie('currency') : null
+  
   // Lazy cookie access - only access cookies when needed and only on client
   // This prevents cookie writes during SSR/SWR cache handling
   function getCookieValue(key: string): string | null {
@@ -147,14 +153,23 @@ export function useApi() {
 
   /**
    * Build request headers with tokens
-   * Uses lazy cookie access to avoid writes during SSR/SWR cache handling
+   * Uses reactive cookie references for locale and currency to ensure headers update when language/currency changes
+   * Falls back to getCookieValue for SSR compatibility
    */
   function buildHeaders(options: UseApiOptions = {}): Record<string, string> {
+    // Use reactive cookie references on client, fallback to getCookieValue for SSR
+    const locale = import.meta.client && localeCookie 
+      ? (localeCookie.value || 'en')
+      : (getCookieValue('locale') || 'en')
+    const currency = import.meta.client && currencyCookie
+      ? (currencyCookie.value || 'USD')
+      : (getCookieValue('currency') || 'USD')
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Accept-Language': getCookieValue('locale') || 'en',
-      'Accept-Currency': getCookieValue('currency') || 'USD',
+      'Accept-Language': locale,
+      'Accept-Currency': currency,
     }
 
     // Add XSRF token for CSRF protection (Laravel Sanctum)

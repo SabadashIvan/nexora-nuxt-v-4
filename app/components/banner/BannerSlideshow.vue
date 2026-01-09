@@ -137,7 +137,9 @@ onUnmounted(() => {
 watch(() => props.banners, () => {
   currentIndex.value = 0
   if (isMultipleBanners.value && !isPaused.value) {
-    startAutoPlay()
+    resetAutoPlay()
+  } else {
+    stopAutoPlay()
   }
 }, { deep: true })
 </script>

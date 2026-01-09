@@ -44,49 +44,49 @@ export default defineNuxtConfig({
     vueI18n: './app/i18n.config.ts',
   },
 
-  routeRules: {
-    // Категории - кэшировать на 1 час (SWR: показываем кэш, обновляем в фоне)
-    '/categories': { swr: 3600 },
-    '/categories/**': { swr: 3600 },
+  // routeRules: {
+  //   // Категории - кэшировать на 1 час (SWR: показываем кэш, обновляем в фоне)
+  //   '/categories': { swr: 3600 },
+  //   '/categories/**': { swr: 3600 },
     
-    // Страницы товаров - кэшировать на 1 час (товары меняются реже)
-    '/product/**': { swr: 3600 },
+  //   // Страницы товаров - кэшировать на 1 час (товары меняются реже)
+  //   '/product/**': { swr: 3600 },
     
-    // Блог - кэшировать на 1 час (контент меняется редко)
-    '/blog': { swr: 3600 },
-    '/blog/**': { swr: 3600 },
+  //   // Блог - кэшировать на 1 час (контент меняется редко)
+  //   '/blog': { swr: 3600 },
+  //   '/blog/**': { swr: 3600 },
     
-    // Главная страница - кэшировать на 30 минут
-    '/': { swr: 1800 },
+  //   // Главная страница - кэшировать на 30 минут
+  //   '/': { swr: 1800 },
     
-    // Статические страницы - кэшировать на 1 час
-    '/faq': { swr: 3600 },
-    '/shipping': { swr: 3600 },
-    '/returns': { swr: 3600 },
-    '/privacy': { swr: 3600 },
-    '/terms': { swr: 3600 },
+  //   // Статические страницы - кэшировать на 1 час
+  //   '/faq': { swr: 3600 },
+  //   '/shipping': { swr: 3600 },
+  //   '/returns': { swr: 3600 },
+  //   '/privacy': { swr: 3600 },
+  //   '/terms': { swr: 3600 },
     
-    // CSR-only страницы (не кэшируем на сервере, они клиентские)
-    '/cart': { ssr: false },
-    '/checkout': { ssr: false },
-    '/favorites': { ssr: false },
-    '/comparison': { ssr: false },
-    '/profile/**': { ssr: false },
-    '/auth/**': { ssr: false },
+  //   // CSR-only страницы (не кэшируем на сервере, они клиентские)
+  //   '/cart': { ssr: false },
+  //   '/checkout': { ssr: false },
+  //   '/favorites': { ssr: false },
+  //   '/comparison': { ssr: false },
+  //   '/profile/**': { ssr: false },
+  //   '/auth/**': { ssr: false },
     
-    // Language-prefixed routes - apply same rules with language prefix
-    // These will be handled by i18n routing, but we need to ensure CSR pages remain CSR
-    '/uk/cart': { ssr: false },
-    '/uk/checkout': { ssr: false },
-    '/uk/favorites': { ssr: false },
-    '/uk/comparison': { ssr: false },
-    '/uk/profile/**': { ssr: false },
-    '/uk/auth/**': { ssr: false },
-    '/en/cart': { ssr: false },
-    '/en/checkout': { ssr: false },
-    '/en/favorites': { ssr: false },
-    '/en/comparison': { ssr: false },
-    '/en/profile/**': { ssr: false },
-    '/en/auth/**': { ssr: false },
-  },
+  //   // Language-prefixed routes - apply same rules with language prefix
+  //   // These will be handled by i18n routing, but we need to ensure CSR pages remain CSR
+  //   '/uk/cart': { ssr: false },
+  //   '/uk/checkout': { ssr: false },
+  //   '/uk/favorites': { ssr: false },
+  //   '/uk/comparison': { ssr: false },
+  //   '/uk/profile/**': { ssr: false },
+  //   '/uk/auth/**': { ssr: false },
+  //   '/en/cart': { ssr: false },
+  //   '/en/checkout': { ssr: false },
+  //   '/en/favorites': { ssr: false },
+  //   '/en/comparison': { ssr: false },
+  //   '/en/profile/**': { ssr: false },
+  //   '/en/auth/**': { ssr: false },
+  // },
 })

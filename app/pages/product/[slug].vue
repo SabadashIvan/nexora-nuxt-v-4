@@ -16,13 +16,17 @@ const route = useRoute()
 // Locale-aware navigation
 const localePath = useLocalePath()
 
+// Get locale for cache key
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
+
 const slug = computed(() => route.params.slug as string)
 
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
 const { data: product, pending, error, refresh } = await useAsyncData(
-  () => `product-${slug.value}`,
+  () => `product-${slug.value}-${locale.value}`,
   async () => {
     const currentSlug = slug.value
     console.log('[Fetch] Starting fetch for slug:', currentSlug, 'isServer:', import.meta.server)
@@ -109,7 +113,7 @@ const { data: product, pending, error, refresh } = await useAsyncData(
     }
   },
   { 
-    watch: [() => route.params.slug],
+    watch: [() => route.params.slug, locale],
     server: true,
     // SWR-like behavior: show cached data immediately, then refresh in background
     // On client: try store cache first (from previous navigation)
