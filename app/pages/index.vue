@@ -10,9 +10,13 @@ import type { BannersResponse } from '~/types'
 // Locale-aware navigation
 const localePath = useLocalePath()
 
+// Get locale for cache key
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
+
 // Fetch banners on SSR
 const { data: bannersResponse } = await useAsyncData(
-  'home-banners',
+  () => `home-banners-${locale.value}`,
   async () => {
     const api = useApi()
     try {
@@ -23,6 +27,9 @@ const { data: bannersResponse } = await useAsyncData(
       console.warn('Failed to fetch banners:', error)
       return { data: [] } as BannersResponse
     }
+  },
+  {
+    watch: [locale],
   }
 )
 
@@ -31,20 +38,26 @@ const banners = computed(() => bannersResponse.value?.data || [])
 // Fetch featured products and categories on SSR
 // Access store inside callbacks to ensure Pinia is initialized
 const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
-  'home-featured-products',
+  () => `home-featured-products-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
     await catalogStore.fetchProducts({ per_page: 8, sort: 'newest' })
     return catalogStore.products
+  },
+  {
+    watch: [locale],
   }
 )
 
 const { data: categories } = await useAsyncData(
-  'home-categories',
+  () => `home-categories-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
     await catalogStore.fetchCategories()
     return catalogStore.rootCategories
+  },
+  {
+    watch: [locale],
   }
 )
 

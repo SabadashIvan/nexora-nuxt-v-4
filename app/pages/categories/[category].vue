@@ -11,11 +11,15 @@ const catalogStore = useCatalogStore()
 // Create API instance at top level where context is guaranteed
 const api = useApi()
 
+// Get locale for cache key
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
+
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
 
-// Build cache key for category page with filters
-const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>) => {
+// Build cache key for category page with filters and locale
+const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string) => {
   const sortedQuery = Object.keys(query)
     .sort()
     .reduce((acc, key) => {
@@ -24,12 +28,12 @@ const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>) => 
       acc[key] = value === null ? undefined : value
       return acc
     }, {} as Record<string, unknown>)
-  return `category-${slug}-${JSON.stringify(sortedQuery)}`
+  return `category-${slug}-${currentLocale}-${JSON.stringify(sortedQuery)}`
 }
 
 // Fetch category and products with lazy loading + SWR caching
 const { data: category, pending, error, refresh } = await useLazyAsyncData(
-  () => buildCategoryCacheKey(categorySlug.value, route.query),
+  () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value),
   async () => {
     const slug = categorySlug.value
     const query = route.query
@@ -113,6 +117,8 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
   {
     server: true,
     default: () => null,
+    // Watch locale to refetch when language changes
+    watch: [locale],
     // SWR-like caching: return cached category if available (category doesn't change with pagination)
     getCachedData: (_key) => {
       try {
