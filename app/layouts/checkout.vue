@@ -3,6 +3,9 @@
  * Minimal checkout layout without distractions
  */
 import { ArrowLeft, Lock } from 'lucide-vue-next'
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 </script>
 
 <template>
@@ -12,14 +15,14 @@ import { ArrowLeft, Lock } from 'lucide-vue-next'
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <NuxtLink 
-            to="/cart" 
+            :to="localePath('/cart')" 
             class="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             <ArrowLeft class="h-5 w-5" />
             <span class="hidden sm:inline">Back to Cart</span>
           </NuxtLink>
 
-          <NuxtLink to="/" class="text-xl font-bold text-primary-600 dark:text-primary-400">
+          <NuxtLink :to="localePath('/')" class="text-xl font-bold text-primary-600 dark:text-primary-400">
             Nexora
           </NuxtLink>
 

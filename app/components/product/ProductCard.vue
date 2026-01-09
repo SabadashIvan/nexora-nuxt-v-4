@@ -14,6 +14,9 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const isAddingToCart = ref(false)
 const isTogglingFavorite = ref(false)
 
@@ -77,7 +80,7 @@ function prefetchProduct() {
 
 <template>
   <NuxtLink 
-    :to="`/product/${product.slug}`" 
+    :to="localePath(`/product/${product.slug}`)" 
     class="group"
     @mouseenter="prefetchProduct"
   >

@@ -2,6 +2,9 @@
  * Central export for all types
  */
 
+// Enums (export first for better import order)
+export * from './enums'
+
 // Common types
 export * from './common'
 
@@ -20,4 +23,5 @@ export * from './notifications'
 export * from './audience'
 export * from './comments'
 export * from './reviews'
+export * from './support'
 

@@ -376,7 +376,9 @@ fetchFavorites()
 GET /favorites
 
 addToFavorites(variantId)
-POST /favorites/{variantId}
+POST /favorites
+
+Body: { "variant_id": <variantId> }
 
 removeFromFavorites(variantId)
 DELETE /favorites/{variantId}

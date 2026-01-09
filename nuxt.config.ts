@@ -20,6 +20,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxt/content',
     '@nuxt/eslint',
+    '@nuxtjs/i18n',
   ],
 
   css: ['./app/assets/css/main.css'],
@@ -28,6 +29,19 @@ export default defineNuxtConfig({
     plugins: [
       tailwindcss(),
     ],
+  },
+
+  i18n: {
+    strategy: 'prefix_except_default',
+    defaultLocale: 'ru', // Default locale - set only in config, not from API
+    locales: [
+      { code: 'ru', name: 'Русский' },
+      { code: 'en', name: 'English' },
+      { code: 'uk', name: 'Українська' },
+      { code: 'awa', name: 'Авадхи' },
+    ], // Base set - will be filtered/validated by API response
+    detectBrowserLanguage: false,
+    vueI18n: './app/i18n.config.ts',
   },
 
   routeRules: {
@@ -59,5 +73,20 @@ export default defineNuxtConfig({
     '/comparison': { ssr: false },
     '/profile/**': { ssr: false },
     '/auth/**': { ssr: false },
+    
+    // Language-prefixed routes - apply same rules with language prefix
+    // These will be handled by i18n routing, but we need to ensure CSR pages remain CSR
+    '/uk/cart': { ssr: false },
+    '/uk/checkout': { ssr: false },
+    '/uk/favorites': { ssr: false },
+    '/uk/comparison': { ssr: false },
+    '/uk/profile/**': { ssr: false },
+    '/uk/auth/**': { ssr: false },
+    '/en/cart': { ssr: false },
+    '/en/checkout': { ssr: false },
+    '/en/favorites': { ssr: false },
+    '/en/comparison': { ssr: false },
+    '/en/profile/**': { ssr: false },
+    '/en/auth/**': { ssr: false },
   },
 })

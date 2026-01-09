@@ -3,6 +3,7 @@
  */
 
 import type { CartItem, CartTotals } from './cart'
+import { CheckoutStatus, PaymentProviderType } from './enums'
 
 export interface Address {
   id?: number
@@ -59,7 +60,7 @@ export interface ShippingMethodsResponse {
 export interface PaymentProvider {
   code: string
   name: string
-  type: 'online' | 'offline'
+  type: PaymentProviderType | string // Allow string for backward compatibility
   fee: number
   icon?: string
   instructions?: string
@@ -85,10 +86,11 @@ export interface CheckoutSession {
   pricing: CheckoutPricing
   selectedShippingMethod: ShippingMethod | null
   selectedPaymentProvider: PaymentProvider | null
-  status: CheckoutStatus
+  status: CheckoutStatus | string // Allow string for backward compatibility
 }
 
-export type CheckoutStatus = 'idle' | 'address' | 'shipping' | 'payment' | 'confirm' | 'completed'
+// Re-export enum for convenience
+export { CheckoutStatus }
 
 export interface CheckoutState {
   checkoutId: string | null
@@ -100,7 +102,7 @@ export interface CheckoutState {
   paymentProviders: PaymentProvider[]
   selectedPayment: PaymentProvider | null
   pricing: CheckoutPricing
-  status: CheckoutStatus
+  status: CheckoutStatus | string // Allow string for backward compatibility
   loading: boolean
   error: string | null
 }

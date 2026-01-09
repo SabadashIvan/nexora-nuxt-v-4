@@ -4,6 +4,7 @@
  */
 
 import type { PaginationMeta } from './common'
+import { NotificationChannel } from './enums'
 
 /**
  * Notification entity
@@ -31,15 +32,13 @@ export interface NotificationPreferences {
  * Notification channel preference
  */
 export interface ChannelPreference {
-  channel: NotificationChannel
+  channel: NotificationChannel | string // Allow string for backward compatibility
   group: string
   enabled: boolean
 }
 
-/**
- * Available notification channels
- */
-export type NotificationChannel = 'email' | 'sms' | 'push'
+// Re-export enum for convenience
+export { NotificationChannel }
 
 /**
  * Response for notifications list
@@ -100,4 +99,3 @@ export interface NotificationsState {
     total: number
   }
 }
-

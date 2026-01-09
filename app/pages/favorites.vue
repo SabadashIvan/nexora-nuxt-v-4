@@ -6,6 +6,13 @@ import { Heart, ShoppingCart, Trash2 } from 'lucide-vue-next'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useCartStore } from '~/stores/cart.store'
 
+definePageMeta({
+  ssr: false,
+})
+
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Load favorites on mount - access store inside onMounted
 onMounted(async () => {
   const favoritesStore = useFavoritesStore()
@@ -83,7 +90,7 @@ async function removeFromFavorites(variantId: number) {
     >
       <template #action>
         <NuxtLink
-          to="/categories"
+          :to="localePath('/categories')"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
           Browse Products
@@ -99,11 +106,11 @@ async function removeFromFavorites(variantId: number) {
         class="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden group"
       >
         <!-- Image -->
-        <NuxtLink :to="`/product/${item.slug}`" class="block relative aspect-square">
+        <NuxtLink :to="localePath(`/product/${item.slug}`)" class="block relative aspect-square">
           <NuxtImg
             v-if="item.images?.[0]?.url"
             :src="item.images[0].url"
-            :alt="item.name"
+            :alt="item.title || item.name"
             class="w-full h-full object-cover"
           />
           <div v-else class="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
@@ -121,9 +128,9 @@ async function removeFromFavorites(variantId: number) {
 
         <!-- Content -->
         <div class="p-4">
-          <NuxtLink :to="`/product/${item.slug}`">
+          <NuxtLink :to="localePath(`/product/${item.slug}`)">
             <h3 class="font-medium text-gray-900 dark:text-gray-100 line-clamp-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              {{ item.name }}
+              {{ item.title || item.name }}
             </h3>
           </NuxtLink>
 
@@ -131,13 +138,13 @@ async function removeFromFavorites(variantId: number) {
             <UiPrice 
               :price="item.price" 
               :effective-price="item.effective_price"
-              :currency="item.currency"
+              :currency="item.currency || item.price?.currency"
             />
           </div>
 
           <!-- Add to cart -->
           <button
-            v-if="item.in_stock"
+            v-if="item.is_in_stock || item.in_stock"
             class="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
             :disabled="addingToCart === item.id"
             @click="addToCart(item.id)"
@@ -158,4 +165,3 @@ async function removeFromFavorites(variantId: number) {
     </div>
   </div>
 </template>
-

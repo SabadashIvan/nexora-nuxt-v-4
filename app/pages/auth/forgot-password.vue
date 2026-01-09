@@ -4,7 +4,14 @@
  */
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-vue-next'
 
+definePageMeta({
+  ssr: false,
+})
+
 const authStore = useAuthStore()
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 const email = ref('')
 const isSubmitting = ref(false)
@@ -24,7 +31,7 @@ async function handleSubmit() {
     <div class="max-w-md w-full">
       <!-- Header -->
       <div class="text-center mb-8">
-        <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+        <NuxtLink :to="localePath('/')" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
           Nexora
         </NuxtLink>
         <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -93,7 +100,7 @@ async function handleSubmit() {
 
         <!-- Back to login -->
         <NuxtLink
-          to="/auth/login"
+          :to="localePath('/auth/login')"
           class="mt-6 flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
         >
           <ArrowLeft class="h-4 w-4" />
@@ -103,4 +110,3 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
-

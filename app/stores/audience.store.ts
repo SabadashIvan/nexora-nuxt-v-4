@@ -61,13 +61,12 @@ export const useAudienceStore = defineStore('audience', {
      * Subscribe to audience (newsletter)
      * POST /api/v1/audience/subscribe
      */
-    async subscribe(email: string): Promise<boolean> {
+    async subscribe(payload: AudienceSubscribePayload): Promise<boolean> {
       const api = useApi()
       this.loading = true
       this.clearState()
 
       try {
-        const payload: AudienceSubscribePayload = { email }
         const response = await api.post<AudienceSubscribeResponse>('/audience/subscribe', payload)
         
         this.status = 'pending'

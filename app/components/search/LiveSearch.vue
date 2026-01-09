@@ -98,6 +98,9 @@ function handleKeydown(event: KeyboardEvent) {
 const nuxtApp = useNuxtApp()
 const api = useApi()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Perform search
 async function performSearch(query: string) {
   if (!query || query.length < 2) {
@@ -123,10 +126,10 @@ async function performSearch(query: string) {
     )
 
     searchResults.value = response
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Silently handle API errors (422, etc.) - don't show to user
     // This can happen if API doesn't support suggest endpoint or has validation errors
-    if (error?.response?.status !== 422) {
+    if ((error as { response?: { status?: number } })?.response?.status !== 422) {
       console.error('Search error:', error)
     }
     searchResults.value = null
@@ -149,7 +152,7 @@ function handleSelect(index: number) {
     // Selected a variant
     const variant = variants[index]
     if (variant) {
-      navigateTo(`/product/${variant.slug}`)
+      navigateTo(localePath(`/product/${variant.slug}`))
       closeSearch()
     }
   } else if (index < variants.length + suggestions.length) {
@@ -166,7 +169,7 @@ function handleSelect(index: number) {
     const categoryIndex = index - variants.length - suggestions.length
     const category = categories[categoryIndex]
     if (category) {
-      navigateTo(category.slug ? `/categories/${category.slug}` : '/categories')
+      navigateTo(category.slug ? localePath(`/categories/${category.slug}`) : localePath('/categories'))
       closeSearch()
     }
   } else {
@@ -174,7 +177,7 @@ function handleSelect(index: number) {
     const brandIndex = index - variants.length - suggestions.length - categories.length
     const brand = brands[brandIndex]
     if (brand) {
-      navigateTo(brand.slug ? `/categories?brands=${brand.slug}` : '/categories')
+      navigateTo(brand.slug ? localePath(`/categories?brands=${brand.slug}`) : localePath('/categories'))
       closeSearch()
     }
   }
@@ -185,7 +188,7 @@ function handleSubmit() {
   if (searchQuery.value.trim()) {
     emit('select', searchQuery.value.trim())
     navigateTo({
-      path: '/categories',
+      path: localePath('/categories'),
       query: { search: searchQuery.value.trim() },
     })
     closeSearch()
@@ -223,7 +226,7 @@ defineExpose({
 
 <template>
   <div ref="searchRef" class="relative w-full">
-    <form @submit.prevent="handleSubmit" class="w-full">
+    <form class="w-full" @submit.prevent="handleSubmit">
       <div class="relative">
         <Search 
           class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" 
@@ -236,7 +239,7 @@ defineExpose({
           @input="isOpen = searchQuery.length >= 2"
           @keydown="handleKeydown"
           @focus="isOpen = searchQuery.length >= 2 && searchResults !== null"
-        />
+        >
         <button
           v-if="searchQuery"
           type="button"

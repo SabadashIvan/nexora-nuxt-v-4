@@ -6,6 +6,9 @@ import { Truck, Award, Shirt } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { getImageUrl } from '~/utils'
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Fetch featured products and categories on SSR
 // Access store inside callbacks to ensure Pinia is initialized
 const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
@@ -51,36 +54,36 @@ const features = [
                   <div class="flex items-center space-x-6 lg:space-x-8">
                     <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
                       <div class="h-64 w-44 overflow-hidden rounded-lg sm:opacity-0 lg:opacity-100">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-01.jpg" alt="" class="size-full object-cover" />
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-01.jpg" alt="" class="size-full object-cover">
                       </div>
                       <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-02.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                    </div>
-                    <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-03.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-04.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-05.jpg" alt="" class="size-full object-cover" />
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-02.jpg" alt="" class="size-full object-cover">
                       </div>
                     </div>
                     <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
                       <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-06.jpg" alt="" class="size-full object-cover" />
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-03.jpg" alt="" class="size-full object-cover">
                       </div>
                       <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-07.jpg" alt="" class="size-full object-cover" />
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-04.jpg" alt="" class="size-full object-cover">
+                      </div>
+                      <div class="h-64 w-44 overflow-hidden rounded-lg">
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-05.jpg" alt="" class="size-full object-cover">
+                      </div>
+                    </div>
+                    <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
+                      <div class="h-64 w-44 overflow-hidden rounded-lg">
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-06.jpg" alt="" class="size-full object-cover">
+                      </div>
+                      <div class="h-64 w-44 overflow-hidden rounded-lg">
+                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-07.jpg" alt="" class="size-full object-cover">
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <NuxtLink to="/categories" class="inline-block rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-center font-medium text-white hover:bg-indigo-700">
+              <NuxtLink :to="localePath('/categories')" class="inline-block rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-center font-medium text-white hover:bg-indigo-700">
                 Shop Collection
               </NuxtLink>
             </div>
@@ -105,7 +108,7 @@ const features = [
                 src="https://tailwindcss.com/plus-assets/img/ecommerce-images/incentives-07-hero.jpg"
                 alt="Product screenshot"
                 class="w-[48rem] max-w-full rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]"
-              />
+              >
             </div>
           </div>
           <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
@@ -134,7 +137,7 @@ const features = [
               Shop by Category
             </h2>
             <NuxtLink 
-              to="/categories" 
+              :to="localePath('/categories')" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               View All
@@ -145,7 +148,7 @@ const features = [
             <NuxtLink
               v-for="category in categories"
               :key="category.id"
-              :to="`/categories/${category.slug}`"
+              :to="localePath(`/categories/${category.slug}`)"
               class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100"
             >
               <NuxtImg
@@ -178,7 +181,7 @@ const features = [
               Featured Products
             </h2>
             <NuxtLink 
-              to="/categories?sort=newest" 
+              :to="localePath('/categories?sort=newest')" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               View All
@@ -202,24 +205,9 @@ const features = [
           <div class="max-w-xl lg:max-w-lg">
             <h2 class="text-4xl font-semibold tracking-tight text-white">Subscribe to our newsletter</h2>
             <p class="mt-4 text-lg text-gray-300">Nostrud amet eu ullamco nisi aute in ad minim nostrud adipisicing velit quis. Duis tempor incididunt dolore.</p>
-            <form class="mt-6 flex max-w-md gap-x-4" @submit.prevent>
-              <label for="email-address" class="sr-only">Email address</label>
-              <input
-                id="email-address"
-                type="email"
-                name="email"
-                required
-                placeholder="Enter your email"
-                autocomplete="email"
-                class="min-w-0 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
-              />
-              <button
-                type="submit"
-                class="flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-              >
-                Subscribe
-              </button>
-            </form>
+            <div class="mt-6">
+              <AudienceNewsletterForm source="home_form" variant="horizontal" />
+            </div>
           </div>
           <dl class="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:pt-2">
             <div class="flex flex-col items-start">
@@ -244,7 +232,7 @@ const features = [
         </div>
       </div>
       <div aria-hidden="true" class="absolute top-0 left-1/2 -z-10 -translate-x-1/2 blur-3xl xl:-top-6">
-        <div style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" class="aspect-1155/678 w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30"></div>
+        <div style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" class="aspect-1155/678 w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" />
       </div>
     </div>
   </div>

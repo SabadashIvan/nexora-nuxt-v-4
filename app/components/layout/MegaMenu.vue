@@ -8,6 +8,7 @@
 import type { MenuItem } from '~/types'
 import { ChevronRight } from 'lucide-vue-next'
 import { getImageUrl } from '~/utils/image'
+import { makeLocalePath } from '~/utils/locale-link'
 
 interface Props {
   menuItems: MenuItem[]
@@ -19,6 +20,9 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
 }>()
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 const hoveredItemId = ref<number | null>(null)
 
@@ -102,7 +106,7 @@ function handleMouseLeave() {
                 <NuxtLink
                   v-for="item in menuItems"
                   :key="item.id"
-                  :to="item.link"
+                  :to="makeLocalePath(item.link, localePath)"
                   :target="item.target"
                   class="group flex items-center justify-between rounded-md px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
                   :class="hoveredItemId === item.id ? 'bg-gray-50 text-indigo-600' : ''"
@@ -155,7 +159,7 @@ function handleMouseLeave() {
                       />
                       <div class="flex-1 min-w-0">
                         <NuxtLink
-                          :to="item.link"
+                          :to="makeLocalePath(item.link, localePath)"
                           :target="item.target"
                           class="block font-medium text-gray-900 hover:text-indigo-600"
                           @click="handleLinkClick"
@@ -172,7 +176,7 @@ function handleMouseLeave() {
                             :key="subItem.id"
                           >
                             <NuxtLink
-                              :to="subItem.link"
+                              :to="makeLocalePath(subItem.link, localePath)"
                               :target="subItem.target"
                               class="text-sm text-gray-600 hover:text-gray-900"
                               @click="handleLinkClick"
@@ -194,7 +198,7 @@ function handleMouseLeave() {
               class="w-[300px] shrink-0 border-l border-gray-200 pl-4"
             >
               <NuxtLink
-                :to="menuItems.find(m => m.id === hoveredItemId)?.link || '#'"
+                :to="makeLocalePath(menuItems.find(m => m.id === hoveredItemId)?.link || '/', localePath)"
                 class="block h-full"
                 @click="handleLinkClick"
               >

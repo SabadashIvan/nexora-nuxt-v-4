@@ -13,11 +13,13 @@ import type {
   RegisterPayload, 
   ForgotPasswordPayload,
   ResetPasswordPayload,
-  EmailVerificationStatus,
-  PasswordResetStatus,
   IdentityAddress,
   CreateAddressPayload,
   UpdateAddressPayload,
+} from '~/types'
+import { 
+  EmailVerificationStatus,
+  PasswordResetStatus,
 } from '~/types'
 import type { ApiResponse } from '~/types/common'
 import { parseApiError, getFieldErrors, getErrorMessage, getAuthErrorMessage } from '~/utils/errors'
@@ -29,8 +31,8 @@ interface AuthState {
   addressLoading: boolean
   error: string | null
   fieldErrors: Record<string, string>
-  emailVerificationStatus: EmailVerificationStatus
-  passwordResetStatus: PasswordResetStatus
+  emailVerificationStatus: EmailVerificationStatus | string // Allow string for backward compatibility
+  passwordResetStatus: PasswordResetStatus | string // Allow string for backward compatibility
   /** Tracks if initial auth check has been done */
   initialized: boolean
 }
@@ -43,8 +45,8 @@ export const useAuthStore = defineStore('auth', {
     addressLoading: false,
     error: null,
     fieldErrors: {},
-    emailVerificationStatus: 'idle',
-    passwordResetStatus: 'idle',
+    emailVerificationStatus: EmailVerificationStatus.IDLE,
+    passwordResetStatus: PasswordResetStatus.IDLE,
     initialized: false,
   }),
 
@@ -142,6 +144,15 @@ export const useAuthStore = defineStore('auth', {
         const cartStore = useCartStore()
         await nuxtApp.runWithContext(async () => await cartStore.attachCart())
 
+        // Refresh favorites to get user's favorites (instead of guest favorites)
+        try {
+          const favoritesStore = useFavoritesStore()
+          await nuxtApp.runWithContext(async () => await favoritesStore.fetchFavorites())
+        } catch (error) {
+          // Don't break login if favorites refresh fails
+          console.warn('Failed to refresh favorites after login:', error)
+        }
+
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -176,6 +187,15 @@ export const useAuthStore = defineStore('auth', {
         // Handle wrapped response - check if data is wrapped
         this.user = ('data' in response && response.data) ? response.data : response as User
 
+        // Refresh favorites to get user's favorites (instead of guest favorites)
+        try {
+          const favoritesStore = useFavoritesStore()
+          await nuxtApp.runWithContext(async () => await favoritesStore.fetchFavorites())
+        } catch (error) {
+          // Don't break registration if favorites refresh fails
+          console.warn('Failed to refresh favorites after registration:', error)
+        }
+
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -206,6 +226,15 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         // Clear local state regardless
         this.user = null
+        
+        // Refresh favorites to get guest favorites (instead of user favorites)
+        try {
+          const favoritesStore = useFavoritesStore()
+          await nuxtApp.runWithContext(async () => await favoritesStore.fetchFavorites())
+        } catch (error) {
+          // Don't break logout if favorites refresh fails
+          console.warn('Failed to refresh favorites after logout:', error)
+        }
       }
     },
 
@@ -248,20 +277,20 @@ export const useAuthStore = defineStore('auth', {
       const api = useApi()
       this.loading = true
       this.clearErrors()
-      this.passwordResetStatus = 'idle'
+      this.passwordResetStatus = PasswordResetStatus.IDLE
 
       try {
         // Returns 204 No Content on success
         await nuxtApp.runWithContext(async () => 
-          await api.post<void>('/forgot-password', payload)
+          await api.post('/forgot-password', payload)
         )
-        this.passwordResetStatus = 'sent'
+        this.passwordResetStatus = PasswordResetStatus.SENT
         return true
       } catch (error) {
         const apiError = parseApiError(error)
         this.error = getAuthErrorMessage('forgot-password', apiError)
         this.fieldErrors = getFieldErrors(apiError)
-        this.passwordResetStatus = 'error'
+        this.passwordResetStatus = PasswordResetStatus.ERROR
         return false
       } finally {
         this.loading = false
@@ -283,15 +312,15 @@ export const useAuthStore = defineStore('auth', {
       try {
         // Returns 204 No Content on success
         await nuxtApp.runWithContext(async () => 
-          await api.post<void>('/reset-password', payload)
+          await api.post('/reset-password', payload)
         )
-        this.passwordResetStatus = 'reset'
+        this.passwordResetStatus = PasswordResetStatus.RESET
         return true
       } catch (error) {
         const apiError = parseApiError(error)
         this.error = getAuthErrorMessage('reset-password', apiError)
         this.fieldErrors = getFieldErrors(apiError)
-        this.passwordResetStatus = 'error'
+        this.passwordResetStatus = PasswordResetStatus.ERROR
         return false
       } finally {
         this.loading = false
@@ -308,13 +337,13 @@ export const useAuthStore = defineStore('auth', {
       const api = useApi()
       this.loading = true
       this.clearErrors()
-      this.emailVerificationStatus = 'idle'
+      this.emailVerificationStatus = EmailVerificationStatus.IDLE
 
       try {
         await nuxtApp.runWithContext(async () => 
           await api.get(`/verify-email/${id}/${hash}`)
         )
-        this.emailVerificationStatus = 'verified'
+        this.emailVerificationStatus = EmailVerificationStatus.VERIFIED
         
         // Refresh user to get updated verification status
         await this.fetchUser()
@@ -322,7 +351,7 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         const apiError = parseApiError(error)
         this.error = apiError.message
-        this.emailVerificationStatus = 'error'
+        this.emailVerificationStatus = EmailVerificationStatus.ERROR
         return false
       } finally {
         this.loading = false
@@ -343,12 +372,12 @@ export const useAuthStore = defineStore('auth', {
         await nuxtApp.runWithContext(async () => 
           await api.post('/email/verification-notification')
         )
-        this.emailVerificationStatus = 'sent'
+        this.emailVerificationStatus = EmailVerificationStatus.SENT
         return true
       } catch (error) {
         const apiError = parseApiError(error)
         this.error = apiError.message
-        this.emailVerificationStatus = 'error'
+        this.emailVerificationStatus = EmailVerificationStatus.ERROR
         return false
       } finally {
         this.loading = false
@@ -481,8 +510,8 @@ export const useAuthStore = defineStore('auth', {
       this.addressLoading = false
       this.error = null
       this.fieldErrors = {}
-      this.emailVerificationStatus = 'idle'
-      this.passwordResetStatus = 'idle'
+      this.emailVerificationStatus = EmailVerificationStatus.IDLE
+      this.passwordResetStatus = PasswordResetStatus.IDLE
       this.initialized = false
     },
   },

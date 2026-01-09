@@ -9,11 +9,15 @@ import {
   X,
   Loader2,
   LogOut,
+  Heart,
+  GitCompare,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
+import { useFavoritesStore } from '~/stores/favorites.store'
+import { useComparisonStore } from '~/stores/comparison.store'
 import type { MenuItem, MenuTreeResponse } from '~/types'
 import { useApi } from '~/composables/useApi'
 import { getImageUrl } from '~/utils/image'
@@ -54,6 +58,22 @@ const cartItemCount = computed(() => {
   }
 })
 
+const favoritesCount = computed(() => {
+  try {
+    return useFavoritesStore().count
+  } catch {
+    return 0
+  }
+})
+
+const comparisonCount = computed(() => {
+  try {
+    return useComparisonStore().count
+  } catch {
+    return 0
+  }
+})
+
 const isAuthenticated = computed(() => {
   try {
     return useAuthStore().isAuthenticated
@@ -83,14 +103,9 @@ const categoryTabs = computed(() => {
   return categories.value.slice(0, 2)
 })
 
-// Current currency
-const currentCurrency = computed(() => {
-  try {
-    return useSystemStore().currentCurrencyObject || { code: 'USD', symbol: '$', name: 'US Dollar' }
-  } catch {
-    return { code: 'USD', symbol: '$', name: 'US Dollar' }
-  }
-})
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 // Logout handler
 const isLoggingOut = ref(false)
@@ -103,7 +118,7 @@ async function handleLogout() {
   try {
     const authStore = useAuthStore()
     await authStore.logout()
-    await router.push('/')
+    await router.push(localePath('/'))
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
@@ -113,7 +128,7 @@ async function handleLogout() {
 
 function handleSearchSelect(query: string) {
   navigateTo({
-    path: '/categories',
+    path: localePath('/categories'),
     query: { q: query },
   })
   // Close mobile search after selection
@@ -241,7 +256,7 @@ onMounted(async () => {
 
               <!-- Logo -->
               <div class="ml-2 sm:ml-4 flex lg:ml-0 flex-shrink-0">
-                <NuxtLink to="/">
+                <NuxtLink :to="localePath('/')">
                   <span class="sr-only">Your Company</span>
                   <span class="text-xl sm:text-2xl font-bold text-indigo-600 whitespace-nowrap">Nexora</span>
                 </NuxtLink>
@@ -273,7 +288,7 @@ onMounted(async () => {
 
                 <!-- Other links -->
                 <NuxtLink
-                  to="/blog"
+                  :to="localePath('/blog')"
                   class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
                 >
                   Blog
@@ -301,14 +316,14 @@ onMounted(async () => {
               <div class="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
                 <template v-if="!isAuthenticated">
                   <NuxtLink
-                    to="/auth/login"
+                    :to="localePath('/auth/login')"
                     class="text-sm font-medium text-gray-700 hover:text-gray-800"
                   >
                     Sign in
                   </NuxtLink>
                   <span aria-hidden="true" class="h-6 w-px bg-gray-200" />
                   <NuxtLink
-                    to="/auth/register"
+                    :to="localePath('/auth/register')"
                     class="text-sm font-medium text-gray-700 hover:text-gray-800"
                   >
                     Create account
@@ -316,7 +331,7 @@ onMounted(async () => {
                 </template>
                 <template v-else>
                   <NuxtLink
-                    to="/profile"
+                    :to="localePath('/profile')"
                     class="text-sm font-medium text-gray-700 hover:text-gray-800"
                   >
                     <span v-if="userName">Profile ({{ userName }})</span>
@@ -335,15 +350,14 @@ onMounted(async () => {
                 </template>
               </div>
 
-              <!-- Currency selector (desktop) -->
+              <!-- Language switcher (desktop) -->
               <div class="hidden lg:ml-8 lg:flex">
-                <button
-                  type="button"
-                  class="flex items-center text-gray-700 hover:text-gray-800"
-                >
-                  <span class="block text-sm font-medium">{{ currentCurrency.code }}</span>
-                  <span class="sr-only">, change currency</span>
-                </button>
+                <UiLanguageSwitcher />
+              </div>
+
+              <!-- Currency switcher (desktop) -->
+              <div class="hidden lg:ml-8 lg:flex">
+                <UiCurrencySwitcher />
               </div>
 
               <!-- Search Desktop -->
@@ -364,9 +378,37 @@ onMounted(async () => {
                 <Search class="size-6" />
               </button>
 
+              <!-- Favorites -->
+              <div class="flow-root flex-shrink-0">
+                <NuxtLink :to="localePath('/favorites')" class="group -m-2 flex items-center p-2">
+                  <Heart
+                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                    :class="{ 'fill-current': favoritesCount > 0 }"
+                  />
+                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
+                    {{ favoritesCount }}
+                  </span>
+                  <span class="sr-only">favorites, view wishlist</span>
+                </NuxtLink>
+              </div>
+
+              <!-- Comparison -->
+              <div class="flow-root flex-shrink-0">
+                <NuxtLink :to="localePath('/comparison')" class="group -m-2 flex items-center p-2">
+                  <GitCompare
+                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                    :class="{ 'fill-current': comparisonCount > 0 }"
+                  />
+                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
+                    {{ comparisonCount }}
+                  </span>
+                  <span class="sr-only">comparison, view comparison</span>
+                </NuxtLink>
+              </div>
+
               <!-- Cart -->
               <div class="flow-root flex-shrink-0">
-                <NuxtLink to="/cart" class="group -m-2 flex items-center p-2">
+                <NuxtLink :to="localePath('/cart')" class="group -m-2 flex items-center p-2">
                   <svg
                     viewBox="0 0 24 24"
                     fill="none"

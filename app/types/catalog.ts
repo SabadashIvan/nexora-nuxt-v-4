@@ -3,6 +3,7 @@
  */
 
 import type { ImageValue, Pagination } from './common'
+import { CatalogSort, FilterType } from './enums'
 
 export interface Category {
   id: number
@@ -32,7 +33,7 @@ export interface ProductFilter {
   // Query parameters (top-level, not nested)
   page?: number
   per_page?: number
-  sort?: 'newest' | 'price_asc' | 'price_desc'
+  sort?: CatalogSort | string // Allow string for backward compatibility
   include_facets?: 0 | 1
   
   // Filter parameters (nested under filters.* prefix in query string)
@@ -56,7 +57,7 @@ export interface FilterOption {
 export interface FilterGroup {
   code: string
   name: string
-  type: 'checkbox' | 'range' | 'select'
+  type: FilterType | string // Allow string for backward compatibility
   options?: FilterOption[]
   min?: number
   max?: number
@@ -77,7 +78,7 @@ export interface CatalogState {
   products: ProductListItem[]
   filters: ProductFilter
   availableFilters: CatalogFilters
-  sorting: 'newest' | 'price_asc' | 'price_desc'
+  sorting: CatalogSort | string // Allow string for backward compatibility
   pagination: Pagination
   loading: boolean
 }

@@ -23,6 +23,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const cartStore = useCartStore()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const couponCode = ref('')
 const isApplyingCoupon = ref(false)
 const couponError = ref('')
@@ -170,7 +173,7 @@ async function removeCoupon(code: string) {
     <!-- Checkout button -->
     <NuxtLink
       v-if="showCheckout"
-      to="/checkout"
+      :to="localePath('/checkout')"
       class="mt-6 w-full flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
     >
       Proceed to Checkout

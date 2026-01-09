@@ -7,8 +7,8 @@
 import { getToken, TOKEN_KEYS, setToken } from '~/utils/tokens'
 import { getActivePinia } from 'pinia'
 
-// Default values
-const DEFAULT_LOCALE = 'en'
+// Default values - must match nuxt.config.ts i18n.defaultLocale
+const DEFAULT_LOCALE = 'ru'
 const DEFAULT_CURRENCY = 'USD'
 
 export default defineNuxtRouteMiddleware(async () => {
@@ -45,7 +45,25 @@ export default defineNuxtRouteMiddleware(async () => {
       systemStore.currentLocale = storedLocale || DEFAULT_LOCALE
       systemStore.currentCurrency = storedCurrency || DEFAULT_CURRENCY
 
-      // Fetch system config on first load (SSR)
+      // Fetch languages from API on first load (SSR)
+      if (systemStore.locales.length === 0) {
+        try {
+          await systemStore.fetchLanguages()
+        } catch (error) {
+          console.error('Failed to fetch languages:', error)
+        }
+      }
+
+      // Fetch currencies from API on first load (SSR)
+      if (systemStore.currencies.length === 0) {
+        try {
+          await systemStore.fetchCurrencies()
+        } catch (error) {
+          console.error('Failed to fetch currencies:', error)
+        }
+      }
+
+      // Fetch system config (without locales and currencies) on first load (SSR)
       if (!systemStore.systemConfig && import.meta.server) {
         try {
           await systemStore.fetchSystemConfig()
@@ -54,8 +72,12 @@ export default defineNuxtRouteMiddleware(async () => {
         }
       }
 
+      // Don't sync with i18n in middleware - it's too early
+      // i18n sync will happen in plugin or component after mount
+
       systemStore.initialized = true
     }
+    // Don't sync i18n in middleware - it runs too early in the lifecycle
   } catch (error) {
     // Store access failed - plugin will handle initialization
     console.warn('Could not initialize system store in middleware:', error)

@@ -8,6 +8,9 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const isLoggingOut = ref(false)
 
 async function handleLogout() {
@@ -16,7 +19,7 @@ async function handleLogout() {
   isLoggingOut.value = true
   try {
     await authStore.logout()
-    await router.push('/')
+    await router.push(localePath('/'))
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
@@ -24,12 +27,12 @@ async function handleLogout() {
   }
 }
 
-const navigation = [
-  { name: 'Dashboard', to: '/profile', icon: User, exact: true },
-  { name: 'My Orders', to: '/profile/orders', icon: Package },
-  { name: 'Addresses', to: '/profile/addresses', icon: MapPin },
-  { name: 'Settings', to: '/profile/settings', icon: Settings },
-]
+const navigation = computed(() => [
+  { name: 'Dashboard', to: localePath('/profile'), icon: User, exact: true },
+  { name: 'My Orders', to: localePath('/profile/orders'), icon: Package },
+  { name: 'Addresses', to: localePath('/profile/addresses'), icon: MapPin },
+  { name: 'Settings', to: localePath('/profile/settings'), icon: Settings },
+])
 
 const isActive = (item: { to: string; exact?: boolean }) => {
   if (item.exact) {

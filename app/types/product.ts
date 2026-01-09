@@ -123,3 +123,14 @@ export interface ProductState {
   error: string | null
 }
 
+export interface ComparisonResponse {
+  data: {
+    token: string
+    variants: ProductVariant[]
+    meta: {
+      count: number
+      max_items: number
+    }
+  }
+}
+
