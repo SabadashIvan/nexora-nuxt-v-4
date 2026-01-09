@@ -1479,14 +1479,15 @@ Frontend MUST:
 
 19.3 Authentication
 
-Identity API endpoints use cookie-based authentication (Sanctum).
-Do NOT use Bearer tokens for Identity API endpoints.
+**All authentication is cookie-based (Laravel Sanctum SPA authorization).**
 
-For other endpoints, user-only endpoints require:
+- Identity API endpoints use cookie-based authentication (Sanctum)
+- All user-only endpoints use cookie-based authentication (Sanctum)
+- Do NOT use Bearer tokens for any endpoints
+- Session cookies are HTTP-only and automatically attached by useApi() composable
+- CSRF protection is mandatory for all state-changing requests
 
-Authorization: Bearer <token>
-
-Guest token headers:
+Guest token headers (for guest operations):
 
 X-Guest-Id
 X-Cart-Token
