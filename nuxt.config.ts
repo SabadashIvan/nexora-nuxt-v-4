@@ -21,6 +21,7 @@ export default defineNuxtConfig({
     '@nuxt/content',
     '@nuxt/eslint',
     '@nuxtjs/i18n',
+    '@nuxt/test-utils/module',
   ],
 
   css: ['./app/assets/css/main.css'],
@@ -29,6 +30,25 @@ export default defineNuxtConfig({
     plugins: [
       tailwindcss(),
     ],
+    server: {
+      watch: {
+        ignored: [
+          '**/node_modules/**',
+          '**/.nuxt/**',
+          '**/.output/**',
+          '**/.nitro/**',
+          '**/.cache/**',
+          '**/dist/**',
+          '**/.data/**',
+          '**/logs/**',
+          '**/*.log',
+          '**/.DS_Store',
+          '**/.git/**',
+          '**/test/**',
+          '**/coverage/**',
+        ],
+      },
+    },
   },
 
   i18n: {

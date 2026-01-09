@@ -464,7 +464,7 @@ export const useCartStore = defineStore('cart', {
         const apiError = parseApiError(error)
         
         // Handle 422 error with IF_MATCH_REQUIRED - this means cart exists but version was missing
-        if (apiError.status === 422 && apiError.errors?.If-Match === 'IF_MATCH_REQUIRED') {
+        if (apiError.status === 422 && apiError.errors?.['If-Match']?.includes('IF_MATCH_REQUIRED')) {
           // Cart exists but we didn't send If-Match - try to get version and retry once
           if (this.cartToken) {
             try {
