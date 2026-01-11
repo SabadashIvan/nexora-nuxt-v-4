@@ -7,25 +7,29 @@ import type { ProductFilter } from '~/types'
 
 const route = useRoute()
 
+// Get locale for cache key
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
+
 // Create a computed for route query to use in watch
 const routeQuery = computed(() => route.query)
 
-// Build cache key from route query for SWR-like caching
-const buildCacheKey = (query: Record<string, any>) => {
+// Build cache key from route query and locale for SWR-like caching
+const buildCacheKey = (query: Record<string, any>, currentLocale: string) => {
   const sortedQuery = Object.keys(query)
     .sort()
     .reduce((acc, key) => {
       acc[key] = query[key]
       return acc
     }, {} as Record<string, any>)
-  return `catalog-products-${JSON.stringify(sortedQuery)}`
+  return `catalog-products-${currentLocale}-${JSON.stringify(sortedQuery)}`
 }
 
 // Fetch products with lazy loading + SWR caching
 // useLazyAsyncData allows instant navigation with skeleton loading
-// Key includes all query params (including page) so cache will be correct per page
+// Key includes all query params (including page) and locale so cache will be correct per page and language
 const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
-  () => buildCacheKey(route.query),
+  () => buildCacheKey(route.query, locale.value),
   async () => {
     const catalogStore = useCatalogStore()
     
@@ -113,11 +117,13 @@ const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
     return catalogStore.products
   },
   { 
+    // Watch locale to refetch when language changes
+    watch: [locale],
     // SWR-like behavior: show cached data immediately, then refresh in background
     getCachedData: (key) => {
       // Don't return cached data from store - it might be from a different page
       // Let useAsyncData handle caching through its built-in mechanism
-      // The key includes all query params (including page), so cache will be correct
+      // The key includes all query params (including page) and locale, so cache will be correct
       return undefined
     },
     // Server-side: always fetch fresh data for SEO
@@ -135,7 +141,7 @@ watch(routeQuery, () => {
 // Fetch categories with lazy loading + caching
 // Categories change rarely, so we can cache them aggressively
 const { data: categoriesData } = await useLazyAsyncData(
-  'catalog-categories',
+  () => `catalog-categories-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
     if (catalogStore.categories.length === 0) {
@@ -144,6 +150,8 @@ const { data: categoriesData } = await useLazyAsyncData(
     return catalogStore.categories || []
   },
   {
+    // Watch locale to refetch when language changes
+    watch: [locale],
     // Cache categories for 5 minutes (they change rarely)
     getCachedData: (key) => {
       try {
@@ -253,7 +261,8 @@ async function handlePageChange(page: number) {
   
   // Navigate to update URL - this will trigger useLazyAsyncData to refetch
   // The watch on routeQuery will detect the change and reload data
-  await navigateTo({ path: '/categories', query }, { replace: true })
+  const localePath = useLocalePath()
+  await navigateTo({ path: localePath('/categories'), query }, { replace: true })
   
   // Force refresh to ensure data is reloaded
   await refresh()
@@ -336,7 +345,8 @@ async function handleReset() {
   const catalogStore = useCatalogStore()
   catalogStore.resetFilters()
   await catalogStore.fetchProducts()
-  navigateTo('/categories')
+  const localePath = useLocalePath()
+  navigateTo(localePath('/categories'))
 }
 
 // Update URL with current filters
@@ -384,7 +394,8 @@ function updateUrl() {
     query.page = catalogStore.pagination.page.toString()
   }
   
-  navigateTo({ path: '/categories', query }, { replace: true })
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath('/categories'), query }, { replace: true })
 }
 </script>
 

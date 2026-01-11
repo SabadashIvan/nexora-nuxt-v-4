@@ -2,11 +2,11 @@
 /**
  * Mobile navigation menu - Shows menu items from API with icons
  */
-import { X, ChevronRight, LogOut } from 'lucide-vue-next'
+import { X, LogOut } from 'lucide-vue-next'
 import type { Category, MenuItem } from '~/types'
 import { getImageUrl } from '~/utils/image'
-import { useSystemStore } from '~/stores/system.store'
 import { useAuthStore } from '~/stores/auth.store'
+import MobileMenuRecursiveItem from './MobileMenuRecursiveItem.vue'
 
 interface Props {
   modelValue: boolean
@@ -30,15 +30,19 @@ const isOpen = computed({
 })
 
 const activeTab = ref(0)
-const expandedMenuItemId = ref<number | null>(null)
+const expandedMenuItemIds = ref<Set<number>>(new Set())
 
 function closeMenu() {
   isOpen.value = false
-  expandedMenuItemId.value = null
+  expandedMenuItemIds.value.clear()
 }
 
 function toggleMenuItem(itemId: number) {
-  expandedMenuItemId.value = expandedMenuItemId.value === itemId ? null : itemId
+  if (expandedMenuItemIds.value.has(itemId)) {
+    expandedMenuItemIds.value.delete(itemId)
+  } else {
+    expandedMenuItemIds.value.add(itemId)
+  }
 }
 
 // Use menu items from API if available, otherwise fallback to categories
@@ -74,31 +78,18 @@ const featuredCategories = computed(() => {
 watch(isOpen, (value) => {
   if (value) {
     activeTab.value = 0
-    expandedMenuItemId.value = null
+    expandedMenuItemIds.value.clear()
   }
   if (import.meta.client) {
     document.body.style.overflow = value ? 'hidden' : ''
   }
 })
 
-// Helper to get menu item image
-function getMenuItemImage(item: MenuItem) {
-  return getImageUrl(item.icon)
-}
-
 // Helper to get category image (fallback)
 function getCategoryImage(category: Category) {
   return getImageUrl(category.image) || getImageUrl(category.icon)
 }
 
-// Get current currency
-const currentCurrency = computed(() => {
-  try {
-    return useSystemStore().currentCurrencyObject || { code: 'USD', symbol: '$', name: 'US Dollar' }
-  } catch {
-    return { code: 'USD', symbol: '$', name: 'US Dollar' }
-  }
-})
 
 // Auth state
 const isAuthenticated = computed(() => {
@@ -117,6 +108,9 @@ const userName = computed(() => {
   }
 })
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Logout handler
 const router = useRouter()
 const isLoggingOut = ref(false)
@@ -129,7 +123,7 @@ async function handleLogout() {
     const authStore = useAuthStore()
     await authStore.logout()
     closeMenu()
-    await router.push('/')
+    await router.push(localePath('/'))
   } catch (error) {
     console.error('Logout error:', error)
   } finally {
@@ -187,74 +181,16 @@ async function handleLogout() {
 
               <!-- Menu Items from API (Priority) -->
               <div v-if="displayMenuItems.length > 0" class="mt-2 space-y-1 px-4 pb-4">
-                <div
-                  v-for="item in displayMenuItems"
-                  :key="item.id"
-                  class="border-b border-gray-200 last:border-b-0"
-                >
-                  <!-- Menu Item with icon and link -->
-                  <div class="flex items-center">
-                    <NuxtLink
-                      :to="item.link"
-                      :target="item.target"
-                      class="flex flex-1 items-center gap-3 py-4 text-base font-medium text-gray-900"
-                      @click="closeMenu"
-                    >
-                      <!-- Icon if available -->
-                      <NuxtImg
-                        v-if="getMenuItemImage(item)"
-                        :src="getMenuItemImage(item)!"
-                        :alt="item.title"
-                        class="size-8 shrink-0 rounded-lg bg-gray-100 object-cover"
-                      />
-                      <span class="flex-1">{{ item.title }}</span>
-                    </NuxtLink>
-                    
-                    <!-- Expand button if has children -->
-                    <button
-                      v-if="item.children && item.children.length > 0"
-                      type="button"
-                      class="ml-2 flex items-center p-2 text-gray-400"
-                      @click="toggleMenuItem(item.id)"
-                    >
-                      <ChevronRight
-                        class="size-5 transition-transform"
-                        :class="expandedMenuItemId === item.id ? 'rotate-90' : ''"
-                      />
-                    </button>
-                  </div>
-                  
-                  <!-- Children submenu -->
-                  <Transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="opacity-0 max-h-0"
-                    enter-to-class="opacity-100 max-h-96"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100 max-h-96"
-                    leave-to-class="opacity-0 max-h-0"
-                  >
-                    <div
-                      v-if="expandedMenuItemId === item.id && item.children && item.children.length > 0"
-                      class="overflow-hidden pl-4 pb-2"
-                    >
-                      <ul class="space-y-2">
-                        <li
-                          v-for="child in item.children"
-                          :key="child.id"
-                        >
-                          <NuxtLink
-                            :to="child.link"
-                            :target="child.target"
-                            class="block py-2 text-sm text-gray-600"
-                            @click="closeMenu"
-                          >
-                            {{ child.title }}
-                          </NuxtLink>
-                        </li>
-                      </ul>
-                    </div>
-                  </Transition>
-                </div>
+                <!-- Recursive Menu Items -->
+                <template v-for="item in displayMenuItems" :key="item.id">
+                  <MobileMenuRecursiveItem
+                    :item="item"
+                    :level="0"
+                    :expanded-ids="expandedMenuItemIds"
+                    @toggle="toggleMenuItem"
+                    @close="closeMenu"
+                  />
+                </template>
               </div>
 
               <!-- Fallback: Tabs (if no menu items) -->
@@ -290,7 +226,7 @@ async function handleLogout() {
                         class="aspect-square w-full rounded-lg bg-gray-100 object-cover group-hover:opacity-75"
                       />
                       <NuxtLink
-                        :to="`/categories/${category.slug}`"
+                        :to="localePath(`/categories/${category.slug}`)"
                         class="mt-6 block font-medium text-gray-900"
                         @click="closeMenu"
                       >
@@ -311,7 +247,7 @@ async function handleLogout() {
                         class="flow-root"
                       >
                         <NuxtLink
-                          :to="`/categories/${category.slug}`"
+                          :to="localePath(`/categories/${category.slug}`)"
                           class="-m-2 block p-2 text-gray-500"
                           @click="closeMenu"
                         >
@@ -334,7 +270,7 @@ async function handleLogout() {
                       class="flow-root"
                     >
                       <NuxtLink
-                        :to="`/categories/${category.slug}`"
+                        :to="localePath(`/categories/${category.slug}`)"
                         class="-m-2 block p-2 text-gray-500"
                         @click="closeMenu"
                       >
@@ -349,7 +285,7 @@ async function handleLogout() {
               <div class="space-y-6 border-t border-gray-200 px-4 py-6">
                 <div class="flow-root">
                   <NuxtLink
-                    to="/categories"
+                    :to="localePath('/categories')"
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
                   >
@@ -358,7 +294,16 @@ async function handleLogout() {
                 </div>
                 <div class="flow-root">
                   <NuxtLink
-                    to="/blog"
+                    :to="localePath('/favorites')"
+                    class="-m-2 block p-2 font-medium text-gray-900"
+                    @click="closeMenu"
+                  >
+                    {{ $t('navigation.favorites') }}
+                  </NuxtLink>
+                </div>
+                <div class="flow-root">
+                  <NuxtLink
+                    :to="localePath('/blog')"
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
                   >
@@ -372,57 +317,56 @@ async function handleLogout() {
                 <template v-if="!isAuthenticated">
                   <div class="flow-root">
                     <NuxtLink
-                      to="/auth/login"
+                      :to="localePath('/auth/login')"
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
-                      Sign in
+                      {{ $t('navigation.login') }}
                     </NuxtLink>
                   </div>
                   <div class="flow-root">
                     <NuxtLink
-                      to="/auth/register"
+                      :to="localePath('/auth/register')"
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
-                      Create account
+                      {{ $t('navigation.register') }}
                     </NuxtLink>
                   </div>
                 </template>
                 <template v-else>
                   <div class="flow-root">
                     <NuxtLink
-                      to="/profile"
+                      :to="localePath('/profile')"
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
-                      <span v-if="userName">Profile ({{ userName }})</span>
-                      <span v-else>Profile</span>
+                      <span v-if="userName">{{ $t('navigation.profile') }} ({{ userName }})</span>
+                      <span v-else>{{ $t('navigation.profile') }}</span>
                     </NuxtLink>
                   </div>
                   <div class="flow-root">
                     <button
                       type="button"
+                      class="-m-2 flex items-center gap-2 w-full p-2 font-medium text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       :disabled="isLoggingOut"
                       @click="handleLogout"
-                      class="-m-2 flex items-center gap-2 w-full p-2 font-medium text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <LogOut class="h-5 w-5" />
-                      <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+                      <span>{{ isLoggingOut ? $t('navigation.loggingOut') : $t('navigation.logout') }}</span>
                     </button>
                   </div>
                 </template>
               </div>
 
-              <!-- Currency -->
+              <!-- Language Switcher -->
               <div class="border-t border-gray-200 px-4 py-6">
-                <button
-                  type="button"
-                  class="-m-2 flex items-center p-2"
-                >
-                  <span class="block text-base font-medium text-gray-900">{{ currentCurrency.code }}</span>
-                  <span class="sr-only">, change currency</span>
-                </button>
+                <UiLanguageSwitcher />
+              </div>
+
+              <!-- Currency Switcher -->
+              <div class="border-t border-gray-200 px-4 py-6">
+                <UiCurrencySwitcher />
               </div>
             </div>
           </Transition>

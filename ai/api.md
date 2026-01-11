@@ -256,6 +256,51 @@ GET /api/v1/system/locales
 4.5 List Currencies
 GET /api/v1/system/currencies
 
+4.6 Get Active Languages
+GET /api/v1/app/languages
+
+Returns a list of active site languages and the default language code.
+
+Response:
+
+{
+  "data": [
+    {
+      "code": "en",
+      "title": "Английский",
+      "is_default": false
+    },
+    {
+      "code": "ru",
+      "title": "Русский",
+      "is_default": true
+    },
+    {
+      "code": "awa",
+      "title": "Авадхи",
+      "is_default": false
+    }
+  ],
+  "meta": {
+    "default": "ru"
+  }
+}
+
+Response fields:
+
+data (array): Array of language objects
+data[].code (string): Language code (ISO 639-1 or custom code)
+data[].title (string): Language display title
+data[].is_default (boolean): Whether this is the default language
+meta (object): Metadata
+meta.default (string): Default language code
+
+This endpoint is used by the frontend to:
+- Load available languages dynamically
+- Configure @nuxtjs/i18n module
+- Display language switcher UI
+- Set default locale from API
+
 5. Notifications API (NEW)
 
 5.1 List Notifications
@@ -556,40 +601,233 @@ Body:
 
 8. Favorites API
 
-Favorites are tied to:
+Favorites (wishlist) functionality uses guest token authentication.
 
-X-Guest-Id
+**Token Header:**
+- `X-Guest-Id`: Required for all favorites operations
+
+**Note:** Favorites are tied to guest sessions and persist across browser sessions via the guest token stored in cookies.
 
 8.1 Get Favorites
 GET /api/v1/catalog/favorites
 
+Returns paginated list of favorite product variants.
+
+**Query params:**
+- `page` (optional): Page number for pagination
+- `per_page` (optional): Items per page
+
+**Response:**
+
+{
+  "data": [
+    {
+      "id": 123,
+      "product_id": 45,
+      "title": "Product Title",
+      "slug": "product-slug",
+      "sku": "SKU123",
+      "is_favorite": true,
+      "price": {
+        "value": 10000,
+        "currency": "USD",
+        "formatted": "$100.00"
+      },
+      "is_in_stock": true,
+      "images": [...],
+      "attribute_values": [...],
+      "rating": {
+        "value": 4.5,
+        "count": 10
+      }
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 5
+    }
+  }
+}
+
+**Response fields:**
+- `data` (array): Array of `ProductVariant` objects
+- `meta.pagination` (object): Pagination metadata
+  - `current_page` (number): Current page number
+  - `last_page` (number): Total number of pages
+  - `per_page` (number): Items per page
+  - `total` (number): Total number of favorites
+
+**Error responses:**
+- `401`: Unauthorized (if guest token is invalid)
+- `422`: Validation error
+
 8.2 Add Favorite
-POST /api/v1/catalog/favorites/{variantId}
+POST /api/v1/catalog/favorites
+
+Adds a product variant to favorites.
+
+**Body:**
+
+{
+  "variant_id": 123
+}
+
+**Response (success):**
+
+Updated favorites list (same structure as GET response)
+
+**Error responses:**
+- `401`: Unauthorized
+- `422`: Validation error (e.g., variant not found, already in favorites)
+- `429`: Too many requests
 
 8.3 Remove Favorite
 DELETE /api/v1/catalog/favorites/{variantId}
 
+Removes a product variant from favorites.
+
+**Path parameters:**
+- `variantId` (number): Product variant ID to remove
+
+**Response (success):**
+
+Updated favorites list (same structure as GET response)
+
+**Error responses:**
+- `401`: Unauthorized
+- `404`: Favorite not found
+- `422`: Validation error
+
 9. Comparison API
 
-Comparison table uses:
+Comparison table allows users to compare multiple product variants side-by-side.
 
-X-Comparison-Token
+**Token Header:**
+- `X-Comparison-Token`: Required for all comparison operations
+
+**Note:** Comparison uses a dedicated token separate from cart and guest tokens. The token is stored in cookies and persists across browser sessions.
+
+**Limits:**
+- Maximum items per comparison table is configurable (default: 10)
+- The `max_items` value is returned in the API response metadata
 
 9.1 Get Comparison Table
 GET /api/v1/catalog/comparison
 
+Returns the current comparison table with all items.
+
+**Response:**
+
+{
+  "data": {
+    "token": "comparison_token_abc123",
+    "variants": [
+      {
+        "id": 123,
+        "product_id": 45,
+        "title": "Product Title",
+        "slug": "product-slug",
+        "sku": "SKU123",
+        "price": {
+          "value": 10000,
+          "currency": "USD",
+          "formatted": "$100.00"
+        },
+        "is_in_stock": true,
+        "images": [...],
+        "attribute_values": [...],
+        "specifications": [...],
+        "rating": {
+          "value": 4.5,
+          "count": 10
+        }
+      }
+    ],
+    "meta": {
+      "count": 2,
+      "max_items": 10
+    }
+  }
+}
+
+**Response fields:**
+- `data.token` (string): Comparison token (used for subsequent requests)
+- `data.variants` (array): Array of `ProductVariant` objects in comparison
+- `data.meta` (object): Comparison metadata
+  - `count` (number): Current number of items in comparison
+  - `max_items` (number): Maximum allowed items in comparison
+
+**Error responses:**
+- `401`: Unauthorized (if comparison token is invalid)
+
 9.2 Add Item to Comparison
 POST /api/v1/catalog/comparison/items
 
-Body:
+Adds a product variant to the comparison table.
 
-{ "variant_id": 123 }
+**Body:**
+
+{
+  "variant_id": 123
+}
+
+**Response (success):**
+
+Updated comparison table (same structure as GET response)
+
+**Error responses:**
+- `401`: Unauthorized
+- `422`: Validation error
+  - Comparison is full (reached `max_items` limit)
+  - Variant already in comparison
+  - Variant not found
+- `429`: Too many requests
 
 9.3 Remove Item from Comparison
 DELETE /api/v1/catalog/comparison/items/{variantId}
 
+Removes a product variant from the comparison table.
+
+**Path parameters:**
+- `variantId` (number): Product variant ID to remove
+
+**Response (success):**
+
+Updated comparison table (same structure as GET response)
+
+**Error responses:**
+- `401`: Unauthorized
+- `404`: Item not found in comparison
+- `422`: Validation error
+
 9.4 Clear Comparison Table
 DELETE /api/v1/catalog/comparison
+
+Removes all items from the comparison table.
+
+**Response (success):**
+
+204 No Content
+
+Or empty comparison table:
+
+{
+  "data": {
+    "token": "comparison_token_abc123",
+    "variants": [],
+    "meta": {
+      "count": 0,
+      "max_items": 10
+    }
+  }
+}
+
+**Error responses:**
+- `401`: Unauthorized
+- `422`: Validation error
 
 10. Checkout API
 
@@ -1002,17 +1240,44 @@ Body:
 16.1 Subscribe to Audience
 POST /api/v1/audience/subscribe
 
-Body:
+Creates a new subscriber with Pending status or resends a confirmation for an existing Pending/Unsubscribed email. If already Active, nothing is sent.
+
+**Notes:**
+- Protected by basic rate limiting
+- Includes a honeypot field `website` which must be empty (bots fill it and will be rejected)
+
+**Body:**
 
 {
-  "email": "user@example.com"
+  "email": "john.doe@example.com",
+  "name": "John Doe",
+  "consent": true,
+  "source": "footer_form",
+  "website": ""
 }
 
-Response:
+**Fields:**
+- `email` (required): Subscriber email address
+- `name` (optional): Subscriber name
+- `consent` (required): Boolean indicating consent to receive emails
+- `source` (optional): Source identifier (e.g., "footer_form", "home_form")
+- `website` (required, honeypot): Must be empty string. Bots that fill this will be rejected.
 
+**Response Examples:**
+
+New subscriber created (200):
 {
-  "status": "success",
-  "message": "Subscription confirmation email sent"
+  "message": "Мы отправили письмо с подтверждением на ваш email"
+}
+
+Already active (200):
+{
+  "message": "Вы уже подписаны"
+}
+
+Resent confirmation (200):
+{
+  "message": "Мы уже отправили вам письмо с подтверждением. Отправили ещё раз"
 }
 
 16.2 Confirm Subscription
@@ -1047,11 +1312,91 @@ Response:
   "message": "Unsubscribed successfully"
 }
 
-17. SEO API
+17. Customer Support API
+
+Used for customer support request submissions.
+
+17.1 Submit Support Request
+POST /api/v1/customer-support/requests
+
+Submit a new customer support request.
+
+**Rate Limiting:**
+- Limited to 3 attempts per 60 minutes per email/IP combination
+- Returns 429 with `retry_after` field indicating seconds until retry is allowed
+
+**Body:**
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+380501234567",
+  "subject": "Question about delivery",
+  "message": "Hello, I would like to know what delivery options are available.",
+  "type": "general"
+}
+
+**Fields:**
+- `name` (required): Customer's full name
+- `email` (required): Customer's email address (must be valid email format)
+- `phone` (optional): Customer's phone number
+- `subject` (required): Subject/title of the support request
+- `message` (required): Support request message (minimum 10 characters)
+- `type` (optional): Request type - one of: "general", "technical", "billing", "other" (defaults to "general")
+
+**Response Examples:**
+
+Success (201):
+{
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phone": "+380501234567",
+    "subject": "Question about delivery",
+    "message": "Hello, I would like to know what delivery options are available.",
+    "type": "general",
+    "status": "new",
+    "metadata": {
+      "ip_address": "127.0.0.1",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "source": "contact_page",
+      "referer": "https://example.com"
+    },
+    "created_at": "2025-12-25T10:30:00.000000Z"
+  }
+}
+
+Validation Error (422):
+{
+  "message": "The email field must be a valid email address. (and 1 more error)",
+  "errors": {
+    "email": [
+      "The email field must be a valid email address."
+    ],
+    "message": [
+      "The message field must be at least 10 characters."
+    ]
+  }
+}
+
+Rate Limit Exceeded (429):
+{
+  "message": "Too many support request attempts. Please try again in 3540 seconds.",
+  "error": "too_many_attempts",
+  "retry_after": 3540
+}
+
+**Notes:**
+- Metadata (ip_address, user_agent, source, referer) is automatically captured by the backend
+- No authentication required (public endpoint)
+- CSRF protection applies (XSRF token required)
+
+18. SEO API
 
 Core endpoint for SEO metadata.
 
-17.1 Get SEO Metadata for a Page
+18.1 Get SEO Metadata for a Page
 GET /api/v1/site?url={path}
 
 Query:
@@ -1072,9 +1417,73 @@ Response:
   "seoable_type": "product"
 }
 
-18. System Health API
+18.2 Get Static Page by Slug
+GET /api/v1/site/pages/{slug}
 
-18.1 Health Check
+Returns a single static page by its slug with SEO data. The response is cached and automatically invalidated on page changes.
+
+**Path parameters:**
+- `slug` (string): Page slug (e.g., "terms", "privacy", "faq")
+
+**Response:**
+
+{
+  "data": {
+    "id": 1,
+    "slug": "terms",
+    "title": "Terms",
+    "content": "<p>Page content HTML...</p>",
+    "excerpt": "Page excerpt text",
+    "url": "/en/pages/terms",
+    "seo": {
+      "id": 3518,
+      "path": "terms",
+      "seoable_id": 1,
+      "seoable_type": "Modules\\Site\\Models\\Page",
+      "title_h1": "",
+      "title": "",
+      "description": "",
+      "keywords": "",
+      "canonical": null,
+      "robots": "",
+      "text": "<p></p>",
+      "og_image": ""
+    }
+  }
+}
+
+**Response fields:**
+- `data.id` (number): Page identifier
+- `data.slug` (string): URL-friendly page identifier
+- `data.title` (string): Page title
+- `data.content` (string): Full page content (HTML)
+- `data.excerpt` (string): Page excerpt/summary
+- `data.url` (string): Full URL path for the page
+- `data.seo` (object): SEO metadata for the page
+  - `seo.id` (number): SEO record identifier
+  - `seo.path` (string): URL path for this page
+  - `seo.seoable_id` (number): Related entity ID
+  - `seo.seoable_type` (string): Related entity type
+  - `seo.title_h1` (string): H1 title (can be empty string)
+  - `seo.title` (string): SEO title (can be empty string)
+  - `seo.description` (string): SEO description (can be empty string)
+  - `seo.keywords` (string): SEO keywords (can be empty string)
+  - `seo.canonical` (string | null): Canonical URL (can be null)
+  - `seo.robots` (string): Robots meta tag (can be empty string)
+  - `seo.text` (string): SEO text content (HTML, can be empty)
+  - `seo.og_image` (string): Open Graph image URL (can be empty string)
+
+**Error responses:**
+- `404`: Page not found
+
+**Notes:**
+- Public endpoint (no authentication required)
+- Response is cached on the backend and invalidated when page content changes
+- Used for static pages like Terms of Service, Privacy Policy, FAQ, Returns, Shipping, etc.
+
+19. System Health API
+
+19.1 Health Check
 GET /api/v1/health
 
 Response:
@@ -1085,7 +1494,7 @@ Response:
   "version": "..."
 }
 
-19. Common API Rules
+20. Common API Rules
 
 19.1 Required Headers
 
@@ -1134,14 +1543,15 @@ Frontend MUST:
 
 19.3 Authentication
 
-Identity API endpoints use cookie-based authentication (Sanctum).
-Do NOT use Bearer tokens for Identity API endpoints.
+**All authentication is cookie-based (Laravel Sanctum SPA authorization).**
 
-For other endpoints, user-only endpoints require:
+- Identity API endpoints use cookie-based authentication (Sanctum)
+- All user-only endpoints use cookie-based authentication (Sanctum)
+- Do NOT use Bearer tokens for any endpoints
+- Session cookies are HTTP-only and automatically attached by useApi() composable
+- CSRF protection is mandatory for all state-changing requests
 
-Authorization: Bearer <token>
-
-Guest token headers:
+Guest token headers (for guest operations):
 
 X-Guest-Id
 X-Cart-Token
@@ -1169,7 +1579,7 @@ All error responses follow:
   }
 }
 
-20. Full API Index
+21. Full API Index
 
 Below is a simplified index of all endpoints for quick reference.
 
@@ -1263,7 +1673,7 @@ Favorites (3 endpoints)
 
 GET /catalog/favorites
 
-POST /catalog/favorites/{variantId}
+POST /catalog/favorites
 
 DELETE /catalog/favorites/{variantId}
 
@@ -1330,6 +1740,10 @@ POST /audience/subscribe
 POST /audience/confirm
 
 DELETE /audience/unsubscribe
+
+Customer Support (1 endpoint)
+
+POST /customer-support/requests
 
 SEO (1 endpoint)
 

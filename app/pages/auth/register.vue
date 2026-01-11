@@ -4,8 +4,15 @@
  */
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-vue-next'
 
+definePageMeta({
+  ssr: false,
+})
+
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 const form = reactive({
   name: '',
@@ -34,7 +41,7 @@ async function handleSubmit() {
   isSubmitting.value = false
 
   if (success) {
-    router.push('/')
+    router.push(localePath('/'))
   }
 }
 </script>
@@ -44,7 +51,7 @@ async function handleSubmit() {
     <div class="max-w-md w-full">
       <!-- Header -->
       <div class="text-center mb-8">
-        <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+        <NuxtLink :to="localePath('/')" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
           Nexora
         </NuxtLink>
         <h1 class="mt-6 text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -175,11 +182,11 @@ async function handleSubmit() {
         <!-- Terms -->
         <p class="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
           By creating an account, you agree to our
-          <NuxtLink to="/terms" class="text-primary-600 dark:text-primary-400 hover:underline">
+          <NuxtLink :to="localePath('/terms')" class="text-primary-600 dark:text-primary-400 hover:underline">
             Terms of Service
           </NuxtLink>
           and
-          <NuxtLink to="/privacy" class="text-primary-600 dark:text-primary-400 hover:underline">
+          <NuxtLink :to="localePath('/privacy')" class="text-primary-600 dark:text-primary-400 hover:underline">
             Privacy Policy
           </NuxtLink>
         </p>
@@ -193,7 +200,7 @@ async function handleSubmit() {
 
         <!-- Login link -->
         <NuxtLink
-          to="/auth/login"
+          :to="localePath('/auth/login')"
           class="w-full flex items-center justify-center py-3 px-4 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Sign In
@@ -202,4 +209,3 @@ async function handleSubmit() {
     </div>
   </div>
 </template>
-

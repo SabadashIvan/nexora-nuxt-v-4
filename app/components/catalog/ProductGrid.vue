@@ -16,7 +16,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 <template>
   <div>
-    <h2 class="sr-only">Products</h2>
+    <h2 class="sr-only">{{ $t('catalog.products') }}</h2>
 
     <!-- Loading state -->
     <div v-if="loading" class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
@@ -43,8 +43,8 @@ const props = withDefaults(defineProps<Props>(), {
     <!-- Empty state -->
     <UiEmptyState
       v-else
-      title="No products found"
-      description="Try adjusting your filters or search criteria"
+      :title="$t('catalog.noProducts')"
+      :description="$t('catalog.adjustFilters')"
     />
   </div>
 </template>

@@ -8,7 +8,11 @@ import { getImageUrl } from '~/utils'
 
 definePageMeta({
   layout: 'profile',
+  ssr: false,
 })
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 const route = useRoute()
 const ordersStore = shallowRef<ReturnType<typeof useOrdersStore> | null>(null)
@@ -41,7 +45,7 @@ function getStatusVariant(status: string) {
   <div>
     <!-- Back link -->
     <NuxtLink 
-      to="/profile/orders" 
+      :to="localePath('/profile/orders')" 
       class="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 mb-6"
     >
       <ArrowLeft class="h-4 w-4" />
@@ -215,4 +219,3 @@ function getStatusVariant(status: string) {
     />
   </div>
 </template>
-

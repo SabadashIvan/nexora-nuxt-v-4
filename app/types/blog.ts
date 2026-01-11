@@ -3,6 +3,7 @@
  */
 
 import type { Pagination } from './common'
+import { BlogSort } from './enums'
 
 export interface BlogCategory {
   id: number
@@ -71,7 +72,7 @@ export interface BlogPostsParams {
   search?: string
   page?: number
   per_page?: number
-  sort?: 'newest' | 'oldest'
+  sort?: BlogSort | string // Allow string for backward compatibility
 }
 
 /**

@@ -96,10 +96,11 @@ export function useApi() {
       }
       return null
     }
-    // On client, use useCookie() for reactivity
+    // On client, read document.cookie to avoid stale cached refs in browsers
+    // without cookieStore/BroadcastChannel support.
     try {
-      const cookie = useCookie(key)
-      return cookie.value || null
+      const match = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`))
+      return match && match[1] ? decodeURIComponent(match[1]) : null
     } catch {
       return null
     }
@@ -147,14 +148,18 @@ export function useApi() {
 
   /**
    * Build request headers with tokens
-   * Uses lazy cookie access to avoid writes during SSR/SWR cache handling
+   * Reads cookies per request to avoid stale locale/currency values in some browsers
+   * Falls back to getCookieValue for SSR compatibility
    */
   function buildHeaders(options: UseApiOptions = {}): Record<string, string> {
+    const locale = getCookieValue('locale') || 'en'
+    const currency = getCookieValue('currency') || 'USD'
+    
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Accept-Language': getCookieValue('locale') || 'en',
-      'Accept-Currency': getCookieValue('currency') || 'USD',
+      'Accept-Language': locale,
+      'Accept-Currency': currency,
     }
 
     // Add XSRF token for CSRF protection (Laravel Sanctum)

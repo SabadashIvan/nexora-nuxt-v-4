@@ -2,7 +2,7 @@
 /**
  * Blog post detail page - SSR for SEO
  */
-import { Calendar, Clock, ArrowLeft, Facebook, Twitter, Linkedin } from 'lucide-vue-next'
+import { Calendar, Clock, Facebook, Twitter, Linkedin } from 'lucide-vue-next'
 import { formatDate } from '~/utils/format'
 
 const route = useRoute()
@@ -10,8 +10,11 @@ const blogStore = useBlogStore()
 
 const slug = computed(() => route.params.slug as string)
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Fetch post with SSR
-const { data: post, pending, error } = await useAsyncData(
+const { data: post, pending } = await useAsyncData(
   `blog-post-${slug.value}`,
   async () => {
     return await blogStore.fetchPost(slug.value)
@@ -29,7 +32,7 @@ if (!post.value && !pending.value) {
 
 // Breadcrumbs
 const breadcrumbs = computed(() => [
-  { label: 'Blog', to: '/blog' },
+  { label: 'Blog', to: localePath('/blog') },
   { label: post.value?.title || 'Post' },
 ])
 
@@ -81,7 +84,7 @@ useHead({
       <UiBreadcrumbs :items="breadcrumbs" class="mb-6" />
     </div>
 
-    <main class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 pb-24">
+    <main class="mx-auto sm:px-6 lg:px-8 pb-24">
       <!-- Loading -->
       <div v-if="pending" class="animate-pulse space-y-6 pt-24">
         <div class="h-10 bg-gray-200 rounded w-3/4" />
@@ -99,7 +102,7 @@ useHead({
         <!-- Category -->
         <NuxtLink
           v-if="post.category"
-          :to="`/blog/category/${post.category.slug}`"
+          :to="localePath(`/blog/category/${post.category.slug}`)"
           class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
         >
           {{ post.category.title || post.category.name }}
@@ -151,10 +154,12 @@ useHead({
           class="mt-8 prose prose-lg prose-indigo max-w-none"
         >
           <!-- Render as HTML if it contains HTML tags, otherwise as plain text -->
+          <!-- eslint-disable vue/no-v-html -->
           <div 
             v-if="post.content && typeof post.content === 'string' && post.content.includes('<')"
             v-html="post.content" 
           />
+          <!-- eslint-enable vue/no-v-html -->
           <div 
             v-else-if="post.content"
             class="whitespace-pre-wrap text-gray-700"
@@ -218,4 +223,3 @@ useHead({
     </main>
   </div>
 </template>
-

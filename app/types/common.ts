@@ -2,6 +2,8 @@
  * Common types used across the application
  */
 
+import { LoadingState, AsyncStatus } from './enums'
+
 // API Error response structure
 export interface ApiError {
   message: string
@@ -39,9 +41,6 @@ export interface ApiResponse<T> {
 // Image value as returned by backend
 export type ImageValue = string | { url?: string | null } | null | undefined
 
-// Loading state helper
-export type LoadingState = 'idle' | 'loading' | 'success' | 'error'
-
-// Status types
-export type AsyncStatus = 'idle' | 'pending' | 'success' | 'error'
+// Re-export enums for convenience
+export { LoadingState, AsyncStatus }
 

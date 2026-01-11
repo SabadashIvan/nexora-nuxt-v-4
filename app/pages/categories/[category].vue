@@ -11,25 +11,29 @@ const catalogStore = useCatalogStore()
 // Create API instance at top level where context is guaranteed
 const api = useApi()
 
+// Get locale for cache key
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
+
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
 
-const asyncKey = computed(() => `category-${categorySlug.value}`)
-
-// Build cache key for category page with filters
-const buildCategoryCacheKey = (slug: string, query: Record<string, any>) => {
+// Build cache key for category page with filters and locale
+const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string) => {
   const sortedQuery = Object.keys(query)
     .sort()
     .reduce((acc, key) => {
-      acc[key] = query[key]
+      const value = query[key]
+      // Convert null to undefined and filter out null values
+      acc[key] = value === null ? undefined : value
       return acc
-    }, {} as Record<string, any>)
-  return `category-${slug}-${JSON.stringify(sortedQuery)}`
+    }, {} as Record<string, unknown>)
+  return `category-${slug}-${currentLocale}-${JSON.stringify(sortedQuery)}`
 }
 
 // Fetch category and products with lazy loading + SWR caching
 const { data: category, pending, error, refresh } = await useLazyAsyncData(
-  () => buildCategoryCacheKey(categorySlug.value, route.query),
+  () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value),
   async () => {
     const slug = categorySlug.value
     const query = route.query
@@ -50,7 +54,7 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
     if (cat && cat.id) {
       // Build filters object from URL params
       // Always include current category ID in filters
-      const filterParams: any = {
+      const filterParams: ProductFilter = {
         page: filters.page,
         filters: {
           // Always filter by current category ID
@@ -59,8 +63,9 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
       }
       
       // Add additional filters from URL params
+      // filterParams.filters is guaranteed to be defined above
       if (filters.q) {
-        filterParams.filters.q = filters.q
+        filterParams.filters!.q = filters.q
       }
       
       // If URL has categories param, merge with current category ID
@@ -70,20 +75,20 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
         if (!urlCategoryIds.includes(String(cat.id))) {
           urlCategoryIds.push(String(cat.id))
         }
-        filterParams.filters.categories = urlCategoryIds.join(',')
+        filterParams.filters!.categories = urlCategoryIds.join(',')
       }
       
       if (filters.brands) {
-        filterParams.filters.brands = filters.brands
+        filterParams.filters!.brands = filters.brands
       }
       if (filters.price_min !== undefined) {
-        filterParams.filters.price_min = filters.price_min
+        filterParams.filters!.price_min = filters.price_min
       }
       if (filters.price_max !== undefined) {
-        filterParams.filters.price_max = filters.price_max
+        filterParams.filters!.price_max = filters.price_max
       }
       if (filters.attributes && filters.attributes.length > 0) {
-        filterParams.filters.attributes = filters.attributes
+        filterParams.filters!.attributes = filters.attributes
       }
       
       console.log('Fetching products with filters:', filterParams)
@@ -112,8 +117,10 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
   {
     server: true,
     default: () => null,
+    // Watch locale to refetch when language changes
+    watch: [locale],
     // SWR-like caching: return cached category if available (category doesn't change with pagination)
-    getCachedData: (key) => {
+    getCachedData: (_key) => {
       try {
         // Category data doesn't change with pagination, so we can cache it
         // But products will be refetched because the key includes query params
@@ -272,7 +279,8 @@ async function handlePageChange(page: number) {
   
   // Navigate to update URL - this will trigger useLazyAsyncData to refetch
   // The watch on route.fullPath will detect the change and reload data
-  await navigateTo({ path: `/categories/${categorySlug.value}`, query }, { replace: true })
+  const localePath = useLocalePath()
+  await navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
   
   // Force refresh to ensure data is reloaded
   await refresh()
@@ -382,7 +390,7 @@ async function handleReset() {
   
   // Reset filters but keep current category
   if (category.value?.id) {
-    const filters: any = {
+    const filters: ProductFilter = {
       page: 1,
       filters: {
         categories: String(category.value.id),
@@ -395,7 +403,8 @@ async function handleReset() {
     await catalogStore.fetchProducts()
   }
   
-  navigateTo(`/categories/${categorySlug.value}`)
+  const localePath = useLocalePath()
+  navigateTo(localePath(`/categories/${categorySlug.value}`))
 }
 
 // Update URL with current filters
@@ -452,7 +461,8 @@ function updateUrl() {
     query.page = catalogStore.pagination.page.toString()
   }
   
-  navigateTo({ path: `/categories/${categorySlug.value}`, query }, { replace: true })
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
 }
 </script>
 

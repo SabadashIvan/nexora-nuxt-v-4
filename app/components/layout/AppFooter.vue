@@ -4,6 +4,9 @@
  */
 import { Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-vue-next'
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const currentYear = new Date().getFullYear()
 </script>
 
@@ -37,22 +40,22 @@ const currentYear = new Date().getFullYear()
           </h4>
           <ul class="space-y-3">
             <li>
-              <NuxtLink to="/categories" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/categories')" class="text-sm hover:text-white transition-colors">
                 All Products
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/categories?sort=newest" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/categories?sort=newest')" class="text-sm hover:text-white transition-colors">
                 New Arrivals
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/categories?sort=price_desc" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/categories?sort=price_desc')" class="text-sm hover:text-white transition-colors">
                 Best Sellers
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/categories?sale=true" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/categories?sale=true')" class="text-sm hover:text-white transition-colors">
                 Sale
               </NuxtLink>
             </li>
@@ -66,22 +69,27 @@ const currentYear = new Date().getFullYear()
           </h4>
           <ul class="space-y-3">
             <li>
-              <NuxtLink to="/profile/orders" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/contact')" class="text-sm hover:text-white transition-colors">
+                Contact Us
+              </NuxtLink>
+            </li>
+            <li>
+              <NuxtLink :to="localePath('/profile/orders')" class="text-sm hover:text-white transition-colors">
                 Track Order
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/shipping" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/shipping')" class="text-sm hover:text-white transition-colors">
                 Shipping Info
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/returns" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/returns')" class="text-sm hover:text-white transition-colors">
                 Returns & Exchanges
               </NuxtLink>
             </li>
             <li>
-              <NuxtLink to="/faq" class="text-sm hover:text-white transition-colors">
+              <NuxtLink :to="localePath('/faq')" class="text-sm hover:text-white transition-colors">
                 FAQ
               </NuxtLink>
             </li>
@@ -124,10 +132,10 @@ const currentYear = new Date().getFullYear()
             © {{ currentYear }} Nexora. All rights reserved.
           </p>
           <div class="flex items-center gap-6">
-            <NuxtLink to="/privacy" class="text-sm text-gray-400 hover:text-white transition-colors">
+            <NuxtLink :to="localePath('/privacy')" class="text-sm text-gray-400 hover:text-white transition-colors">
               Privacy Policy
             </NuxtLink>
-            <NuxtLink to="/terms" class="text-sm text-gray-400 hover:text-white transition-colors">
+            <NuxtLink :to="localePath('/terms')" class="text-sm text-gray-400 hover:text-white transition-colors">
               Terms of Service
             </NuxtLink>
           </div>

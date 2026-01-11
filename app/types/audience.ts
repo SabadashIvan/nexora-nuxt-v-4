@@ -3,19 +3,24 @@
  * API: /api/v1/audience/*
  */
 
+import { AudienceSubscriptionStatus } from './enums'
+
 /**
  * Payload for subscribing to audience
  * POST /api/v1/audience/subscribe
  */
 export interface AudienceSubscribePayload {
   email: string
+  name?: string
+  consent: boolean
+  source?: string
+  website: string  // Honeypot field, must be empty
 }
 
 /**
  * Response for subscribe
  */
 export interface AudienceSubscribeResponse {
-  status: 'success'
   message: string
 }
 
@@ -51,16 +56,14 @@ export interface AudienceUnsubscribeResponse {
   message: string
 }
 
-/**
- * Subscription status
- */
-export type AudienceSubscriptionStatus = 'idle' | 'pending' | 'confirmed' | 'unsubscribed' | 'error'
+// Re-export enum for convenience
+export { AudienceSubscriptionStatus }
 
 /**
  * Audience store state
  */
 export interface AudienceState {
-  status: AudienceSubscriptionStatus
+  status: AudienceSubscriptionStatus | string // Allow string for backward compatibility
   loading: boolean
   error: string | null
   message: string | null

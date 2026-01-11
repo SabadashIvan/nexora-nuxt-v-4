@@ -4,9 +4,15 @@
 
 export interface Locale {
   code: string
-  name: string
-  native_name?: string
+  title: string
   is_default?: boolean
+}
+
+export interface LanguagesResponse {
+  data: Locale[]
+  meta: {
+    default: string
+  }
 }
 
 export interface Currency {
@@ -33,5 +39,22 @@ export interface SetLocalePayload {
 
 export interface SetCurrencyPayload {
   currency: string
+}
+
+/**
+ * Currency response from /api/v1/app/currencies endpoint
+ */
+export interface CurrencyResponse {
+  code: string
+  symbol: string
+  precision: number
+  is_default: boolean
+}
+
+export interface CurrenciesResponse {
+  data: CurrencyResponse[]
+  meta: {
+    default: string
+  }
 }
 

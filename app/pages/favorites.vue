@@ -6,6 +6,13 @@ import { Heart, ShoppingCart, Trash2 } from 'lucide-vue-next'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useCartStore } from '~/stores/cart.store'
 
+definePageMeta({
+  ssr: false,
+})
+
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 // Load favorites on mount - access store inside onMounted
 onMounted(async () => {
   const favoritesStore = useFavoritesStore()
@@ -51,17 +58,19 @@ async function removeFromFavorites(variantId: number) {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Breadcrumbs -->
-    <UiBreadcrumbs :items="[{ label: 'Wishlist' }]" class="mb-6" />
+  <div class="relative overflow-hidden bg-white">
+    <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
+      <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
+        <!-- Breadcrumbs -->
+        <UiBreadcrumbs :items="[{ label: $t('favorites.wishlist') }]" class="mb-6" />
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">My Wishlist</h1>
-      <span v-if="!isEmpty" class="text-gray-500 dark:text-gray-400">
-        {{ favorites.length }} items
-      </span>
-    </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">{{ $t('favorites.title') }}</h1>
+          <span v-if="!isEmpty" class="text-gray-500">
+            {{ $t('favorites.items', { count: favorites.length }) }}
+          </span>
+        </div>
 
     <!-- Loading -->
     <div v-if="loading && favorites.length === 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -77,16 +86,16 @@ async function removeFromFavorites(variantId: number) {
     <!-- Empty -->
     <UiEmptyState
       v-else-if="isEmpty"
-      title="Your wishlist is empty"
-      description="Save items you love by clicking the heart icon on products."
+      :title="$t('favorites.emptyTitle')"
+      :description="$t('favorites.emptyDescription')"
       :icon="Heart"
     >
       <template #action>
         <NuxtLink
-          to="/categories"
+          :to="localePath('/categories')"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
-          Browse Products
+          {{ $t('common.buttons.browseProducts') }}
         </NuxtLink>
       </template>
     </UiEmptyState>
@@ -99,11 +108,11 @@ async function removeFromFavorites(variantId: number) {
         class="bg-white dark:bg-gray-900 rounded-xl shadow-sm overflow-hidden group"
       >
         <!-- Image -->
-        <NuxtLink :to="`/product/${item.slug}`" class="block relative aspect-square">
+        <NuxtLink :to="localePath(`/product/${item.slug}`)" class="block relative aspect-square">
           <NuxtImg
             v-if="item.images?.[0]?.url"
             :src="item.images[0].url"
-            :alt="item.name"
+            :alt="item.title || item.name"
             class="w-full h-full object-cover"
           />
           <div v-else class="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
@@ -121,9 +130,9 @@ async function removeFromFavorites(variantId: number) {
 
         <!-- Content -->
         <div class="p-4">
-          <NuxtLink :to="`/product/${item.slug}`">
+          <NuxtLink :to="localePath(`/product/${item.slug}`)">
             <h3 class="font-medium text-gray-900 dark:text-gray-100 line-clamp-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-              {{ item.name }}
+              {{ item.title || item.name }}
             </h3>
           </NuxtLink>
 
@@ -131,31 +140,32 @@ async function removeFromFavorites(variantId: number) {
             <UiPrice 
               :price="item.price" 
               :effective-price="item.effective_price"
-              :currency="item.currency"
+              :currency="item.currency || item.price?.currency"
             />
           </div>
 
           <!-- Add to cart -->
           <button
-            v-if="item.in_stock"
+            v-if="item.is_in_stock || item.in_stock"
             class="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
             :disabled="addingToCart === item.id"
             @click="addToCart(item.id)"
           >
             <UiSpinner v-if="addingToCart === item.id" size="sm" />
             <ShoppingCart v-else class="h-5 w-5" />
-            <span>Add to Cart</span>
+            <span>{{ $t('favorites.addToCart') }}</span>
           </button>
           <button
             v-else
             class="mt-4 w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-500 rounded-lg font-medium cursor-not-allowed"
             disabled
           >
-            Out of Stock
+            {{ $t('favorites.outOfStock') }}
           </button>
         </div>
       </div>
     </div>
+      </div>
+    </div>
   </div>
 </template>
-

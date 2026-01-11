@@ -179,7 +179,7 @@ export function getInitials(name: string, maxLength = 2): string {
  */
 export function maskEmail(email: string): string {
   const [local, domain] = email.split('@')
-  if (!domain) return email
+  if (!domain || !local) return email
   
   const maskedLocal = local.length > 2 
     ? `${local.charAt(0)}${'*'.repeat(Math.min(local.length - 2, 5))}${local.charAt(local.length - 1)}`

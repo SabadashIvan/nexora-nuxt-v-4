@@ -5,89 +5,74 @@
 import { Truck, Award, Shirt } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { getImageUrl } from '~/utils'
+import type { BannersResponse } from '~/types'
+
+// Locale-aware navigation
+const localePath = useLocalePath()
+
+// Get locale for cache key
+const i18n = useI18n()
+const { t } = useI18n()
+const locale = computed(() => i18n.locale.value)
+
+// Fetch banners on SSR
+const { data: bannersResponse } = await useAsyncData(
+  () => `home-banners-${locale.value}`,
+  async () => {
+    const api = useApi()
+    try {
+      const response = await api.get<BannersResponse>('/banners/homepage')
+      return response
+    } catch (error) {
+      // Handle errors gracefully - return empty array
+      console.warn('Failed to fetch banners:', error)
+      return { data: [] } as BannersResponse
+    }
+  },
+  {
+    watch: [locale],
+  }
+)
+
+const banners = computed(() => bannersResponse.value?.data || [])
 
 // Fetch featured products and categories on SSR
 // Access store inside callbacks to ensure Pinia is initialized
 const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
-  'home-featured-products',
+  () => `home-featured-products-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
     await catalogStore.fetchProducts({ per_page: 8, sort: 'newest' })
     return catalogStore.products
+  },
+  {
+    watch: [locale],
   }
 )
 
 const { data: categories } = await useAsyncData(
-  'home-categories',
+  () => `home-categories-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
     await catalogStore.fetchCategories()
     return catalogStore.rootCategories
+  },
+  {
+    watch: [locale],
   }
 )
 
-const features = [
-  { icon: Truck, title: 'Free shipping', description: "It's not actually free we just price it into the products. Someone's paying for it, and it's not us." },
-  { icon: Award, title: '10-year warranty', description: "If it breaks in the first 10 years we'll replace it. After that you're on your own though." },
-  { icon: Shirt, title: 'Exchanges', description: "If you don't like it, trade it to one of your friends for something of theirs. Don't send it here though." },
-]
+const features = computed(() => [
+  { icon: Truck, title: t('home.features.freeShipping.title'), description: t('home.features.freeShipping.description') },
+  { icon: Award, title: t('home.features.warranty.title'), description: t('home.features.warranty.description') },
+  { icon: Shirt, title: t('home.features.exchanges.title'), description: t('home.features.exchanges.description') },
+])
 </script>
 
 <template>
   <div>
-    <!-- Hero Section -->
-    <div class="relative overflow-hidden bg-white">
-      <div class="pt-16 pb-80 sm:pt-24 sm:pb-40 lg:pt-40 lg:pb-48">
-        <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
-          <div class="sm:max-w-lg">
-            <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">Summer styles are finally here</h1>
-            <p class="mt-4 text-xl text-gray-500">This year, our new summer collection will shelter you from the harsh elements of a world that doesn't care if you live or die.</p>
-          </div>
-          <div>
-            <div class="mt-10">
-              <!-- Decorative image grid -->
-              <div aria-hidden="true" class="pointer-events-none lg:absolute lg:inset-y-0 lg:mx-auto lg:w-full lg:max-w-7xl">
-                <div class="absolute transform sm:top-0 sm:left-1/2 sm:translate-x-8 lg:top-1/2 lg:left-1/2 lg:translate-x-8 lg:-translate-y-1/2">
-                  <div class="flex items-center space-x-6 lg:space-x-8">
-                    <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
-                      <div class="h-64 w-44 overflow-hidden rounded-lg sm:opacity-0 lg:opacity-100">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-01.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-02.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                    </div>
-                    <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-03.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-04.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-05.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                    </div>
-                    <div class="grid shrink-0 grid-cols-1 gap-y-6 lg:gap-y-8">
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-06.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                      <div class="h-64 w-44 overflow-hidden rounded-lg">
-                        <img src="https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-03-hero-image-tile-07.jpg" alt="" class="size-full object-cover" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <NuxtLink to="/categories" class="inline-block rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-center font-medium text-white hover:bg-indigo-700">
-                Shop Collection
-              </NuxtLink>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Banners Slideshow -->
+    <BannerSlideshow :banners="banners" />
 
     <!-- Features Section -->
     <div class="relative overflow-hidden bg-white">
@@ -96,8 +81,8 @@ const features = [
           <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
             <div class="lg:pr-8 lg:pt-4">
               <div class="lg:max-w-lg">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">We built our business on great customer service</h2>
-                <p class="mt-6 text-lg leading-8 text-gray-600">At the beginning at least, but then we realized we could make a lot more money if we kinda stopped caring about that. Our new strategy is to write a bunch of things that look really good in the headlines, then clarify in the small print but hope people don't actually read it.</p>
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ $t('home.hero.title') }}</h2>
+                <p class="mt-6 text-lg leading-8 text-gray-600">{{ $t('home.hero.description') }}</p>
               </div>
             </div>
             <div class="flex items-end justify-end lg:order-first">
@@ -105,7 +90,7 @@ const features = [
                 src="https://tailwindcss.com/plus-assets/img/ecommerce-images/incentives-07-hero.jpg"
                 alt="Product screenshot"
                 class="w-[48rem] max-w-full rounded-xl shadow-xl ring-1 ring-gray-400/10 sm:w-[57rem]"
-              />
+              >
             </div>
           </div>
           <div class="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
@@ -131,13 +116,13 @@ const features = [
         <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
           <div class="flex items-baseline justify-between border-b border-gray-200 pb-6">
             <h2 class="text-4xl font-bold tracking-tight text-gray-900">
-              Shop by Category
+              {{ $t('catalog.shopByCategory') }}
             </h2>
             <NuxtLink 
-              to="/categories" 
+              :to="localePath('/categories')" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
-              View All
+              {{ $t('catalog.viewAll') }}
             </NuxtLink>
           </div>
 
@@ -145,7 +130,7 @@ const features = [
             <NuxtLink
               v-for="category in categories"
               :key="category.id"
-              :to="`/categories/${category.slug}`"
+              :to="localePath(`/categories/${category.slug}`)"
               class="group relative aspect-square overflow-hidden rounded-lg bg-gray-100"
             >
               <NuxtImg
@@ -159,7 +144,7 @@ const features = [
                 <div>
                   <h3 class="text-lg font-semibold text-white">{{ category.title || category.name }}</h3>
                   <p v-if="category.products_count" class="text-sm text-gray-300">
-                    {{ category.products_count }} products
+                    {{ $t('catalog.productsCount', { count: category.products_count }) }}
                   </p>
                 </div>
               </div>
@@ -178,7 +163,7 @@ const features = [
               Featured Products
             </h2>
             <NuxtLink 
-              to="/categories?sort=newest" 
+              :to="localePath('/categories?sort=newest')" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
               View All
@@ -202,24 +187,9 @@ const features = [
           <div class="max-w-xl lg:max-w-lg">
             <h2 class="text-4xl font-semibold tracking-tight text-white">Subscribe to our newsletter</h2>
             <p class="mt-4 text-lg text-gray-300">Nostrud amet eu ullamco nisi aute in ad minim nostrud adipisicing velit quis. Duis tempor incididunt dolore.</p>
-            <form class="mt-6 flex max-w-md gap-x-4" @submit.prevent>
-              <label for="email-address" class="sr-only">Email address</label>
-              <input
-                id="email-address"
-                type="email"
-                name="email"
-                required
-                placeholder="Enter your email"
-                autocomplete="email"
-                class="min-w-0 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
-              />
-              <button
-                type="submit"
-                class="flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-              >
-                Subscribe
-              </button>
-            </form>
+            <div class="mt-6">
+              <AudienceNewsletterForm source="home_form" variant="horizontal" />
+            </div>
           </div>
           <dl class="grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:pt-2">
             <div class="flex flex-col items-start">
@@ -244,7 +214,7 @@ const features = [
         </div>
       </div>
       <div aria-hidden="true" class="absolute top-0 left-1/2 -z-10 -translate-x-1/2 blur-3xl xl:-top-6">
-        <div style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" class="aspect-1155/678 w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30"></div>
+        <div style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" class="aspect-1155/678 w-[72.1875rem] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30" />
       </div>
     </div>
   </div>

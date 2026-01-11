@@ -43,19 +43,22 @@ if (!category.value && !pending.value) {
 const posts = computed(() => blogStore.posts)
 const pagination = computed(() => blogStore.pagination)
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const breadcrumbs = computed(() => {
   if (!category.value) {
-    return [{ label: 'Blog', to: '/blog' }]
+    return [{ label: 'Blog', to: localePath('/blog') }]
   }
   return [
-    { label: 'Blog', to: '/blog' },
+    { label: 'Blog', to: localePath('/blog') },
     { label: category.value.title || category.value.name || 'Category' },
   ]
 })
 
 function handlePageChange(newPage: number) {
   navigateTo({ 
-    path: `/blog/category/${slug.value}`, 
+    path: localePath(`/blog/category/${slug.value}`), 
     query: { page: newPage.toString() } 
   })
 }

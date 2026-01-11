@@ -5,24 +5,23 @@
  */
 
 import { defineStore } from 'pinia'
-import type { ProductVariant } from '~/types'
+import type { ComparisonResponse, ProductVariant } from '~/types'
 import { getErrorMessage } from '~/utils/errors'
-import { ensureComparisonToken } from '~/utils/tokens'
+import { ensureComparisonToken, setToken, TOKEN_KEYS } from '~/utils/tokens'
 
 interface ComparisonState {
   items: ProductVariant[]
   comparisonToken: string | null
+  maxItems: number
   loading: boolean
   error: string | null
 }
-
-// Maximum items in comparison table
-const MAX_COMPARISON_ITEMS = 4
 
 export const useComparisonStore = defineStore('comparison', {
   state: (): ComparisonState => ({
     items: [],
     comparisonToken: null,
+    maxItems: 10, // Default, will be updated from API response
     loading: false,
     error: null,
   }),
@@ -53,7 +52,7 @@ export const useComparisonStore = defineStore('comparison', {
      * Check if comparison is full
      */
     isFull: (state): boolean => {
-      return state.items.length >= MAX_COMPARISON_ITEMS
+      return state.items.length >= state.maxItems
     },
 
     /**
@@ -89,6 +88,25 @@ export const useComparisonStore = defineStore('comparison', {
     },
 
     /**
+     * Update store state from API response
+     */
+    updateFromResponse(response: ComparisonResponse): void {
+      // Update items from response
+      this.items = response.data.variants
+
+      // Update token if provided
+      if (response.data.token) {
+        this.comparisonToken = response.data.token
+        setToken(TOKEN_KEYS.COMPARISON, response.data.token)
+      }
+
+      // Update maxItems from meta
+      if (response.data.meta?.max_items) {
+        this.maxItems = response.data.meta.max_items
+      }
+    },
+
+    /**
      * Fetch comparison from API
      */
     async fetchComparison(): Promise<void> {
@@ -98,8 +116,8 @@ export const useComparisonStore = defineStore('comparison', {
       this.error = null
 
       try {
-        const items = await api.get<ProductVariant[]>('/catalog/comparison', undefined, { comparison: true })
-        this.items = items
+        const response = await api.get<ComparisonResponse>('/catalog/comparison', undefined, { comparison: true })
+        this.updateFromResponse(response)
       } catch (error) {
         this.error = getErrorMessage(error)
         console.error('Fetch comparison error:', error)
@@ -114,7 +132,7 @@ export const useComparisonStore = defineStore('comparison', {
     async addToComparison(variantId: number): Promise<boolean> {
       // Check if already at max
       if (this.isFull) {
-        this.error = `You can compare up to ${MAX_COMPARISON_ITEMS} items`
+        this.error = `You can compare up to ${this.maxItems} items`
         return false
       }
 
@@ -129,10 +147,8 @@ export const useComparisonStore = defineStore('comparison', {
       this.error = null
 
       try {
-        await api.post('/catalog/comparison/items', { variant_id: variantId }, { comparison: true })
-        
-        // Refetch to get updated list
-        await this.fetchComparison()
+        const response = await api.post<ComparisonResponse>('/catalog/comparison/items', { variant_id: variantId }, { comparison: true })
+        this.updateFromResponse(response)
         return true
       } catch (error) {
         this.error = getErrorMessage(error)
@@ -152,16 +168,12 @@ export const useComparisonStore = defineStore('comparison', {
       this.error = null
 
       try {
-        await api.delete(`/catalog/comparison/items/${variantId}`, { comparison: true })
-        
-        // Remove from local state optimistically
-        this.items = this.items.filter(item => item.id !== variantId)
+        const response = await api.delete<ComparisonResponse>(`/catalog/comparison/items/${variantId}`, { comparison: true })
+        this.updateFromResponse(response)
         return true
       } catch (error) {
         this.error = getErrorMessage(error)
         console.error('Remove from comparison error:', error)
-        // Refetch on error
-        await this.fetchComparison()
         return false
       } finally {
         this.loading = false
@@ -201,11 +213,23 @@ export const useComparisonStore = defineStore('comparison', {
     },
 
     /**
+     * Initialize comparison store
+     * Called on app initialization to load comparison data
+     */
+    async initialize(): Promise<void> {
+      // Only fetch if comparison hasn't been loaded yet
+      if (this.items.length === 0 && !this.loading) {
+        await this.fetchComparison()
+      }
+    },
+
+    /**
      * Reset store state
      */
     reset(): void {
       this.items = []
       this.comparisonToken = null
+      this.maxItems = 10
       this.loading = false
       this.error = null
     },

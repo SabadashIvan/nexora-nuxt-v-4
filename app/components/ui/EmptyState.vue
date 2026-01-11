@@ -10,11 +10,15 @@ interface Props {
   icon?: Component
 }
 
+const { t } = useI18n()
+
 const props = withDefaults(defineProps<Props>(), {
-  title: 'No items found',
+  title: '',
   description: '',
   icon: undefined,
 })
+
+const defaultTitle = computed(() => props.title || t('emptyStates.noItems'))
 
 const IconComponent = computed(() => props.icon || Package)
 </script>
@@ -29,7 +33,7 @@ const IconComponent = computed(() => props.icon || Package)
     </div>
     
     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-      {{ title }}
+      {{ defaultTitle }}
     </h3>
     
     <p v-if="description" class="text-sm text-gray-500 dark:text-gray-400 max-w-sm">

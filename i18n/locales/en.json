@@ -1,0 +1,300 @@
+{
+  "common": {
+    "buttons": {
+      "addToCart": "Add to Cart",
+      "remove": "Remove",
+      "submit": "Submit",
+      "cancel": "Cancel",
+      "apply": "Apply",
+      "clearAll": "Clear All",
+      "browseProducts": "Browse Products",
+      "proceedToCheckout": "Proceed to Checkout",
+      "continueShopping": "Continue Shopping",
+      "save": "Save",
+      "edit": "Edit",
+      "delete": "Delete",
+      "close": "Close",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous"
+    },
+    "labels": {
+      "home": "Home",
+      "search": "Search",
+      "loading": "Loading...",
+      "noResults": "No results found",
+      "optional": "optional",
+      "required": "required",
+      "page": "Page",
+      "of": "of",
+      "userAccount": "User account"
+    },
+    "status": {
+      "inStock": "In Stock",
+      "outOfStock": "Out of Stock",
+      "unavailable": "Unavailable",
+      "available": "Available"
+    },
+    "messages": {
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "submitting": "Submitting...",
+      "processing": "Processing..."
+    }
+  },
+  "navigation": {
+    "register": "Register",
+    "login": "Login",
+    "logout": "Logout",
+    "loggingOut": "Logging out...",
+    "profile": "Profile",
+    "favorites": "Favorites",
+    "comparison": "Comparison",
+    "cart": "Cart",
+    "itemsInCart": "items in cart, view bag",
+    "viewWishlist": "favorites, view wishlist",
+    "viewComparison": "comparison, view comparison",
+    "closeSearch": "Close search",
+    "quickSearch": "Quick search",
+    "searchProducts": "Search products..."
+  },
+  "search": {
+    "placeholder": "Search products...",
+    "searching": "Searching...",
+    "noResults": "No results found",
+    "results": "Search results"
+  },
+  "cart": {
+    "title": "Cart",
+    "shoppingCart": "Shopping Cart",
+    "empty": {
+      "title": "Your cart is empty",
+      "description": "Looks like you haven't added any items to your cart yet."
+    },
+    "item": "item",
+    "items": "items",
+    "summary": {
+      "title": "Order Summary",
+      "promoCode": "Promo Code",
+      "enterCode": "Enter code",
+      "apply": "Apply",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "discounts": "Discounts",
+      "total": "Total",
+      "invalidCoupon": "Invalid coupon code"
+    },
+    "warnings": {
+      "title": "Some items have availability issues",
+      "description": "Please review the items marked below before proceeding to checkout."
+    },
+    "continueShopping": "Continue Shopping"
+  },
+  "comparison": {
+    "title": "Compare Products",
+    "clearAll": "Clear All",
+    "empty": {
+      "title": "No products to compare",
+      "description": "Add products to compare their features side by side."
+    },
+    "table": {
+      "product": "Product",
+      "availability": "Availability",
+      "rating": "Rating",
+      "action": "Action"
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "description": "Have a question or need help? We're here to assist you.",
+    "form": {
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number",
+      "requestType": "Request Type",
+      "subject": "Subject",
+      "message": "Message",
+      "placeholders": {
+        "name": "John Doe",
+        "email": "you.example.com",
+        "phone": "+380501234567",
+        "subject": "What is your question about?",
+        "message": "Please provide details about your question or issue..."
+      },
+      "types": {
+        "general": "General Inquiry",
+        "technical": "Technical Support",
+        "billing": "Billing Question",
+        "other": "Other"
+      },
+      "submit": "Submit Request",
+      "submitting": "Submitting...",
+      "responseTime": "We typically respond within 24 hours. For urgent matters, please call our support line."
+    },
+    "errors": {
+      "rateLimit": "Too many support request attempts",
+      "tryAgain": "Please try again in",
+      "second": "second",
+      "seconds": "seconds"
+    },
+    "validation": {
+      "emailInvalid": "Please enter a valid email address",
+      "messageMinLength": "Message must be at least 10 characters",
+      "messageMinLengthHint": "Minimum 10 characters required"
+    }
+  },
+  "forms": {
+    "validation": {
+      "required": "This field is required",
+      "emailRequired": "Please enter a valid email address",
+      "messageMinLength": "Message must be at least 10 characters",
+      "messageMinLengthHint": "Minimum 10 characters required"
+    }
+  },
+  "emptyStates": {
+    "noItems": "No items found",
+    "noContent": "No content available for this page"
+  },
+  "errors": {
+    "pageNotFound": "Page Not Found",
+    "generic": "An error occurred. Please try again."
+  },
+  "newsletter": {
+    "consent": "I agree to receive newsletter emails",
+    "subscribe": "Subscribe",
+    "subscribing": "Subscribing..."
+  },
+  "breadcrumbs": {
+    "home": "Home"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "of": "of"
+  },
+  "home": {
+    "features": {
+      "freeShipping": {
+        "title": "Free shipping",
+        "description": "It's not actually free we just price it into the products. Someone's paying for it, and it's not us."
+      },
+      "warranty": {
+        "title": "10-year warranty",
+        "description": "If it breaks in the first 10 years we'll replace it. After that you're on your own though."
+      },
+      "exchanges": {
+        "title": "Exchanges",
+        "description": "If you don't like it, trade it to one of your friends for something of theirs. Don't send it here though."
+      }
+    },
+    "hero": {
+      "title": "We built our business on great customer service",
+      "description": "At the beginning at least, but then we realized we could make a lot more money if we kinda stopped caring about that. Our new strategy is to write a bunch of things that look really good in the headlines, then clarify in the small print but hope people don't actually read it."
+    }
+  },
+  "pages": {
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The requested page does not exist."
+    }
+  },
+  "catalog": {
+    "products": "Products",
+    "noProducts": "No products found",
+    "adjustFilters": "Try adjusting your filters or search criteria",
+    "shopByCategory": "Shop by Category",
+    "viewAll": "View All",
+    "productsCount": "{count} products"
+  },
+  "product": {
+    "card": {
+      "noImage": "No image"
+    },
+    "page": {
+      "categories": "Categories",
+      "category": "Category",
+      "brand": "Brand",
+      "product": "Product",
+      "productInformation": "Product information",
+      "addToBag": "Add to bag",
+      "addToWishlist": "Add to Wishlist",
+      "inWishlist": "In Wishlist",
+      "addToComparison": "Add to Comparison",
+      "inComparison": "In Comparison",
+      "share": "Share"
+    },
+    "reviews": {
+      "title": "Customer Reviews",
+      "outOf5": "out of 5",
+      "writeReview": "Write a Review",
+      "submittedSuccess": "Review submitted successfully",
+      "moderationMessage": "Your review is under moderation and will be published after approval.",
+      "loginToReview": "Please log in to write a review",
+      "loading": "Loading reviews...",
+      "loadMore": "Load More Reviews",
+      "noReviews": "No reviews yet",
+      "beFirst": "Be the first to share your experience with this product"
+    },
+    "comments": {
+      "title": "Comments",
+      "submittedSuccess": "Comment submitted successfully",
+      "moderationMessage": "Your comment is under moderation and will be published after review.",
+      "loginToComment": "Please log in to leave a comment",
+      "loading": "Loading comments...",
+      "loadMore": "Load More Comments",
+      "noComments": "No comments yet",
+      "beFirst": "Be the first to share your thoughts about this product"
+    },
+    "reviewForm": {
+      "rating": "Rating",
+      "outOf5": "out of 5",
+      "selectRating": "Please select a rating",
+      "yourReview": "Your Review",
+      "placeholder": "Share your experience with this product...",
+      "minCharacters": "Minimum {count} characters required",
+      "advantages": "Advantages",
+      "disadvantages": "Disadvantages",
+      "prosPlaceholder": "What did you like about this product?",
+      "consPlaceholder": "What could be improved?",
+      "pressToSubmit": "Press Ctrl+Enter to submit",
+      "submit": "Submit Review"
+    },
+    "commentForm": {
+      "placeholder": "Write a comment...",
+      "replyPlaceholder": "Write a reply...",
+      "exceedsMaxLength": "Comment exceeds maximum length of {count} characters",
+      "pressToSubmit": "Press Ctrl+Enter to submit",
+      "cancel": "Cancel",
+      "reply": "Reply",
+      "postComment": "Post Comment"
+    },
+    "reviewItem": {
+      "justNow": "just now",
+      "minutesAgo": "{count}m ago",
+      "hoursAgo": "{count}h ago",
+      "daysAgo": "{count}d ago",
+      "advantages": "Advantages",
+      "disadvantages": "Disadvantages",
+      "reply": "Reply",
+      "replies": "Replies"
+    },
+    "commentItem": {
+      "justNow": "just now",
+      "minutesAgo": "{count}m ago",
+      "hoursAgo": "{count}h ago",
+      "daysAgo": "{count}d ago",
+      "cancel": "Cancel",
+      "reply": "Reply"
+    }
+  },
+  "favorites": {
+    "title": "My Wishlist",
+    "wishlist": "Wishlist",
+    "addToCart": "Add to Cart",
+    "outOfStock": "Out of Stock",
+    "items": "{count} items",
+    "emptyTitle": "Your wishlist is empty",
+    "emptyDescription": "Save items you love by clicking the heart icon on products."
+  }
+}

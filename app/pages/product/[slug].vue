@@ -1,15 +1,24 @@
 <script setup lang="ts">
+/* eslint-disable vue/no-v-html */
 /**
  * Product detail page - SSR for SEO
  */
-import { Heart, ShoppingCart, Minus, Plus, Share2, Truck, Shield, RefreshCw } from 'lucide-vue-next'
+import { Heart, ShoppingCart, Share2, GitCompare } from 'lucide-vue-next'
 import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
+import { useComparisonStore } from '~/stores/comparison.store'
 import type { ProductVariant, ApiResponse } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
 const route = useRoute()
+
+// Locale-aware navigation
+const localePath = useLocalePath()
+
+// Get locale for cache key
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
 
 const slug = computed(() => route.params.slug as string)
 
@@ -17,7 +26,7 @@ const slug = computed(() => route.params.slug as string)
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
 const { data: product, pending, error, refresh } = await useAsyncData(
-  () => `product-${slug.value}`,
+  () => `product-${slug.value}-${locale.value}`,
   async () => {
     const currentSlug = slug.value
     console.log('[Fetch] Starting fetch for slug:', currentSlug, 'isServer:', import.meta.server)
@@ -104,11 +113,11 @@ const { data: product, pending, error, refresh } = await useAsyncData(
     }
   },
   { 
-    watch: [() => route.params.slug],
+    watch: [() => route.params.slug, locale],
     server: true,
     // SWR-like behavior: show cached data immediately, then refresh in background
     // On client: try store cache first (from previous navigation)
-    getCachedData: (key) => {
+    getCachedData: (_key) => {
       if (import.meta.client) {
         try {
           const productStore = useProductStore()
@@ -219,7 +228,7 @@ const inStock = computed(() => {
   if (!product.value) return false
   return product.value.is_in_stock ?? product.value.in_stock ?? false
 })
-const hasDiscount = computed(() => {
+const _hasDiscount = computed(() => {
   if (!product.value) return false
   if (typeof product.value.price === 'object' && product.value.price !== null) {
     const list = parseFloat(product.value.price.list_minor.replace(/[^0-9.]/g, '')) || 0
@@ -237,6 +246,18 @@ const isFavorite = computed(() => {
   if (import.meta.client) {
     try {
       return useFavoritesStore().isFavorite(product.value?.id || 0)
+    } catch {
+      return false
+    }
+  }
+  return false
+})
+
+const isInComparison = computed(() => {
+  // On client, check comparison store
+  if (import.meta.client) {
+    try {
+      return useComparisonStore().isInComparison(product.value?.id || 0)
     } catch {
       return false
     }
@@ -332,7 +353,7 @@ const reviewsCount = computed(() => {
     return product.value.rating.count || 0
   }
   // Legacy support
-  return (product.value as any)?.reviews_count || 0
+  return (product.value as ProductVariant & { reviews_count?: number })?.reviews_count || 0
 })
 const productPrice = computed((): ProductPrice | null => {
   if (!product.value) return null
@@ -365,18 +386,19 @@ const priceToDisplay = computed((): ProductPrice | number | null => {
   }
   return null
 })
-const productBrand = computed(() => {
+const _productBrand = computed(() => {
   return product.value?.product?.brand
 })
-const productCategories = computed(() => {
+const _productCategories = computed(() => {
   return product.value?.product?.categories || []
 })
 
 // Breadcrumbs - ensure stable structure for SSR hydration
 // Always return at least Catalog + Product to ensure consistent DOM structure
 const breadcrumbs = computed(() => {
+  const { t } = useI18n()
   const items: Array<{ label: string; to?: string }> = [
-    { label: 'Categories', to: '/categories' },
+    { label: t('product.page.categories'), to: localePath('/categories') },
   ]
   
   // Add category breadcrumbs if available
@@ -384,8 +406,8 @@ const breadcrumbs = computed(() => {
     const mainCategory = product.value.product.categories[0]
     if (mainCategory?.slug) {
       items.push({ 
-        label: mainCategory.title || mainCategory.name || 'Category', 
-        to: `/categories/${mainCategory.slug}` 
+        label: mainCategory.title || mainCategory.name || t('product.page.category'), 
+        to: localePath(`/categories/${mainCategory.slug}`) 
       })
     }
   }
@@ -393,14 +415,14 @@ const breadcrumbs = computed(() => {
   // Add brand if available
   if (product.value?.product?.brand?.slug) {
     items.push({ 
-      label: product.value.product.brand.title || 'Brand', 
-      to: `/categories?brand=${product.value.product.brand.slug}` 
+      label: product.value.product.brand.title || t('product.page.brand'), 
+      to: localePath(`/categories?brand=${product.value.product.brand.slug}`) 
     })
   }
   
   // Last item - always add product title (or placeholder)
   items.push({ 
-    label: product.value?.title || product.value?.name || 'Product', 
+    label: product.value?.title || product.value?.name || t('product.page.product'), 
     to: '#' 
   })
   
@@ -423,11 +445,17 @@ async function toggleFavorite() {
   await favoritesStore.toggleFavorite(product.value.id)
 }
 
-function incrementQuantity() {
+async function toggleComparison() {
+  if (!product.value) return
+  const comparisonStore = useComparisonStore()
+  await comparisonStore.toggleComparison(product.value.id)
+}
+
+function _incrementQuantity() {
   quantity.value++
 }
 
-function decrementQuantity() {
+function _decrementQuantity() {
   if (quantity.value > 1) {
     quantity.value--
   }
@@ -439,7 +467,7 @@ function selectOption(code: string, value: string) {
 }
 
 // Helper to get option value safely
-function getOptionValue(optionValue: any): string {
+function getOptionValue(optionValue: { value?: string; value_id?: number; label?: string }): string {
   if ('value' in optionValue && optionValue.value) {
     return optionValue.value
   }
@@ -450,7 +478,7 @@ function getOptionValue(optionValue: any): string {
 }
 
 // Helper to check if option is available
-function isOptionAvailable(optionValue: any): boolean {
+function isOptionAvailable(optionValue: { is_available?: boolean; is_in_stock?: boolean }): boolean {
   if ('is_available' in optionValue) {
     return optionValue.is_available ?? true
   }
@@ -469,7 +497,7 @@ function isColorOption(optionCode: string, optionName: string): boolean {
 }
 
 // Helper to get color class from value (try to extract color from label/value)
-function getColorClass(value: any): string {
+function getColorClass(value: { label?: string; value?: string }): string {
   const label = (value.label || '').toLowerCase()
   const valueStr = (value.value || '').toLowerCase()
   
@@ -635,7 +663,7 @@ const gridImages = computed(() => {
 
           <!-- Options -->
           <div class="mt-4 lg:row-span-3 lg:mt-0">
-            <h2 class="sr-only">Product information</h2>
+            <h2 class="sr-only">{{ $t('product.page.productInformation') }}</h2>
             
             <!-- Price -->
             <div v-if="product && priceToDisplay !== null" class="mt-4">
@@ -735,7 +763,7 @@ const gridImages = computed(() => {
                 >
                   <UiSpinner v-if="isAddingToCart" size="sm" class="mr-2" />
                   <ShoppingCart v-else class="mr-2 h-5 w-5" />
-                  Add to bag
+                  {{ $t('product.page.addToBag') }}
                 </button>
               </div>
 
@@ -748,14 +776,23 @@ const gridImages = computed(() => {
                   @click="toggleFavorite"
                 >
                   <Heart class="h-5 w-5" :class="{ 'fill-current': isFavorite }" />
-                  <span class="text-sm">{{ isFavorite ? 'In Wishlist' : 'Add to Wishlist' }}</span>
+                  <span class="text-sm">{{ isFavorite ? $t('product.page.inWishlist') : $t('product.page.addToWishlist') }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
+                  :class="{ 'text-indigo-600': isInComparison }"
+                  @click="toggleComparison"
+                >
+                  <GitCompare class="h-5 w-5" :class="{ 'fill-current': isInComparison }" />
+                  <span class="text-sm">{{ isInComparison ? $t('product.page.inComparison') : $t('product.page.addToComparison') }}</span>
                 </button>
                 <button
                   type="button"
                   class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
                 >
                   <Share2 class="h-5 w-5" />
-                  <span class="text-sm">Share</span>
+                  <span class="text-sm">{{ $t('product.page.share') }}</span>
                 </button>
               </div>
             </form>
@@ -770,6 +807,7 @@ const gridImages = computed(() => {
                 <p v-if="product.short_description || product.product?.description" class="text-base text-gray-900">
                   {{ product.short_description || product.product?.description }}
                 </p>
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div
                   v-if="product.description"
                   class="prose max-w-none text-base text-gray-900"
@@ -798,6 +836,7 @@ const gridImages = computed(() => {
             <div v-if="product.description || product.product?.description" class="mt-10">
               <h2 class="text-sm font-medium text-gray-900">Details</h2>
               <div class="mt-4 space-y-6">
+                <!-- eslint-disable-next-line vue/no-v-html -->
                 <div
                   v-if="product.description"
                   class="prose max-w-none text-sm text-gray-600"

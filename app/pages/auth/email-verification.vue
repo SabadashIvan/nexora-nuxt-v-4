@@ -4,8 +4,15 @@
  */
 import { Mail, CheckCircle, XCircle, RefreshCw } from 'lucide-vue-next'
 
+definePageMeta({
+  ssr: false,
+})
+
 const route = useRoute()
 const authStore = useAuthStore()
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 const isVerifying = ref(false)
 const isResending = ref(false)
@@ -38,7 +45,7 @@ async function resendEmail() {
     <div class="max-w-md w-full">
       <!-- Header -->
       <div class="text-center mb-8">
-        <NuxtLink to="/" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+        <NuxtLink :to="localePath('/')" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
           Nexora
         </NuxtLink>
       </div>
@@ -68,7 +75,7 @@ async function resendEmail() {
             Your email has been successfully verified.
           </p>
           <NuxtLink
-            to="/"
+            :to="localePath('/')"
             class="mt-6 inline-flex items-center justify-center px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
           >
             Continue Shopping
@@ -129,4 +136,3 @@ async function resendEmail() {
     </div>
   </div>
 </template>
-

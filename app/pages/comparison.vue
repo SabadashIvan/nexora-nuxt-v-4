@@ -2,15 +2,22 @@
 /**
  * Product comparison page - CSR only
  */
-import { GitCompare, Trash2, ShoppingCart, X } from 'lucide-vue-next'
+import { GitCompare, ShoppingCart, X } from 'lucide-vue-next'
 import { useComparisonStore } from '~/stores/comparison.store'
 import { useCartStore } from '~/stores/cart.store'
+
+definePageMeta({
+  ssr: false,
+})
 
 // Load comparison on mount - access store inside onMounted
 onMounted(async () => {
   const comparisonStore = useComparisonStore()
   await comparisonStore.fetchComparison()
 })
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 // Access stores inside computed
 const items = computed(() => {
@@ -54,40 +61,56 @@ async function clearAll() {
   await comparisonStore.clearComparison()
 }
 
-// Get all unique attribute names
-const attributeNames = computed(() => {
-  const names = new Set<string>()
-  items.value.forEach(item => {
-    item.attributes?.forEach(attr => {
-      names.add(attr.name)
+// Get all unique attribute codes with their titles
+const attributeData = computed(() => {
+  const codes = new Set<string>()
+  const codeToTitle = new Map<string, string>()
+  const itemsList = items.value
+  itemsList.forEach(item => {
+    // Use attribute_values (new format) or attributes (legacy)
+    const attrs = item.attribute_values || item.attributes || []
+    attrs.forEach(attr => {
+      codes.add(attr.attribute.code)
+      if (!codeToTitle.has(attr.attribute.code)) {
+        codeToTitle.set(attr.attribute.code, attr.attribute.title)
+      }
     })
   })
-  return Array.from(names)
+  return {
+    codes: Array.from(codes),
+    titles: codeToTitle,
+  }
 })
 
+const attributeNames = computed(() => attributeData.value.codes)
+
 // Get attribute value for an item
-function getAttributeValue(item: typeof items.value[0], attrName: string): string {
-  const attr = item.attributes?.find(a => a.name === attrName)
-  return attr?.value || '-'
+function getAttributeValue(item: (typeof items.value)[number], attrCode: string): string {
+  // Use attribute_values (new format) or attributes (legacy)
+  const attrs = item.attribute_values || item.attributes || []
+  const attr = attrs.find(a => a.attribute.code === attrCode)
+  return attr?.label || '-'
 }
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Breadcrumbs -->
-    <UiBreadcrumbs :items="[{ label: 'Compare Products' }]" class="mb-6" />
+  <div class="relative overflow-hidden bg-white">
+    <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
+      <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
+        <!-- Breadcrumbs -->
+        <UiBreadcrumbs :items="[{ label: $t('comparison.title') }]" class="mb-6" />
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Compare Products</h1>
-      <button
-        v-if="!isEmpty"
-        class="text-sm text-red-500 hover:underline"
-        @click="clearAll"
-      >
-        Clear All
-      </button>
-    </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">{{ $t('comparison.title') }}</h1>
+          <button
+            v-if="!isEmpty"
+            class="text-sm text-red-500 hover:underline"
+            @click="clearAll"
+          >
+            {{ $t('comparison.clearAll') }}
+          </button>
+        </div>
 
     <!-- Loading -->
     <div v-if="loading && items.length === 0" class="animate-pulse">
@@ -97,16 +120,16 @@ function getAttributeValue(item: typeof items.value[0], attrName: string): strin
     <!-- Empty -->
     <UiEmptyState
       v-else-if="isEmpty"
-      title="No products to compare"
-      description="Add products to compare their features side by side."
+      :title="$t('comparison.empty.title')"
+      :description="$t('comparison.empty.description')"
       :icon="GitCompare"
     >
       <template #action>
         <NuxtLink
-          to="/categories"
+          :to="localePath('/categories')"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
-          Browse Products
+          {{ $t('common.buttons.browseProducts') }}
         </NuxtLink>
       </template>
     </UiEmptyState>
@@ -118,7 +141,7 @@ function getAttributeValue(item: typeof items.value[0], attrName: string): strin
         <thead>
           <tr>
             <th class="w-48 p-4 text-left text-sm font-semibold text-gray-500 dark:text-gray-400 align-top">
-              Product
+              {{ $t('comparison.table.product') }}
             </th>
             <th 
               v-for="item in items" 
@@ -135,27 +158,25 @@ function getAttributeValue(item: typeof items.value[0], attrName: string): strin
                 </button>
 
                 <!-- Image -->
-                <NuxtLink :to="`/product/${item.slug}`" class="block aspect-square">
+                <NuxtLink :to="localePath(`/product/${item.slug}`)" class="block aspect-square">
                   <NuxtImg
                     v-if="item.images?.[0]?.url"
                     :src="item.images[0].url"
-                    :alt="item.name"
+                    :alt="item.title || item.name"
                     class="w-full h-full object-cover"
                   />
                 </NuxtLink>
 
                 <!-- Info -->
                 <div class="p-3">
-                  <NuxtLink :to="`/product/${item.slug}`">
+                  <NuxtLink :to="localePath(`/product/${item.slug}`)">
                     <h3 class="font-medium text-gray-900 dark:text-gray-100 text-sm line-clamp-2 hover:text-primary-600 transition-colors">
-                      {{ item.name }}
+                      {{ item.title || item.name }}
                     </h3>
                   </NuxtLink>
                   <div class="mt-2">
                     <UiPrice 
                       :price="item.price" 
-                      :effective-price="item.effective_price"
-                      :currency="item.currency"
                       size="sm"
                     />
                   </div>
@@ -168,22 +189,22 @@ function getAttributeValue(item: typeof items.value[0], attrName: string): strin
         <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
           <!-- Stock status -->
           <tr>
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">Availability</td>
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('comparison.table.availability') }}</td>
             <td v-for="item in items" :key="item.id" class="p-4">
-              <UiBadge :variant="item.in_stock ? 'success' : 'error'" size="sm">
-                {{ item.in_stock ? 'In Stock' : 'Out of Stock' }}
+              <UiBadge :variant="(item.is_in_stock ?? item.in_stock) ? 'success' : 'error'" size="sm">
+                {{ (item.is_in_stock ?? item.in_stock) ? $t('common.status.inStock') : $t('common.status.outOfStock') }}
               </UiBadge>
             </td>
           </tr>
 
           <!-- Rating -->
           <tr>
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">Rating</td>
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('comparison.table.rating') }}</td>
             <td v-for="item in items" :key="item.id" class="p-4">
               <UiRating 
                 v-if="item.rating" 
-                :rating="item.rating" 
-                :reviews-count="item.reviews_count"
+                :rating="item.rating.value" 
+                :reviews-count="item.rating.count"
                 size="sm"
               />
               <span v-else class="text-gray-400">-</span>
@@ -191,33 +212,36 @@ function getAttributeValue(item: typeof items.value[0], attrName: string): strin
           </tr>
 
           <!-- Attributes -->
-          <tr v-for="attrName in attributeNames" :key="attrName">
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ attrName }}</td>
+          <tr v-for="attrCode in attributeNames" :key="attrCode">
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+              {{ attributeData.titles.get(attrCode) || attrCode }}
+            </td>
             <td v-for="item in items" :key="item.id" class="p-4 text-sm text-gray-900 dark:text-gray-100">
-              {{ getAttributeValue(item, attrName) }}
+              {{ getAttributeValue(item, attrCode) }}
             </td>
           </tr>
 
           <!-- Add to cart row -->
           <tr>
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">Action</td>
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('comparison.table.action') }}</td>
             <td v-for="item in items" :key="item.id" class="p-4">
               <button
-                v-if="item.in_stock"
+                v-if="item.is_in_stock ?? item.in_stock"
                 class="flex items-center justify-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                 :disabled="addingToCart === item.id"
                 @click="addToCart(item.id)"
               >
                 <UiSpinner v-if="addingToCart === item.id" size="sm" />
                 <ShoppingCart v-else class="h-4 w-4" />
-                Add to Cart
+                {{ $t('common.buttons.addToCart') }}
               </button>
-              <span v-else class="text-sm text-gray-400">Unavailable</span>
+              <span v-else class="text-sm text-gray-400">{{ $t('common.status.unavailable') }}</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+      </div>
+    </div>
   </div>
 </template>
-

@@ -6,10 +6,14 @@ import { Package, MapPin, Heart, Settings } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'profile',
+  ssr: false,
 })
 
 const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
 const ordersStore = shallowRef<ReturnType<typeof useOrdersStore> | null>(null)
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 // Load recent orders
 onMounted(async () => {
@@ -25,12 +29,12 @@ onMounted(async () => {
 const userName = computed(() => authStore.value?.userName ?? '')
 const recentOrders = computed(() => ordersStore.value?.orders.slice(0, 3) ?? [])
 
-const quickLinks = [
-  { icon: Package, label: 'My Orders', to: '/profile/orders', description: 'View order history' },
-  { icon: MapPin, label: 'Addresses', to: '/profile/addresses', description: 'Manage addresses' },
-  { icon: Heart, label: 'Wishlist', to: '/favorites', description: 'Saved items' },
-  { icon: Settings, label: 'Settings', to: '/profile/settings', description: 'Account settings' },
-]
+const quickLinks = computed(() => [
+  { icon: Package, label: 'My Orders', to: localePath('/profile/orders'), description: 'View order history' },
+  { icon: MapPin, label: 'Addresses', to: localePath('/profile/addresses'), description: 'Manage addresses' },
+  { icon: Heart, label: 'Wishlist', to: localePath('/favorites'), description: 'Saved items' },
+  { icon: Settings, label: 'Settings', to: localePath('/profile/settings'), description: 'Account settings' },
+])
 </script>
 
 <template>
@@ -67,7 +71,7 @@ const quickLinks = [
     <div class="bg-white dark:bg-gray-900 rounded-lg p-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Recent Orders</h2>
-        <NuxtLink to="/profile/orders" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+        <NuxtLink :to="localePath('/profile/orders')" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
           View all
         </NuxtLink>
       </div>
@@ -76,7 +80,7 @@ const quickLinks = [
         <NuxtLink
           v-for="order in recentOrders"
           :key="order.id"
-          :to="`/profile/order/${order.id}`"
+          :to="localePath(`/profile/order/${order.id}`)"
           class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <div>
@@ -109,7 +113,7 @@ const quickLinks = [
       >
         <template #action>
           <NuxtLink
-            to="/categories"
+            :to="localePath('/categories')"
             class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
           >
             Browse Products
@@ -119,4 +123,3 @@ const quickLinks = [
     </div>
   </div>
 </template>
-

@@ -3,6 +3,9 @@
  * Breadcrumb navigation component
  */
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 interface BreadcrumbItem {
   label: string
   to?: string
@@ -17,17 +20,25 @@ const props = withDefaults(defineProps<Props>(), {
   showHome: true,
 })
 
+const { t } = useI18n()
+
 const allItems = computed(() => {
   if (props.showHome) {
-    return [{ label: 'Home', to: '/' }, ...props.items]
+    return [{ label: t('breadcrumbs.home'), to: localePath('/') }, ...props.items.map(item => ({
+      ...item,
+      to: item.to ? localePath(item.to) : undefined
+    }))]
   }
-  return props.items
+  return props.items.map(item => ({
+    ...item,
+    to: item.to ? localePath(item.to) : undefined
+  }))
 })
 </script>
 
 <template>
   <nav aria-label="Breadcrumb">
-    <ol role="list" class="mx-auto flex max-w-2xl items-center space-x-2 px-4 sm:px-6 lg:max-w-7xl lg:px-8">
+    <ol role="list" class="mx-auto flex items-center space-x-2">
       <template v-for="(item, index) in allItems" :key="index">
         <li v-if="index !== allItems.length - 1">
           <div class="flex items-center">

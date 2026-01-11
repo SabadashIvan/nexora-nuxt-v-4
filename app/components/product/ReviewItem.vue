@@ -3,12 +3,14 @@
  * Review Item Component
  * Displays a single product review with rating, pros/cons, and optional replies
  */
-import { Star, User, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-vue-next'
+import { Star, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-vue-next'
 import type { Review } from '~/types'
 
 const props = defineProps<{
   review: Review
 }>()
+
+const { t } = useI18n()
 
 const hasReplies = computed(() => props.review.replies && props.review.replies.length > 0)
 const hasPros = computed(() => props.review.pros && props.review.pros.trim().length > 0)
@@ -24,10 +26,10 @@ function formatDate(dateString: string): string {
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
   
-  if (diffSecs < 60) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffSecs < 60) return t('product.reviewItem.justNow')
+  if (diffMins < 60) return t('product.reviewItem.minutesAgo', { count: diffMins })
+  if (diffHours < 24) return t('product.reviewItem.hoursAgo', { count: diffHours })
+  if (diffDays < 7) return t('product.reviewItem.daysAgo', { count: diffDays })
   
   return date.toLocaleDateString('en-US', { 
     month: 'short', 
@@ -92,7 +94,7 @@ function formatDate(dateString: string): string {
           </div>
         </div>
         <div>
-          <p class="text-xs font-medium text-green-700 mb-0.5">Advantages</p>
+          <p class="text-xs font-medium text-green-700 mb-0.5">{{ $t('product.reviewItem.advantages') }}</p>
           <p class="text-sm text-gray-700">{{ review.pros }}</p>
         </div>
       </div>
@@ -105,7 +107,7 @@ function formatDate(dateString: string): string {
           </div>
         </div>
         <div>
-          <p class="text-xs font-medium text-red-600 mb-0.5">Disadvantages</p>
+          <p class="text-xs font-medium text-red-600 mb-0.5">{{ $t('product.reviewItem.disadvantages') }}</p>
           <p class="text-sm text-gray-700">{{ review.cons }}</p>
         </div>
       </div>
@@ -116,7 +118,7 @@ function formatDate(dateString: string): string {
       <div class="flex items-center gap-1.5 mb-3">
         <MessageCircle class="h-4 w-4 text-gray-400" />
         <span class="text-xs font-medium text-gray-500">
-          {{ review.replies!.length }} {{ review.replies!.length === 1 ? 'Reply' : 'Replies' }}
+          {{ review.replies!.length }} {{ review.replies!.length === 1 ? $t('product.reviewItem.reply') : $t('product.reviewItem.replies') }}
         </span>
       </div>
       

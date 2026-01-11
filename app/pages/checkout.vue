@@ -16,6 +16,7 @@ import { useCountries } from '~/composables/useCountries'
 
 definePageMeta({
   layout: 'checkout',
+  ssr: false,
 })
 
 const router = useRouter()
@@ -116,7 +117,8 @@ onMounted(async () => {
   
   // Check if cart is empty
   if (cartStore.isEmpty) {
-    router.push('/cart')
+    const localePath = useLocalePath()
+    router.push(localePath('/cart'))
     return
   }
 
@@ -243,7 +245,8 @@ async function placeOrder() {
     }
 
     // Offline payment or no payment init needed - redirect to order page
-    router.push(`/profile/order/${orderId}`)
+    const localePath = useLocalePath()
+    router.push(localePath(`/profile/order/${orderId}`))
   } catch (err) {
     console.error('Place order error:', err)
   } finally {

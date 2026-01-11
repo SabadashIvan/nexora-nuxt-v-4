@@ -2,7 +2,7 @@
 /**
  * Blog post card component
  */
-import { Calendar, Clock, ArrowRight } from 'lucide-vue-next'
+import { Calendar, Clock } from 'lucide-vue-next'
 import type { BlogPost } from '~/types'
 import { formatDate } from '~/utils/format'
 
@@ -11,6 +11,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// Locale-aware navigation
+const localePath = useLocalePath()
 
 // Helper to get featured image URL (handles both object and string)
 const featuredImageUrl = computed(() => {
@@ -26,7 +29,7 @@ const featuredImageUrl = computed(() => {
   <article class="group relative">
     <!-- Image -->
     <div class="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
-      <NuxtLink :to="`/blog/${post.slug}`">
+      <NuxtLink :to="localePath(`/blog/posts/${post.slug}`)">
         <NuxtImg
           v-if="featuredImageUrl"
           :src="featuredImageUrl"
@@ -45,14 +48,14 @@ const featuredImageUrl = computed(() => {
       <!-- Category -->
       <NuxtLink
         v-if="post.category"
-        :to="`/blog/category/${post.category.slug}`"
+        :to="localePath(`/blog/category/${post.category.slug}`)"
         class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
       >
         {{ post.category.title || post.category.name }}
       </NuxtLink>
 
       <!-- Title -->
-      <NuxtLink :to="`/blog/${post.slug}`" class="mt-2 block">
+      <NuxtLink :to="localePath(`/blog/posts/${post.slug}`)" class="mt-2 block">
         <h3 class="text-base font-semibold text-gray-900 group-hover:text-gray-700 line-clamp-2">
           {{ post.title }}
         </h3>

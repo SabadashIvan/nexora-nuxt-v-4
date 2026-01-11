@@ -17,6 +17,9 @@ const reviewsStore = useReviewsStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
+// Locale-aware navigation
+const localePath = useLocalePath()
+
 const isInitialized = ref(false)
 const showSuccessMessage = ref(false)
 
@@ -81,7 +84,7 @@ async function handleReviewSubmit(rating: number, body: string, pros?: string, c
 }
 
 function goToLogin() {
-  router.push('/auth/login')
+  router.push(localePath('/auth/login'))
 }
 </script>
 
@@ -92,7 +95,7 @@ function goToLogin() {
       <div class="flex items-center gap-3">
         <MessageSquareText class="h-6 w-6 text-gray-600" />
         <h2 class="text-xl font-semibold text-gray-900">
-          Customer Reviews
+          {{ $t('product.reviews.title') }}
           <span v-if="reviewsCount > 0" class="text-gray-500 font-normal">
             ({{ reviewsCount }})
           </span>
@@ -114,7 +117,7 @@ function goToLogin() {
           />
         </div>
         <span class="text-sm font-medium text-gray-700">
-          {{ averageRating.toFixed(1) }} out of 5
+          {{ averageRating.toFixed(1) }} {{ $t('product.reviews.outOf5') }}
         </span>
       </div>
     </div>
@@ -123,7 +126,7 @@ function goToLogin() {
     <div class="mb-8">
       <!-- Authenticated: Show form -->
       <div v-if="isAuthenticated" class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Write a Review</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">{{ $t('product.reviews.writeReview') }}</h3>
         
         <ProductReviewForm 
           @submit="handleReviewSubmit"
@@ -136,8 +139,8 @@ function goToLogin() {
         >
           <CheckCircle class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p class="text-sm font-medium text-green-800">Review submitted successfully</p>
-            <p class="text-xs text-green-600 mt-1">Your review is under moderation and will be published after approval.</p>
+            <p class="text-sm font-medium text-green-800">{{ $t('product.reviews.submittedSuccess') }}</p>
+            <p class="text-xs text-green-600 mt-1">{{ $t('product.reviews.moderationMessage') }}</p>
           </div>
         </div>
 
@@ -157,7 +160,7 @@ function goToLogin() {
       >
         <LogIn class="h-8 w-8 text-gray-400 mx-auto mb-3" />
         <p class="text-gray-600 mb-4">
-          Please log in to write a review
+          {{ $t('product.reviews.loginToReview') }}
         </p>
         <button
           type="button"
@@ -165,7 +168,7 @@ function goToLogin() {
           @click="goToLogin"
         >
           <LogIn class="h-4 w-4" />
-          Log In
+          {{ $t('navigation.login') }}
         </button>
       </div>
     </div>
@@ -175,7 +178,7 @@ function goToLogin() {
       <div class="flex justify-center">
         <UiSpinner size="lg" />
       </div>
-      <p class="text-center text-gray-500 mt-3">Loading reviews...</p>
+      <p class="text-center text-gray-500 mt-3">{{ $t('product.reviews.loading') }}</p>
     </div>
 
     <!-- Reviews list -->
@@ -196,7 +199,7 @@ function goToLogin() {
         >
           <UiSpinner v-if="isLoading" size="sm" />
           <ChevronDown v-else class="h-4 w-4" />
-          Load More Reviews
+          {{ $t('product.reviews.loadMore') }}
         </button>
       </div>
     </div>
@@ -207,9 +210,9 @@ function goToLogin() {
       class="py-12 text-center"
     >
       <MessageSquareText class="h-12 w-12 text-gray-300 mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-gray-900 mb-1">No reviews yet</h3>
+      <h3 class="text-lg font-medium text-gray-900 mb-1">{{ $t('product.reviews.noReviews') }}</h3>
       <p class="text-gray-500">
-        Be the first to share your experience with this product
+        {{ $t('product.reviews.beFirst') }}
       </p>
     </div>
   </section>

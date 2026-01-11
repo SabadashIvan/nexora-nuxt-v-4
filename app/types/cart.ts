@@ -3,6 +3,8 @@
  * Matches real API response format
  */
 
+import { CartWarningCode, CartPromotionType } from './enums'
+
 /**
  * Cart item price in minor units (cents)
  */
@@ -73,7 +75,7 @@ export interface CartContext {
  * Cart warning (e.g., stock issues)
  */
 export interface CartWarning {
-  code: 'INSUFFICIENT_STOCK' | 'PRICE_CHANGED' | 'ITEM_UNAVAILABLE' | string
+  code: CartWarningCode | string // Allow string for backward compatibility
   item_id?: string
   variant_id?: number
   available?: number
@@ -88,7 +90,7 @@ export interface CartPromotion {
   code?: string
   description: string
   discount_minor: number
-  type: 'fixed' | 'percentage'
+  type: CartPromotionType | string // Allow string for backward compatibility
 }
 
 /**
@@ -154,7 +156,7 @@ export interface CouponPayload {
 export interface AppliedCoupon {
   code: string
   discount: number
-  type: 'fixed' | 'percentage'
+  type: CartPromotionType | string // Allow string for backward compatibility
   description?: string
 }
 
