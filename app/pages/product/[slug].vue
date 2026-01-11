@@ -396,8 +396,9 @@ const _productCategories = computed(() => {
 // Breadcrumbs - ensure stable structure for SSR hydration
 // Always return at least Catalog + Product to ensure consistent DOM structure
 const breadcrumbs = computed(() => {
+  const { t } = useI18n()
   const items: Array<{ label: string; to?: string }> = [
-    { label: 'Categories', to: localePath('/categories') },
+    { label: t('product.page.categories'), to: localePath('/categories') },
   ]
   
   // Add category breadcrumbs if available
@@ -405,7 +406,7 @@ const breadcrumbs = computed(() => {
     const mainCategory = product.value.product.categories[0]
     if (mainCategory?.slug) {
       items.push({ 
-        label: mainCategory.title || mainCategory.name || 'Category', 
+        label: mainCategory.title || mainCategory.name || t('product.page.category'), 
         to: localePath(`/categories/${mainCategory.slug}`) 
       })
     }
@@ -414,14 +415,14 @@ const breadcrumbs = computed(() => {
   // Add brand if available
   if (product.value?.product?.brand?.slug) {
     items.push({ 
-      label: product.value.product.brand.title || 'Brand', 
+      label: product.value.product.brand.title || t('product.page.brand'), 
       to: localePath(`/categories?brand=${product.value.product.brand.slug}`) 
     })
   }
   
   // Last item - always add product title (or placeholder)
   items.push({ 
-    label: product.value?.title || product.value?.name || 'Product', 
+    label: product.value?.title || product.value?.name || t('product.page.product'), 
     to: '#' 
   })
   
@@ -662,7 +663,7 @@ const gridImages = computed(() => {
 
           <!-- Options -->
           <div class="mt-4 lg:row-span-3 lg:mt-0">
-            <h2 class="sr-only">Product information</h2>
+            <h2 class="sr-only">{{ $t('product.page.productInformation') }}</h2>
             
             <!-- Price -->
             <div v-if="product && priceToDisplay !== null" class="mt-4">
@@ -762,7 +763,7 @@ const gridImages = computed(() => {
                 >
                   <UiSpinner v-if="isAddingToCart" size="sm" class="mr-2" />
                   <ShoppingCart v-else class="mr-2 h-5 w-5" />
-                  Add to bag
+                  {{ $t('product.page.addToBag') }}
                 </button>
               </div>
 
@@ -775,7 +776,7 @@ const gridImages = computed(() => {
                   @click="toggleFavorite"
                 >
                   <Heart class="h-5 w-5" :class="{ 'fill-current': isFavorite }" />
-                  <span class="text-sm">{{ isFavorite ? 'In Wishlist' : 'Add to Wishlist' }}</span>
+                  <span class="text-sm">{{ isFavorite ? $t('product.page.inWishlist') : $t('product.page.addToWishlist') }}</span>
                 </button>
                 <button
                   type="button"
@@ -784,14 +785,14 @@ const gridImages = computed(() => {
                   @click="toggleComparison"
                 >
                   <GitCompare class="h-5 w-5" :class="{ 'fill-current': isInComparison }" />
-                  <span class="text-sm">{{ isInComparison ? 'In Comparison' : 'Add to Comparison' }}</span>
+                  <span class="text-sm">{{ isInComparison ? $t('product.page.inComparison') : $t('product.page.addToComparison') }}</span>
                 </button>
                 <button
                   type="button"
                   class="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
                 >
                   <Share2 class="h-5 w-5" />
-                  <span class="text-sm">Share</span>
+                  <span class="text-sm">{{ $t('product.page.share') }}</span>
                 </button>
               </div>
             </form>

@@ -124,7 +124,7 @@ useHead({
           />
           <div v-else class="prose prose-lg dark:prose-invert max-w-none">
             <p class="text-gray-600 dark:text-gray-400">
-              No content available for this page.
+              {{ $t('emptyStates.noContent') }}
             </p>
           </div>
         </div>

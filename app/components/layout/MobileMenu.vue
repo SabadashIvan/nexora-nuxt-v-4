@@ -298,7 +298,7 @@ async function handleLogout() {
                     class="-m-2 block p-2 font-medium text-gray-900"
                     @click="closeMenu"
                   >
-                    Favorites
+                    {{ $t('navigation.favorites') }}
                   </NuxtLink>
                 </div>
                 <div class="flow-root">
@@ -321,7 +321,7 @@ async function handleLogout() {
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
-                      Sign in
+                      {{ $t('navigation.login') }}
                     </NuxtLink>
                   </div>
                   <div class="flow-root">
@@ -330,7 +330,7 @@ async function handleLogout() {
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
-                      Create account
+                      {{ $t('navigation.register') }}
                     </NuxtLink>
                   </div>
                 </template>
@@ -341,8 +341,8 @@ async function handleLogout() {
                       class="-m-2 block p-2 font-medium text-gray-900"
                       @click="closeMenu"
                     >
-                      <span v-if="userName">Profile ({{ userName }})</span>
-                      <span v-else>Profile</span>
+                      <span v-if="userName">{{ $t('navigation.profile') }} ({{ userName }})</span>
+                      <span v-else>{{ $t('navigation.profile') }}</span>
                     </NuxtLink>
                   </div>
                   <div class="flow-root">
@@ -353,7 +353,7 @@ async function handleLogout() {
                       @click="handleLogout"
                     >
                       <LogOut class="h-5 w-5" />
-                      <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+                      <span>{{ isLoggingOut ? $t('navigation.loggingOut') : $t('navigation.logout') }}</span>
                     </button>
                   </div>
                 </template>

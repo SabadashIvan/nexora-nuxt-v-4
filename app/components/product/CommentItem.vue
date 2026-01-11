@@ -21,6 +21,7 @@ const emit = defineEmits<{
   reply: [text: string, parentId: number]
 }>()
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const showReplyForm = ref(false)
 const currentDepth = computed(() => props.depth || 0)
@@ -38,10 +39,10 @@ function formatDate(dateString: string): string {
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
   
-  if (diffSecs < 60) return 'just now'
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffSecs < 60) return t('product.commentItem.justNow')
+  if (diffMins < 60) return t('product.commentItem.minutesAgo', { count: diffMins })
+  if (diffHours < 24) return t('product.commentItem.hoursAgo', { count: diffHours })
+  if (diffDays < 7) return t('product.commentItem.daysAgo', { count: diffDays })
   
   return date.toLocaleDateString('en-US', { 
     month: 'short', 
@@ -113,7 +114,7 @@ function toggleReplyForm() {
             @click="toggleReplyForm"
           >
             <MessageCircle class="h-3.5 w-3.5" />
-            {{ showReplyForm ? 'Cancel' : 'Reply' }}
+            {{ showReplyForm ? $t('product.commentItem.cancel') : $t('product.commentItem.reply') }}
           </button>
         </div>
 

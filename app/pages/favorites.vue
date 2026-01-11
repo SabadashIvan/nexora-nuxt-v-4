@@ -62,13 +62,13 @@ async function removeFromFavorites(variantId: number) {
     <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
       <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
         <!-- Breadcrumbs -->
-        <UiBreadcrumbs :items="[{ label: 'Wishlist' }]" class="mb-6" />
+        <UiBreadcrumbs :items="[{ label: $t('favorites.wishlist') }]" class="mb-6" />
 
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
-          <h1 class="text-4xl font-bold tracking-tight text-gray-900">My Wishlist</h1>
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">{{ $t('favorites.title') }}</h1>
           <span v-if="!isEmpty" class="text-gray-500">
-            {{ favorites.length }} items
+            {{ $t('favorites.items', { count: favorites.length }) }}
           </span>
         </div>
 
@@ -86,8 +86,8 @@ async function removeFromFavorites(variantId: number) {
     <!-- Empty -->
     <UiEmptyState
       v-else-if="isEmpty"
-      title="Your wishlist is empty"
-      description="Save items you love by clicking the heart icon on products."
+      :title="$t('favorites.emptyTitle')"
+      :description="$t('favorites.emptyDescription')"
       :icon="Heart"
     >
       <template #action>
@@ -95,7 +95,7 @@ async function removeFromFavorites(variantId: number) {
           :to="localePath('/categories')"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
-          Browse Products
+          {{ $t('common.buttons.browseProducts') }}
         </NuxtLink>
       </template>
     </UiEmptyState>
@@ -153,14 +153,14 @@ async function removeFromFavorites(variantId: number) {
           >
             <UiSpinner v-if="addingToCart === item.id" size="sm" />
             <ShoppingCart v-else class="h-5 w-5" />
-            <span>Add to Cart</span>
+            <span>{{ $t('favorites.addToCart') }}</span>
           </button>
           <button
             v-else
             class="mt-4 w-full px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-500 rounded-lg font-medium cursor-not-allowed"
             disabled
           >
-            Out of Stock
+            {{ $t('favorites.outOfStock') }}
           </button>
         </div>
       </div>

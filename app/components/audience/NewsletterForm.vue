@@ -197,7 +197,7 @@ async function handleSubmit() {
           for="newsletter-consent"
           class="text-sm text-gray-300 cursor-pointer"
         >
-          I agree to receive newsletter emails
+          {{ $t('newsletter.consent') }}
           <span class="text-red-400" aria-label="required">*</span>
         </label>
       </div>
@@ -211,8 +211,8 @@ async function handleSubmit() {
           variant === 'compact' ? 'px-3 py-2 text-xs' : ''
         ]"
       >
-        <span v-if="storeLoading">Subscribing...</span>
-        <span v-else>Subscribe</span>
+        <span v-if="storeLoading">{{ $t('newsletter.subscribing') }}</span>
+        <span v-else>{{ $t('newsletter.subscribe') }}</span>
       </button>
     </template>
 

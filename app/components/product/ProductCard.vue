@@ -96,7 +96,7 @@ function prefetchProduct() {
       v-else
       class="aspect-square w-full rounded-lg bg-gray-200 flex items-center justify-center xl:aspect-7/8"
     >
-      <span class="text-gray-400">No image</span>
+      <span class="text-gray-400">{{ $t('product.card.noImage') }}</span>
     </div>
     <h3 class="mt-4 text-sm text-gray-700">{{ product.title }}</h3>
     <p class="mt-1 text-lg font-bold text-black">{{ formattedPrice }}</p>

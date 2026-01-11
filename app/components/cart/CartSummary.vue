@@ -25,6 +25,7 @@ const cartStore = useCartStore()
 
 // Locale-aware navigation
 const localePath = useLocalePath()
+const { t } = useI18n()
 
 const couponCode = ref('')
 const isApplyingCoupon = ref(false)
@@ -64,7 +65,7 @@ async function applyCoupon() {
   if (success) {
     couponCode.value = ''
   } else {
-    couponError.value = cartStore.error || 'Invalid coupon code'
+    couponError.value = cartStore.error || t('cart.summary.invalidCoupon')
   }
   
   isApplyingCoupon.value = false
@@ -77,12 +78,12 @@ async function removeCoupon(code: string) {
 
 <template>
   <div class="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
-    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Order Summary</h2>
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{{ $t('cart.summary.title') }}</h2>
 
     <!-- Coupon input -->
     <div class="mb-6">
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-        Promo Code
+        {{ $t('cart.summary.promoCode') }}
       </label>
       <div class="flex gap-2">
         <div class="relative flex-1">
@@ -90,7 +91,7 @@ async function removeCoupon(code: string) {
           <input
             v-model="couponCode"
             type="text"
-            placeholder="Enter code"
+            :placeholder="$t('cart.summary.enterCode')"
             class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none border-0"
             @keyup.enter="applyCoupon"
           >
@@ -100,7 +101,7 @@ async function removeCoupon(code: string) {
           :disabled="isApplyingCoupon || !couponCode.trim()"
           @click="applyCoupon"
         >
-          Apply
+          {{ $t('cart.summary.apply') }}
         </button>
       </div>
       <p v-if="couponError" class="mt-1 text-sm text-red-500">{{ couponError }}</p>
@@ -140,7 +141,7 @@ async function removeCoupon(code: string) {
           class="text-sm text-green-600 dark:text-green-400 hover:underline"
           @click="removeCoupon(coupon.code)"
         >
-          Remove
+          {{ $t('common.buttons.remove') }}
         </button>
       </div>
     </div>
@@ -148,24 +149,24 @@ async function removeCoupon(code: string) {
     <!-- Totals -->
     <div class="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
       <div class="flex justify-between text-sm">
-        <span class="text-gray-600 dark:text-gray-400">Subtotal</span>
+        <span class="text-gray-600 dark:text-gray-400">{{ $t('cart.summary.subtotal') }}</span>
         <span class="font-medium text-gray-900 dark:text-gray-100">{{ formattedSubtotal }}</span>
       </div>
       
       <div v-if="formattedShipping" class="flex justify-between text-sm">
-        <span class="text-gray-600 dark:text-gray-400">Shipping</span>
+        <span class="text-gray-600 dark:text-gray-400">{{ $t('cart.summary.shipping') }}</span>
         <span class="font-medium text-gray-900 dark:text-gray-100">{{ formattedShipping }}</span>
       </div>
       
       <div v-if="formattedDiscounts" class="flex justify-between text-sm">
-        <span class="text-gray-600 dark:text-gray-400">Discounts</span>
+        <span class="text-gray-600 dark:text-gray-400">{{ $t('cart.summary.discounts') }}</span>
         <span class="text-green-600 dark:text-green-400 font-medium">
           -{{ formattedDiscounts }}
         </span>
       </div>
       
       <div class="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-800">
-        <span class="font-semibold text-gray-900 dark:text-gray-100">Total</span>
+        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $t('cart.summary.total') }}</span>
         <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formattedTotal }}</span>
       </div>
     </div>
@@ -176,7 +177,7 @@ async function removeCoupon(code: string) {
       :to="localePath('/checkout')"
       class="mt-6 w-full flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
     >
-      Proceed to Checkout
+      {{ $t('common.buttons.proceedToCheckout') }}
     </NuxtLink>
   </div>
 </template>

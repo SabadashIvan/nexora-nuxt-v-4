@@ -68,10 +68,9 @@ export default defineNuxtConfig({
     strategy: 'prefix_except_default',
     defaultLocale: 'ru', // Default locale - set only in config, not from API
     locales: [
-      { code: 'ru', name: 'Русский' },
-      { code: 'en', name: 'English' },
-      { code: 'uk', name: 'Українська' },
-      { code: 'awa', name: 'Авадхи' },
+      { code: 'ru', name: 'Русский', file: 'ru.json' },
+      { code: 'en', name: 'English', file: 'en.json' }
+    
     ], // Base set - will be filtered/validated by API response
     detectBrowserLanguage: false,
     vueI18n: './app/i18n.config.ts',

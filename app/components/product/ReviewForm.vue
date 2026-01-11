@@ -78,7 +78,7 @@ function handleKeydown(event: KeyboardEvent) {
     <!-- Rating -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">
-        Rating <span class="text-red-500">*</span>
+        {{ $t('product.reviewForm.rating') }} <span class="text-red-500">*</span>
       </label>
       <div class="flex items-center gap-1">
         <button
@@ -100,23 +100,23 @@ function handleKeydown(event: KeyboardEvent) {
           />
         </button>
         <span v-if="rating > 0" class="ml-2 text-sm text-gray-600">
-          {{ rating }} out of 5
+          {{ rating }} {{ $t('product.reviewForm.outOf5') }}
         </span>
       </div>
       <p v-if="!isRatingValid && rating === 0" class="mt-1 text-xs text-gray-500">
-        Please select a rating
+        {{ $t('product.reviewForm.selectRating') }}
       </p>
     </div>
 
     <!-- Body -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">
-        Your Review <span class="text-red-500">*</span>
+        {{ $t('product.reviewForm.yourReview') }} <span class="text-red-500">*</span>
       </label>
       <div class="relative">
         <textarea
           v-model="body"
-          placeholder="Share your experience with this product..."
+          :placeholder="$t('product.reviewForm.placeholder')"
           rows="4"
           :maxlength="bodyMaxLength + 100"
           class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
@@ -137,7 +137,7 @@ function handleKeydown(event: KeyboardEvent) {
         </div>
       </div>
       <p v-if="body.length > 0 && body.trim().length < bodyMinLength" class="mt-1 text-xs text-amber-600">
-        Minimum {{ bodyMinLength }} characters required
+        {{ $t('product.reviewForm.minCharacters', { count: bodyMinLength }) }}
       </p>
     </div>
 
@@ -145,13 +145,13 @@ function handleKeydown(event: KeyboardEvent) {
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">
         <ThumbsUp class="inline h-4 w-4 text-green-600 mr-1" />
-        Advantages
-        <span class="text-gray-400 font-normal">(optional)</span>
+        {{ $t('product.reviewForm.advantages') }}
+        <span class="text-gray-400 font-normal">({{ $t('common.labels.optional') }})</span>
       </label>
       <div class="relative">
         <textarea
           v-model="pros"
-          placeholder="What did you like about this product?"
+          :placeholder="$t('product.reviewForm.prosPlaceholder')"
           rows="2"
           :maxlength="prosConsMaxLength + 50"
           class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
@@ -176,13 +176,13 @@ function handleKeydown(event: KeyboardEvent) {
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">
         <ThumbsDown class="inline h-4 w-4 text-red-500 mr-1" />
-        Disadvantages
-        <span class="text-gray-400 font-normal">(optional)</span>
+        {{ $t('product.reviewForm.disadvantages') }}
+        <span class="text-gray-400 font-normal">({{ $t('common.labels.optional') }})</span>
       </label>
       <div class="relative">
         <textarea
           v-model="cons"
-          placeholder="What could be improved?"
+          :placeholder="$t('product.reviewForm.consPlaceholder')"
           rows="2"
           :maxlength="prosConsMaxLength + 50"
           class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
@@ -206,7 +206,7 @@ function handleKeydown(event: KeyboardEvent) {
     <!-- Actions -->
     <div class="flex items-center justify-between">
       <p class="text-xs text-gray-500">
-        Press <kbd class="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl</kbd>+<kbd class="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> to submit
+        {{ $t('product.reviewForm.pressToSubmit') }}
       </p>
       
       <button
@@ -215,7 +215,7 @@ function handleKeydown(event: KeyboardEvent) {
         class="inline-flex items-center gap-1.5 px-6 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <Send class="h-4 w-4" />
-        Submit Review
+        {{ $t('product.reviewForm.submit') }}
       </button>
     </div>
   </form>

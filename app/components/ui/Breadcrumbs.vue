@@ -20,9 +20,11 @@ const props = withDefaults(defineProps<Props>(), {
   showHome: true,
 })
 
+const { t } = useI18n()
+
 const allItems = computed(() => {
   if (props.showHome) {
-    return [{ label: 'Home', to: localePath('/') }, ...props.items.map(item => ({
+    return [{ label: t('breadcrumbs.home'), to: localePath('/') }, ...props.items.map(item => ({
       ...item,
       to: item.to ? localePath(item.to) : undefined
     }))]

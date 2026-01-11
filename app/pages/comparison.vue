@@ -98,17 +98,17 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
     <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
       <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
         <!-- Breadcrumbs -->
-        <UiBreadcrumbs :items="[{ label: 'Compare Products' }]" class="mb-6" />
+        <UiBreadcrumbs :items="[{ label: $t('comparison.title') }]" class="mb-6" />
 
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
-          <h1 class="text-4xl font-bold tracking-tight text-gray-900">Compare Products</h1>
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">{{ $t('comparison.title') }}</h1>
           <button
             v-if="!isEmpty"
             class="text-sm text-red-500 hover:underline"
             @click="clearAll"
           >
-            Clear All
+            {{ $t('comparison.clearAll') }}
           </button>
         </div>
 
@@ -120,8 +120,8 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
     <!-- Empty -->
     <UiEmptyState
       v-else-if="isEmpty"
-      title="No products to compare"
-      description="Add products to compare their features side by side."
+      :title="$t('comparison.empty.title')"
+      :description="$t('comparison.empty.description')"
       :icon="GitCompare"
     >
       <template #action>
@@ -129,7 +129,7 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
           :to="localePath('/categories')"
           class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors"
         >
-          Browse Products
+          {{ $t('common.buttons.browseProducts') }}
         </NuxtLink>
       </template>
     </UiEmptyState>
@@ -141,7 +141,7 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
         <thead>
           <tr>
             <th class="w-48 p-4 text-left text-sm font-semibold text-gray-500 dark:text-gray-400 align-top">
-              Product
+              {{ $t('comparison.table.product') }}
             </th>
             <th 
               v-for="item in items" 
@@ -189,17 +189,17 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
         <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
           <!-- Stock status -->
           <tr>
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">Availability</td>
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('comparison.table.availability') }}</td>
             <td v-for="item in items" :key="item.id" class="p-4">
               <UiBadge :variant="(item.is_in_stock ?? item.in_stock) ? 'success' : 'error'" size="sm">
-                {{ (item.is_in_stock ?? item.in_stock) ? 'In Stock' : 'Out of Stock' }}
+                {{ (item.is_in_stock ?? item.in_stock) ? $t('common.status.inStock') : $t('common.status.outOfStock') }}
               </UiBadge>
             </td>
           </tr>
 
           <!-- Rating -->
           <tr>
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">Rating</td>
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('comparison.table.rating') }}</td>
             <td v-for="item in items" :key="item.id" class="p-4">
               <UiRating 
                 v-if="item.rating" 
@@ -223,7 +223,7 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
 
           <!-- Add to cart row -->
           <tr>
-            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">Action</td>
+            <td class="p-4 text-sm font-medium text-gray-500 dark:text-gray-400">{{ $t('comparison.table.action') }}</td>
             <td v-for="item in items" :key="item.id" class="p-4">
               <button
                 v-if="item.is_in_stock ?? item.in_stock"
@@ -233,9 +233,9 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
               >
                 <UiSpinner v-if="addingToCart === item.id" size="sm" />
                 <ShoppingCart v-else class="h-4 w-4" />
-                Add to Cart
+                {{ $t('common.buttons.addToCart') }}
               </button>
-              <span v-else class="text-sm text-gray-400">Unavailable</span>
+              <span v-else class="text-sm text-gray-400">{{ $t('common.status.unavailable') }}</span>
             </td>
           </tr>
         </tbody>

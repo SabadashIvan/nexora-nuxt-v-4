@@ -393,7 +393,7 @@ onMounted(async () => {
                 class="-m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
                 @click="openMobileSearch"
               >
-                <span class="sr-only">Search</span>
+                <span class="sr-only">{{ $t('navigation.search') }}</span>
                 <Search class="size-6" />
               </button>
 
@@ -403,7 +403,7 @@ onMounted(async () => {
                   class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
                   :class="{ 'fill-current': favoritesCount > 0 }"
                 />
-                <span class="sr-only">favorites, view wishlist</span>
+                <span class="sr-only">{{ $t('navigation.viewWishlist') }}</span>
               </NuxtLink>
 
               <!-- Comparison -->
@@ -412,7 +412,7 @@ onMounted(async () => {
                   class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
                   :class="{ 'fill-current': comparisonCount > 0 }"
                 />
-                <span class="sr-only">comparison, view comparison</span>
+                <span class="sr-only">{{ $t('navigation.viewComparison') }}</span>
               </NuxtLink>
 
               <!-- Cart -->
@@ -421,7 +421,7 @@ onMounted(async () => {
                 <span v-if="cartItemCount > 0" class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-medium text-white">
                   {{ cartItemCount > 99 ? '99+' : cartItemCount }}
                 </span>
-                <span class="sr-only">items in cart, view bag</span>
+                <span class="sr-only">{{ $t('navigation.itemsInCart') }}</span>
               </NuxtLink>
 
               <!-- User Menu -->
@@ -431,7 +431,7 @@ onMounted(async () => {
                   class="group -m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
                   @click="isUserMenuOpen = !isUserMenuOpen"
                 >
-                  <span class="sr-only">User account</span>
+                  <span class="sr-only">{{ $t('common.labels.userAccount') }}</span>
                   <User class="size-6 shrink-0" />
                 </button>
 
@@ -455,14 +455,14 @@ onMounted(async () => {
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         @click="isUserMenuOpen = false"
                       >
-                        Register
+                        {{ $t('navigation.register') }}
                       </NuxtLink>
                       <NuxtLink
                         :to="localePath('/auth/login')"
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         @click="isUserMenuOpen = false"
                       >
-                        Login
+                        {{ $t('navigation.login') }}
                       </NuxtLink>
                     </template>
 
@@ -484,7 +484,7 @@ onMounted(async () => {
                         class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                         @click="isUserMenuOpen = false"
                       >
-                        Profile
+                        {{ $t('navigation.profile') }}
                       </NuxtLink>
 
                       <!-- Logout button -->
@@ -495,7 +495,7 @@ onMounted(async () => {
                         @click="handleLogout"
                       >
                         <LogOut class="h-4 w-4" />
-                        <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+                        <span>{{ isLoggingOut ? $t('navigation.loggingOut') : $t('navigation.logout') }}</span>
                       </button>
                     </template>
                   </div>
@@ -555,7 +555,7 @@ onMounted(async () => {
                   class="-m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
                   @click="closeMobileSearch"
                 >
-                  <span class="sr-only">Close search</span>
+                  <span class="sr-only">{{ $t('navigation.closeSearch') }}</span>
                   <X class="size-6" />
                 </button>
                 
@@ -563,7 +563,7 @@ onMounted(async () => {
                 <div class="flex-1">
                   <SearchLiveSearch
                     ref="mobileSearchRef"
-                    placeholder="Search products..."
+                    :placeholder="$t('navigation.searchProducts')"
                     :hide-dropdown="true"
                     @select="handleSearchSelect"
                   />
@@ -575,7 +575,7 @@ onMounted(async () => {
                 <!-- Loading state -->
                 <div v-if="mobileSearchLoading" class="px-4 py-8 flex items-center justify-center">
                   <Loader2 class="h-6 w-6 animate-spin text-indigo-600" />
-                  <span class="ml-3 text-sm text-gray-600">Searching...</span>
+                  <span class="ml-3 text-sm text-gray-600">{{ $t('search.searching') }}</span>
                 </div>
 
                 <!-- Search Results -->
@@ -583,7 +583,7 @@ onMounted(async () => {
                   <!-- Products -->
                   <div v-if="mobileSearchResults.data.variants && mobileSearchResults.data.variants.length > 0">
                     <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                      Products
+                      {{ $t('search.results') }}
                     </h4>
                     <div class="space-y-2">
                       <button
@@ -674,7 +674,7 @@ onMounted(async () => {
 
                   <!-- No results -->
                   <div v-if="!mobileSearchResults.data.variants?.length && !mobileSearchResults.data.suggestions?.length && !mobileSearchResults.data.categories?.length && !mobileSearchResults.data.brands?.length" class="py-8 text-center">
-                    <p class="text-sm text-gray-500">No results found</p>
+                    <p class="text-sm text-gray-500">{{ $t('search.noResults') }}</p>
                   </div>
                 </div>
 
@@ -688,14 +688,14 @@ onMounted(async () => {
                     </div>
                     <div class="flex-1 min-w-0">
                       <h3 class="text-sm font-semibold text-gray-900">
-                        Search Products
+                        {{ $t('navigation.searchProducts') }}
                       </h3>
                       <p class="mt-1 text-sm text-gray-600">
-                        Find products by name, brand, or category. Start typing to see suggestions.
+                        {{ $t('search.results') }}
                       </p>
                       <div class="mt-3 flex flex-wrap gap-2">
                         <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
-                          Quick search
+                          {{ $t('navigation.quickSearch') }}
                         </span>
                         <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
                           Autocomplete
