@@ -59,7 +59,7 @@ function handleKeydown(event: KeyboardEvent) {
     <div class="relative">
       <textarea
         v-model="text"
-        :placeholder="placeholder || (isReply ? 'Write a reply...' : 'Write a comment...')"
+        :placeholder="placeholder || (isReply ? $t('product.commentForm.replyPlaceholder') : $t('product.commentForm.placeholder'))"
         :rows="isReply ? 2 : 4"
         :maxlength="maxLength + 100"
         class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
@@ -85,13 +85,13 @@ function handleKeydown(event: KeyboardEvent) {
 
     <!-- Error message -->
     <p v-if="isOverLimit" class="text-sm text-red-600">
-      Comment exceeds maximum length of {{ maxLength }} characters
+      {{ $t('product.commentForm.exceedsMaxLength', { count: maxLength }) }}
     </p>
 
     <!-- Actions -->
     <div class="flex items-center justify-between">
       <p class="text-xs text-gray-500">
-        Press <kbd class="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl</kbd>+<kbd class="px-1 py-0.5 bg-gray-100 rounded text-xs">Enter</kbd> to submit
+        {{ $t('product.commentForm.pressToSubmit') }}
       </p>
       
       <div class="flex items-center gap-2">
@@ -103,7 +103,7 @@ function handleKeydown(event: KeyboardEvent) {
           @click="handleCancel"
         >
           <X class="h-4 w-4" />
-          Cancel
+          {{ $t('product.commentForm.cancel') }}
         </button>
         
         <!-- Submit button -->
@@ -113,7 +113,7 @@ function handleKeydown(event: KeyboardEvent) {
           class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Send class="h-4 w-4" />
-          {{ isReply ? 'Reply' : 'Post Comment' }}
+          {{ isReply ? $t('product.commentForm.reply') : $t('product.commentForm.postComment') }}
         </button>
       </div>
     </div>

@@ -12,6 +12,7 @@ const localePath = useLocalePath()
 
 // Get locale for cache key
 const i18n = useI18n()
+const { t } = useI18n()
 const locale = computed(() => i18n.locale.value)
 
 // Fetch banners on SSR
@@ -61,11 +62,11 @@ const { data: categories } = await useAsyncData(
   }
 )
 
-const features = [
-  { icon: Truck, title: 'Free shipping', description: "It's not actually free we just price it into the products. Someone's paying for it, and it's not us." },
-  { icon: Award, title: '10-year warranty', description: "If it breaks in the first 10 years we'll replace it. After that you're on your own though." },
-  { icon: Shirt, title: 'Exchanges', description: "If you don't like it, trade it to one of your friends for something of theirs. Don't send it here though." },
-]
+const features = computed(() => [
+  { icon: Truck, title: t('home.features.freeShipping.title'), description: t('home.features.freeShipping.description') },
+  { icon: Award, title: t('home.features.warranty.title'), description: t('home.features.warranty.description') },
+  { icon: Shirt, title: t('home.features.exchanges.title'), description: t('home.features.exchanges.description') },
+])
 </script>
 
 <template>
@@ -80,8 +81,8 @@ const features = [
           <div class="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 sm:gap-y-20 lg:mx-0 lg:max-w-none lg:grid-cols-2">
             <div class="lg:pr-8 lg:pt-4">
               <div class="lg:max-w-lg">
-                <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">We built our business on great customer service</h2>
-                <p class="mt-6 text-lg leading-8 text-gray-600">At the beginning at least, but then we realized we could make a lot more money if we kinda stopped caring about that. Our new strategy is to write a bunch of things that look really good in the headlines, then clarify in the small print but hope people don't actually read it.</p>
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">{{ $t('home.hero.title') }}</h2>
+                <p class="mt-6 text-lg leading-8 text-gray-600">{{ $t('home.hero.description') }}</p>
               </div>
             </div>
             <div class="flex items-end justify-end lg:order-first">
@@ -115,13 +116,13 @@ const features = [
         <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
           <div class="flex items-baseline justify-between border-b border-gray-200 pb-6">
             <h2 class="text-4xl font-bold tracking-tight text-gray-900">
-              Shop by Category
+              {{ $t('catalog.shopByCategory') }}
             </h2>
             <NuxtLink 
               :to="localePath('/categories')" 
               class="text-sm font-medium text-indigo-600 hover:text-indigo-500"
             >
-              View All
+              {{ $t('catalog.viewAll') }}
             </NuxtLink>
           </div>
 
@@ -143,7 +144,7 @@ const features = [
                 <div>
                   <h3 class="text-lg font-semibold text-white">{{ category.title || category.name }}</h3>
                   <p v-if="category.products_count" class="text-sm text-gray-300">
-                    {{ category.products_count }} products
+                    {{ $t('catalog.productsCount', { count: category.products_count }) }}
                   </p>
                 </div>
               </div>

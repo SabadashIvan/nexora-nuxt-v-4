@@ -153,20 +153,25 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-2xl mx-auto">
-      <!-- Header -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Contact Us
-        </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
-          Have a question or need help? We're here to assist you.
-        </p>
-      </div>
+  <div class="relative overflow-hidden bg-white">
+    <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
+      <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
+        <!-- Breadcrumbs -->
+        <UiBreadcrumbs :items="[{ label: $t('contact.title') }]" class="mb-6" />
+        
+        <div class="max-w-2xl mx-auto">
+          <!-- Header -->
+          <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900">
+              {{ $t('contact.title') }}
+            </h1>
+            <p class="mt-2 text-gray-600">
+              {{ $t('contact.description') }}
+            </p>
+          </div>
 
-      <!-- Form -->
-      <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
+          <!-- Form -->
+          <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
         <!-- Success message -->
         <div 
           v-if="storeSuccess && storeMessage"
@@ -189,12 +194,12 @@ async function handleSubmit() {
           class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
         >
           <p class="text-sm text-yellow-700 dark:text-yellow-400 font-semibold mb-1">
-            Too many support request attempts
+            {{ $t('contact.errors.rateLimit') }}
           </p>
           <p class="text-sm text-yellow-600 dark:text-yellow-500">
-            Please try again in 
+            {{ $t('contact.errors.tryAgain') }} 
             <span class="font-mono font-bold">{{ retryCountdown }}</span>
-            {{ retryCountdown === 1 ? 'second' : 'seconds' }}.
+            {{ retryCountdown === 1 ? $t('contact.errors.second') : $t('contact.errors.seconds') }}.
           </p>
         </div>
 
@@ -202,7 +207,7 @@ async function handleSubmit() {
           <!-- Name -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Full Name <span class="text-red-500">*</span>
+              {{ $t('contact.form.fullName') }} <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <User class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -211,7 +216,7 @@ async function handleSubmit() {
                 type="text"
                 required
                 autocomplete="name"
-                placeholder="John Doe"
+                :placeholder="$t('contact.form.placeholders.name')"
                 class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
                 :class="{ 'ring-2 ring-red-500': getFieldError('name') }"
               >
@@ -224,7 +229,7 @@ async function handleSubmit() {
           <!-- Email -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email Address <span class="text-red-500">*</span>
+              {{ $t('contact.form.email') }} <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <Mail class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -233,7 +238,7 @@ async function handleSubmit() {
                 type="email"
                 required
                 autocomplete="email"
-                placeholder="you@example.com"
+                :placeholder="$t('contact.form.placeholders.email')"
                 class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
                 :class="{ 'ring-2 ring-red-500': getFieldError('email') || (form.email && !isEmailValid) }"
               >
@@ -242,14 +247,14 @@ async function handleSubmit() {
               {{ getFieldError('email') }}
             </p>
             <p v-else-if="form.email && !isEmailValid" class="mt-1 text-sm text-red-500">
-              Please enter a valid email address
+              {{ $t('contact.validation.emailInvalid') }}
             </p>
           </div>
 
           <!-- Phone (optional) -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Phone Number <span class="text-gray-500 text-xs">(optional)</span>
+              {{ $t('contact.form.phone') }} <span class="text-gray-500 text-xs">({{ $t('common.labels.optional') }})</span>
             </label>
             <div class="relative">
               <Phone class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -257,7 +262,7 @@ async function handleSubmit() {
                 v-model="form.phone"
                 type="tel"
                 autocomplete="tel"
-                placeholder="+380501234567"
+                :placeholder="$t('contact.form.placeholders.phone')"
                 class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
                 :class="{ 'ring-2 ring-red-500': getFieldError('phone') }"
               >
@@ -270,7 +275,7 @@ async function handleSubmit() {
           <!-- Type -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Request Type <span class="text-gray-500 text-xs">(optional)</span>
+              {{ $t('contact.form.requestType') }} <span class="text-gray-500 text-xs">({{ $t('common.labels.optional') }})</span>
             </label>
             <div class="relative">
               <FileText class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
@@ -278,10 +283,10 @@ async function handleSubmit() {
                 v-model="form.type"
                 class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer"
               >
-                <option value="general">General Inquiry</option>
-                <option value="technical">Technical Support</option>
-                <option value="billing">Billing Question</option>
-                <option value="other">Other</option>
+                <option value="general">{{ $t('contact.form.types.general') }}</option>
+                <option value="technical">{{ $t('contact.form.types.technical') }}</option>
+                <option value="billing">{{ $t('contact.form.types.billing') }}</option>
+                <option value="other">{{ $t('contact.form.types.other') }}</option>
               </select>
             </div>
           </div>
@@ -289,7 +294,7 @@ async function handleSubmit() {
           <!-- Subject -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Subject <span class="text-red-500">*</span>
+              {{ $t('contact.form.subject') }} <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <FileText class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -297,7 +302,7 @@ async function handleSubmit() {
                 v-model="form.subject"
                 type="text"
                 required
-                placeholder="What is your question about?"
+                :placeholder="$t('contact.form.placeholders.subject')"
                 class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500"
                 :class="{ 'ring-2 ring-red-500': getFieldError('subject') }"
               >
@@ -310,7 +315,7 @@ async function handleSubmit() {
           <!-- Message -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Message <span class="text-red-500">*</span>
+              {{ $t('contact.form.message') }} <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <MessageSquare class="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -318,7 +323,7 @@ async function handleSubmit() {
                 v-model="form.message"
                 required
                 rows="6"
-                placeholder="Please provide details about your question or issue..."
+                :placeholder="$t('contact.form.placeholders.message')"
                 class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 resize-none"
                 :class="{ 'ring-2 ring-red-500': getFieldError('message') || (form.message && !isMessageValid) }"
               />
@@ -327,10 +332,10 @@ async function handleSubmit() {
               {{ getFieldError('message') }}
             </p>
             <p v-else-if="form.message && !isMessageValid" class="mt-1 text-sm text-red-500">
-              Message must be at least 10 characters
+              {{ $t('contact.validation.messageMinLength') }}
             </p>
             <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Minimum 10 characters required
+              {{ $t('contact.validation.messageMinLengthHint') }}
             </p>
           </div>
 
@@ -341,19 +346,21 @@ async function handleSubmit() {
             class="w-full flex items-center justify-center py-3 px-4 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <UiSpinner v-if="storeLoading" size="sm" class="mr-2" />
-            <span v-if="storeLoading">Submitting...</span>
-            <span v-else>Submit Request</span>
+            <span v-if="storeLoading">{{ $t('contact.form.submitting') }}</span>
+            <span v-else>{{ $t('contact.form.submit') }}</span>
           </button>
         </form>
 
-        <!-- Additional info -->
-        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-            We typically respond within 24 hours. For urgent matters, please call our support line.
-          </p>
+          <!-- Additional info -->
+          <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+              {{ $t('contact.form.responseTime') }}
+            </p>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 

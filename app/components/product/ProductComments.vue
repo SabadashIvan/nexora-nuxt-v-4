@@ -97,7 +97,7 @@ function goToLogin() {
       <div class="flex items-center gap-3">
         <MessageSquare class="h-6 w-6 text-gray-600" />
         <h2 class="text-xl font-semibold text-gray-900">
-          Comments
+          {{ $t('product.comments.title') }}
           <span v-if="totalComments > 0" class="text-gray-500 font-normal">
             ({{ totalComments }})
           </span>
@@ -131,8 +131,8 @@ function goToLogin() {
         >
           <CheckCircle class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p class="text-sm font-medium text-green-800">Comment submitted successfully</p>
-            <p class="text-xs text-green-600 mt-1">Your comment is under moderation and will be published after review.</p>
+            <p class="text-sm font-medium text-green-800">{{ $t('product.comments.submittedSuccess') }}</p>
+            <p class="text-xs text-green-600 mt-1">{{ $t('product.comments.moderationMessage') }}</p>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ function goToLogin() {
       >
         <LogIn class="h-8 w-8 text-gray-400 mx-auto mb-3" />
         <p class="text-gray-600 mb-4">
-          Please log in to leave a comment
+          {{ $t('product.comments.loginToComment') }}
         </p>
         <button
           type="button"
@@ -160,7 +160,7 @@ function goToLogin() {
           @click="goToLogin"
         >
           <LogIn class="h-4 w-4" />
-          Log In
+          {{ $t('navigation.login') }}
         </button>
       </div>
     </div>
@@ -170,7 +170,7 @@ function goToLogin() {
       <div class="flex justify-center">
         <UiSpinner size="lg" />
       </div>
-      <p class="text-center text-gray-500 mt-3">Loading comments...</p>
+      <p class="text-center text-gray-500 mt-3">{{ $t('product.comments.loading') }}</p>
     </div>
 
     <!-- Comments list -->
@@ -194,7 +194,7 @@ function goToLogin() {
         >
           <UiSpinner v-if="isLoading" size="sm" />
           <ChevronDown v-else class="h-4 w-4" />
-          Load More Comments
+          {{ $t('product.comments.loadMore') }}
         </button>
       </div>
     </div>
@@ -205,9 +205,9 @@ function goToLogin() {
       class="py-12 text-center"
     >
       <MessageSquare class="h-12 w-12 text-gray-300 mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-gray-900 mb-1">No comments yet</h3>
+      <h3 class="text-lg font-medium text-gray-900 mb-1">{{ $t('product.comments.noComments') }}</h3>
       <p class="text-gray-500">
-        Be the first to share your thoughts about this product
+        {{ $t('product.comments.beFirst') }}
       </p>
     </div>
   </section>

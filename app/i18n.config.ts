@@ -1,12 +1,5 @@
 export default {
   legacy: false,
   locale: 'ru',
-  messages: {
-    ru: {
-      welcome: 'Welcome'
-    },
-    en: {
-      welcome: 'Bienvenue'
-    }
-  }
+  // Messages are loaded lazily from i18n/locales/* files
 }

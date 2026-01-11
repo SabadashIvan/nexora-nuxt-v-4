@@ -8,26 +8,41 @@ import {
   Search,
   X,
   Loader2,
-  LogOut,
   Heart,
   GitCompare,
+  User,
+  ShoppingCart,
+  LogOut,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCatalogStore } from '~/stores/catalog.store'
-import { useSystemStore } from '~/stores/system.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
-import type { MenuItem, MenuTreeResponse } from '~/types'
+import { useSystemStore } from '~/stores/system.store'
+import type { MenuItem, MenuTreeResponse, ProductListItem } from '~/types'
 import { useApi } from '~/composables/useApi'
 import { getImageUrl } from '~/utils/image'
+import { makeLocalePath } from '~/utils/locale-link'
+
+// Type for LiveSearch component instance
+interface LiveSearchInstance {
+  searchResults: { data: { variants?: ProductListItem[]; suggestions?: Array<{ text: string; score: number }>; categories?: Array<{ id: number; title: string; count: number }>; brands?: Array<{ id: number; title: string; count: number }> } } | null
+  isLoading: boolean
+  searchQuery: string
+  isOpen: boolean
+  handleSelect: (index: number) => void
+  getProductImage: (product: ProductListItem) => string | undefined
+}
 
 const isMobileMenuOpen = ref(false)
 const isMobileSearchOpen = ref(false)
 const isCatalogMenuOpen = ref(false)
+const isUserMenuOpen = ref(false)
+const activeMenuId = ref<number | null>(null)
 const menuItems = ref<MenuItem[]>([])
 const isLoadingMenu = ref(false)
-const mobileSearchRef = ref<any>(null)
+const mobileSearchRef = ref<LiveSearchInstance | null>(null)
 
 // Get search data from mobile search component
 const mobileSearchResults = computed(() => mobileSearchRef.value?.searchResults || null)
@@ -36,7 +51,7 @@ const mobileSearchQuery = computed(() => mobileSearchRef.value?.searchQuery || '
 const handleMobileSearchSelect = computed(() => mobileSearchRef.value?.handleSelect || (() => {}))
 
 // Helper function to get product image
-function getMobileProductImage(product: any): string | undefined {
+function getMobileProductImage(product: ProductListItem): string | undefined {
   return getImageUrl(product?.image) || product?.images?.[0]?.url
 }
 
@@ -90,6 +105,14 @@ const userName = computed(() => {
   }
 })
 
+const userEmail = computed(() => {
+  try {
+    return useAuthStore().userEmail
+  } catch {
+    return null
+  }
+})
+
 const categories = computed(() => {
   try {
     return useCatalogStore().rootCategories
@@ -106,15 +129,16 @@ const categoryTabs = computed(() => {
 
 // Locale-aware navigation
 const localePath = useLocalePath()
+const router = useRouter()
 
 // Logout handler
 const isLoggingOut = ref(false)
-const router = useRouter()
 
 async function handleLogout() {
   if (isLoggingOut.value) return
   
   isLoggingOut.value = true
+  isUserMenuOpen.value = false
   try {
     const authStore = useAuthStore()
     await authStore.logout()
@@ -165,12 +189,24 @@ function closeMobileSearch() {
   isMobileSearchOpen.value = false
 }
 
-function openCatalogMenu() {
+function openCatalogMenuForItem(menuId: number) {
+  activeMenuId.value = menuId
   isCatalogMenuOpen.value = true
 }
 
 function closeCatalogMenu() {
   isCatalogMenuOpen.value = false
+  // Delay clearing activeMenuId to allow smooth transition
+  setTimeout(() => {
+    if (!isCatalogMenuOpen.value) {
+      activeMenuId.value = null
+    }
+  }, 150)
+}
+
+function getActiveMenuItem(): MenuItem | undefined {
+  if (!activeMenuId.value) return undefined
+  return menuItems.value.find(m => m.id === activeMenuId.value)
 }
 
 // Close menu on click outside
@@ -180,6 +216,9 @@ onMounted(() => {
       const target = e.target as HTMLElement
       if (!target.closest('[data-catalog-menu]')) {
         closeCatalogMenu()
+      }
+      if (!target.closest('[data-user-menu]')) {
+        isUserMenuOpen.value = false
       }
     })
   }
@@ -215,6 +254,27 @@ async function fetchMenuTree() {
   }
 }
 
+// Get current locale from system store for watching
+const systemStore = computed(() => {
+  try {
+    return useSystemStore()
+  } catch {
+    return null
+  }
+})
+
+const currentLocale = computed(() => {
+  return systemStore.value?.currentLocale || 'ru'
+})
+
+// Watch for locale changes and re-fetch menu
+watch(currentLocale, async (newLocale, oldLocale) => {
+  // Only re-fetch if locale actually changed and we're not on initial mount
+  if (newLocale !== oldLocale && oldLocale !== undefined) {
+    await fetchMenuTree()
+  }
+})
+
 // Fetch categories and menu on mount
 onMounted(async () => {
   try {
@@ -233,10 +293,26 @@ onMounted(async () => {
 
 <template>
   <div class="bg-white">
-    <!-- Promo banner -->
-    <p class="flex h-10 items-center justify-center bg-indigo-600 px-4 text-sm font-medium text-white sm:px-6 lg:px-8">
-      Get free delivery on orders over $100
-    </p>
+    <!-- Top bar with blog link, language and currency switchers -->
+    <div class="border-b border-gray-200 bg-white">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-10 items-center justify-end gap-6">
+          <!-- Blog Link -->
+          <NuxtLink
+            :to="localePath('/blog')"
+            class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Blog
+          </NuxtLink>
+          
+          <!-- Language Switcher -->
+          <UiLanguageSwitcher />
+          
+          <!-- Currency Switcher -->
+          <UiCurrencySwitcher />
+        </div>
+      </div>
+    </div>
 
     <header class="relative bg-white">
       <nav aria-label="Top" class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -266,169 +342,164 @@ onMounted(async () => {
             <!-- Desktop Navigation with Mega Menus -->
             <div class="hidden lg:ml-8 lg:block lg:self-stretch lg:flex-shrink-0">
               <div class="flex h-full space-x-8">
-                <!-- Catalog button with mega menu -->
-                <div
-                  class="group/catalog relative flex"
-                  data-catalog-menu
-                  @mouseenter="openCatalogMenu"
-                  @mouseleave="closeCatalogMenu"
-                >
-                  <button
-                    class="relative flex items-center justify-center text-sm font-medium transition-colors duration-200 ease-out"
-                    :class="isCatalogMenuOpen ? 'text-indigo-600' : 'text-gray-700 hover:text-gray-800'"
+                <!-- First-level menu items as header links -->
+                <template v-for="menuItem in menuItems" :key="menuItem.id">
+                  <div
+                    class="group/menu-item relative flex"
+                    data-catalog-menu
+                    :data-menu-id="menuItem.id"
+                    @mouseenter="() => openCatalogMenuForItem(menuItem.id)"
+                    @mouseleave="closeCatalogMenu"
                   >
-                    Catalog
-                    <span
-                      aria-hidden="true"
-                      class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in"
-                      :class="isCatalogMenuOpen ? 'bg-indigo-600' : ''"
-                    />
-                  </button>
-                </div>
+                    <NuxtLink
+                      :to="makeLocalePath(menuItem.link, localePath)"
+                      :target="menuItem.target"
+                      class="relative flex items-center justify-center text-sm font-medium transition-colors duration-200 ease-out"
+                      :class="activeMenuId === menuItem.id ? 'text-indigo-600' : 'text-gray-700 hover:text-gray-800'"
+                    >
+                      {{ menuItem.title }}
+                      <span
+                        aria-hidden="true"
+                        class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in"
+                        :class="activeMenuId === menuItem.id ? 'bg-indigo-600' : ''"
+                      />
+                    </NuxtLink>
+                  </div>
+                </template>
 
-                <!-- Other links -->
-                <NuxtLink
-                  :to="localePath('/blog')"
-                  class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800"
-                >
-                  Blog
-                </NuxtLink>
               </div>
             </div>
             
             <!-- Mega Menu Component - positioned relative to nav container -->
             <div
-              v-if="menuItems.length > 0 && isCatalogMenuOpen"
+              v-if="menuItems.length > 0 && isCatalogMenuOpen && activeMenuId && getActiveMenuItem()?.children && getActiveMenuItem()!.children.length > 0"
               class="absolute left-0 right-0 top-full z-50 hidden lg:block"
-              @mouseenter="openCatalogMenu"
+              @mouseenter="() => openCatalogMenuForItem(activeMenuId!)"
               @mouseleave="closeCatalogMenu"
             >
               <LayoutMegaMenu
                 :menu-items="menuItems"
+                :active-menu-id="activeMenuId!"
                 :is-open="isCatalogMenuOpen"
                 @close="closeCatalogMenu"
               />
             </div>
 
-            <!-- Right side actions -->
+            <!-- Right side icons -->
             <div class="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              <!-- Auth links (desktop) -->
-              <div class="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6">
-                <template v-if="!isAuthenticated">
-                  <NuxtLink
-                    :to="localePath('/auth/login')"
-                    class="text-sm font-medium text-gray-700 hover:text-gray-800"
-                  >
-                    Sign in
-                  </NuxtLink>
-                  <span aria-hidden="true" class="h-6 w-px bg-gray-200" />
-                  <NuxtLink
-                    :to="localePath('/auth/register')"
-                    class="text-sm font-medium text-gray-700 hover:text-gray-800"
-                  >
-                    Create account
-                  </NuxtLink>
-                </template>
-                <template v-else>
-                  <NuxtLink
-                    :to="localePath('/profile')"
-                    class="text-sm font-medium text-gray-700 hover:text-gray-800"
-                  >
-                    <span v-if="userName">Profile ({{ userName }})</span>
-                    <span v-else>Profile</span>
-                  </NuxtLink>
-                  <span aria-hidden="true" class="h-6 w-px bg-gray-200" />
-                  <button
-                    type="button"
-                    :disabled="isLoggingOut"
-                    @click="handleLogout"
-                    class="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                  >
-                    <LogOut class="h-4 w-4" />
-                    <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
-                  </button>
-                </template>
-              </div>
-
-              <!-- Language switcher (desktop) -->
-              <div class="hidden lg:ml-8 lg:flex">
-                <UiLanguageSwitcher />
-              </div>
-
-              <!-- Currency switcher (desktop) -->
-              <div class="hidden lg:ml-8 lg:flex">
-                <UiCurrencySwitcher />
-              </div>
-
-              <!-- Search Desktop -->
-              <div class="hidden sm:flex lg:ml-6 sm:w-48 lg:w-64 flex-shrink-0">
-                <SearchLiveSearch
-                  placeholder="Search products..."
-                  @select="handleSearchSelect"
-                />
-              </div>
-
-              <!-- Search Mobile Icon -->
+              <!-- Search Icon -->
               <button
                 type="button"
-                class="sm:hidden -m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
+                class="-m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
                 @click="openMobileSearch"
               >
-                <span class="sr-only">Search</span>
+                <span class="sr-only">{{ $t('navigation.search') }}</span>
                 <Search class="size-6" />
               </button>
 
               <!-- Favorites -->
-              <div class="flow-root flex-shrink-0">
-                <NuxtLink :to="localePath('/favorites')" class="group -m-2 flex items-center p-2">
-                  <Heart
-                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
-                    :class="{ 'fill-current': favoritesCount > 0 }"
-                  />
-                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
-                    {{ favoritesCount }}
-                  </span>
-                  <span class="sr-only">favorites, view wishlist</span>
-                </NuxtLink>
-              </div>
+              <NuxtLink :to="localePath('/favorites')" class="group -m-2 flex items-center p-2">
+                <Heart
+                  class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                  :class="{ 'fill-current': favoritesCount > 0 }"
+                />
+                <span class="sr-only">{{ $t('navigation.viewWishlist') }}</span>
+              </NuxtLink>
 
               <!-- Comparison -->
-              <div class="flow-root flex-shrink-0">
-                <NuxtLink :to="localePath('/comparison')" class="group -m-2 flex items-center p-2">
-                  <GitCompare
-                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
-                    :class="{ 'fill-current': comparisonCount > 0 }"
-                  />
-                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
-                    {{ comparisonCount }}
-                  </span>
-                  <span class="sr-only">comparison, view comparison</span>
-                </NuxtLink>
-              </div>
+              <NuxtLink :to="localePath('/comparison')" class="group -m-2 flex items-center p-2">
+                <GitCompare
+                  class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+                  :class="{ 'fill-current': comparisonCount > 0 }"
+                />
+                <span class="sr-only">{{ $t('navigation.viewComparison') }}</span>
+              </NuxtLink>
 
               <!-- Cart -->
-              <div class="flow-root flex-shrink-0">
-                <NuxtLink :to="localePath('/cart')" class="group -m-2 flex items-center p-2">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    data-slot="icon"
-                    aria-hidden="true"
-                    class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
+              <NuxtLink :to="localePath('/cart')" class="group -m-2 flex items-center p-2 relative">
+                <ShoppingCart class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500" />
+                <span v-if="cartItemCount > 0" class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-medium text-white">
+                  {{ cartItemCount > 99 ? '99+' : cartItemCount }}
+                </span>
+                <span class="sr-only">{{ $t('navigation.itemsInCart') }}</span>
+              </NuxtLink>
+
+              <!-- User Menu -->
+              <div class="relative" data-user-menu>
+                <button
+                  type="button"
+                  class="group -m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
+                  @click="isUserMenuOpen = !isUserMenuOpen"
+                >
+                  <span class="sr-only">{{ $t('common.labels.userAccount') }}</span>
+                  <User class="size-6 shrink-0" />
+                </button>
+
+                <!-- Dropdown -->
+                <Transition
+                  enter-active-class="transition ease-out duration-100"
+                  enter-from-class="opacity-0 scale-95"
+                  enter-to-class="opacity-100 scale-100"
+                  leave-active-class="transition ease-in duration-75"
+                  leave-from-class="opacity-100 scale-100"
+                  leave-to-class="opacity-0 scale-95"
+                >
+                  <div
+                    v-if="isUserMenuOpen"
+                    class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                   >
-                    <path
-                      d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                  <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800 hidden sm:inline">
-                    {{ cartItemCount }}
-                  </span>
-                  <span class="sr-only">items in cart, view bag</span>
-                </NuxtLink>
+                    <!-- Not authenticated: Register and Login -->
+                    <template v-if="!isAuthenticated">
+                      <NuxtLink
+                        :to="localePath('/auth/register')"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        @click="isUserMenuOpen = false"
+                      >
+                        {{ $t('navigation.register') }}
+                      </NuxtLink>
+                      <NuxtLink
+                        :to="localePath('/auth/login')"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        @click="isUserMenuOpen = false"
+                      >
+                        {{ $t('navigation.login') }}
+                      </NuxtLink>
+                    </template>
+
+                    <!-- Authenticated: User info, Profile, Logout -->
+                    <template v-else>
+                      <!-- User info -->
+                      <div class="px-4 py-3 border-b border-gray-200">
+                        <div v-if="userName" class="text-sm font-medium text-gray-900">
+                          {{ userName }}
+                        </div>
+                        <div v-if="userEmail" class="text-sm text-gray-500 truncate">
+                          {{ userEmail }}
+                        </div>
+                      </div>
+
+                      <!-- Profile link -->
+                      <NuxtLink
+                        :to="localePath('/profile')"
+                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        @click="isUserMenuOpen = false"
+                      >
+                        {{ $t('navigation.profile') }}
+                      </NuxtLink>
+
+                      <!-- Logout button -->
+                      <button
+                        type="button"
+                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        :disabled="isLoggingOut"
+                        @click="handleLogout"
+                      >
+                        <LogOut class="h-4 w-4" />
+                        <span>{{ isLoggingOut ? $t('navigation.loggingOut') : $t('navigation.logout') }}</span>
+                      </button>
+                    </template>
+                  </div>
+                </Transition>
               </div>
             </div>
           </div>
@@ -456,7 +527,7 @@ onMounted(async () => {
       >
         <div
           v-if="isMobileSearchOpen"
-          class="fixed inset-0 z-50 sm:hidden"
+          class="fixed inset-0 z-50"
         >
           <!-- Backdrop -->
           <div
@@ -484,7 +555,7 @@ onMounted(async () => {
                   class="-m-2 flex items-center p-2 text-gray-400 hover:text-gray-500"
                   @click="closeMobileSearch"
                 >
-                  <span class="sr-only">Close search</span>
+                  <span class="sr-only">{{ $t('navigation.closeSearch') }}</span>
                   <X class="size-6" />
                 </button>
                 
@@ -492,7 +563,7 @@ onMounted(async () => {
                 <div class="flex-1">
                   <SearchLiveSearch
                     ref="mobileSearchRef"
-                    placeholder="Search products..."
+                    :placeholder="$t('navigation.searchProducts')"
                     :hide-dropdown="true"
                     @select="handleSearchSelect"
                   />
@@ -504,7 +575,7 @@ onMounted(async () => {
                 <!-- Loading state -->
                 <div v-if="mobileSearchLoading" class="px-4 py-8 flex items-center justify-center">
                   <Loader2 class="h-6 w-6 animate-spin text-indigo-600" />
-                  <span class="ml-3 text-sm text-gray-600">Searching...</span>
+                  <span class="ml-3 text-sm text-gray-600">{{ $t('search.searching') }}</span>
                 </div>
 
                 <!-- Search Results -->
@@ -512,7 +583,7 @@ onMounted(async () => {
                   <!-- Products -->
                   <div v-if="mobileSearchResults.data.variants && mobileSearchResults.data.variants.length > 0">
                     <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                      Products
+                      {{ $t('search.results') }}
                     </h4>
                     <div class="space-y-2">
                       <button
@@ -520,7 +591,7 @@ onMounted(async () => {
                         :key="variant.id"
                         type="button"
                         class="w-full flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left"
-                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, mobileSearchResults.data.suggestions?.length || 0, mobileSearchResults.data.categories?.length || 0, index, 'variant')); closeMobileSearch(); }"
+                        @click="() => { handleMobileSearchSelect(getMobileSearchIndex(mobileSearchResults?.data?.variants?.length || 0, mobileSearchResults?.data?.suggestions?.length || 0, mobileSearchResults?.data?.categories?.length || 0, index, 'variant')); closeMobileSearch(); }"
                       >
                         <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
                           <NuxtImg
@@ -556,7 +627,7 @@ onMounted(async () => {
                         :key="index"
                         type="button"
                         class="w-full flex items-center gap-2 p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left text-sm"
-                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, 0, 0, index, 'suggestion')); closeMobileSearch(); }"
+                        @click="() => { handleMobileSearchSelect(getMobileSearchIndex(mobileSearchResults?.data?.variants?.length || 0, 0, 0, index, 'suggestion')); closeMobileSearch(); }"
                       >
                         <Search class="h-4 w-4 text-gray-400 flex-shrink-0" />
                         <span class="font-medium text-gray-700">{{ suggestion.text }}</span>
@@ -576,7 +647,7 @@ onMounted(async () => {
                         :key="category.id"
                         type="button"
                         class="w-full p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left text-sm text-gray-700"
-                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, mobileSearchResults.data.suggestions?.length || 0, 0, index, 'category')); closeMobileSearch(); }"
+                        @click="() => { handleMobileSearchSelect(getMobileSearchIndex(mobileSearchResults?.data?.variants?.length || 0, mobileSearchResults?.data?.suggestions?.length || 0, 0, index, 'category')); closeMobileSearch(); }"
                       >
                         {{ category.title }} <span class="text-gray-400">({{ category.count }})</span>
                       </button>
@@ -594,7 +665,7 @@ onMounted(async () => {
                         :key="brand.id"
                         type="button"
                         class="w-full p-2 bg-white rounded-lg hover:bg-gray-100 transition-colors text-left text-sm text-gray-700"
-                        @click="() => { handleMobileSearchSelect.value(getMobileSearchIndex(mobileSearchResults.data.variants?.length || 0, mobileSearchResults.data.suggestions?.length || 0, mobileSearchResults.data.categories?.length || 0, index, 'brand')); closeMobileSearch(); }"
+                        @click="() => { handleMobileSearchSelect(getMobileSearchIndex(mobileSearchResults?.data?.variants?.length || 0, mobileSearchResults?.data?.suggestions?.length || 0, mobileSearchResults?.data?.categories?.length || 0, index, 'brand')); closeMobileSearch(); }"
                       >
                         {{ brand.title }} <span class="text-gray-400">({{ brand.count }})</span>
                       </button>
@@ -603,7 +674,7 @@ onMounted(async () => {
 
                   <!-- No results -->
                   <div v-if="!mobileSearchResults.data.variants?.length && !mobileSearchResults.data.suggestions?.length && !mobileSearchResults.data.categories?.length && !mobileSearchResults.data.brands?.length" class="py-8 text-center">
-                    <p class="text-sm text-gray-500">No results found</p>
+                    <p class="text-sm text-gray-500">{{ $t('search.noResults') }}</p>
                   </div>
                 </div>
 
@@ -617,14 +688,14 @@ onMounted(async () => {
                     </div>
                     <div class="flex-1 min-w-0">
                       <h3 class="text-sm font-semibold text-gray-900">
-                        Search Products
+                        {{ $t('navigation.searchProducts') }}
                       </h3>
                       <p class="mt-1 text-sm text-gray-600">
-                        Find products by name, brand, or category. Start typing to see suggestions.
+                        {{ $t('search.results') }}
                       </p>
                       <div class="mt-3 flex flex-wrap gap-2">
                         <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
-                          Quick search
+                          {{ $t('navigation.quickSearch') }}
                         </span>
                         <span class="inline-flex items-center rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200">
                           Autocomplete

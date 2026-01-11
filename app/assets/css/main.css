@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Set Ubuntu as default font family */
+body {
+  font-family: 'Ubuntu', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
