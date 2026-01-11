@@ -22,9 +22,22 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxtjs/i18n',
     '@nuxt/test-utils/module',
+    '@nuxtjs/google-fonts',
   ],
 
   css: ['./app/assets/css/main.css'],
+
+  googleFonts: {
+    // Options
+    families: {
+      Ubuntu: true,
+    },
+    display: 'swap',
+    preconnect: true,
+    prefetch: true,
+    preload: true,
+    
+  },
 
   vite: {
     plugins: [

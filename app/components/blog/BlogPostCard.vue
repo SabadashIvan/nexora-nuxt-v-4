@@ -29,7 +29,7 @@ const featuredImageUrl = computed(() => {
   <article class="group relative">
     <!-- Image -->
     <div class="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75">
-      <NuxtLink :to="localePath(`/blog/${post.slug}`)">
+      <NuxtLink :to="localePath(`/blog/posts/${post.slug}`)">
         <NuxtImg
           v-if="featuredImageUrl"
           :src="featuredImageUrl"
@@ -55,7 +55,7 @@ const featuredImageUrl = computed(() => {
       </NuxtLink>
 
       <!-- Title -->
-      <NuxtLink :to="localePath(`/blog/${post.slug}`)" class="mt-2 block">
+      <NuxtLink :to="localePath(`/blog/posts/${post.slug}`)" class="mt-2 block">
         <h3 class="text-base font-semibold text-gray-900 group-hover:text-gray-700 line-clamp-2">
           {{ post.title }}
         </h3>

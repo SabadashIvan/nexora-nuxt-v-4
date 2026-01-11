@@ -84,7 +84,7 @@ useHead({
       <UiBreadcrumbs :items="breadcrumbs" class="mb-6" />
     </div>
 
-    <main class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 pb-24">
+    <main class="mx-auto sm:px-6 lg:px-8 pb-24">
       <!-- Loading -->
       <div v-if="pending" class="animate-pulse space-y-6 pt-24">
         <div class="h-10 bg-gray-200 rounded w-3/4" />
@@ -223,4 +223,3 @@ useHead({
     </main>
   </div>
 </template>
-

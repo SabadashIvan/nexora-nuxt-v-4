@@ -153,20 +153,25 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-2xl mx-auto">
-      <!-- Header -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          Contact Us
-        </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
-          Have a question or need help? We're here to assist you.
-        </p>
-      </div>
+  <div class="relative overflow-hidden bg-white">
+    <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
+      <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
+        <!-- Breadcrumbs -->
+        <UiBreadcrumbs :items="[{ label: 'Contact Us' }]" class="mb-6" />
+        
+        <div class="max-w-2xl mx-auto">
+          <!-- Header -->
+          <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900">
+              Contact Us
+            </h1>
+            <p class="mt-2 text-gray-600">
+              Have a question or need help? We're here to assist you.
+            </p>
+          </div>
 
-      <!-- Form -->
-      <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
+          <!-- Form -->
+          <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
         <!-- Success message -->
         <div 
           v-if="storeSuccess && storeMessage"
@@ -346,14 +351,16 @@ async function handleSubmit() {
           </button>
         </form>
 
-        <!-- Additional info -->
-        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-          <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
-            We typically respond within 24 hours. For urgent matters, please call our support line.
-          </p>
+          <!-- Additional info -->
+          <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+              We typically respond within 24 hours. For urgent matters, please call our support line.
+            </p>
+          </div>
         </div>
       </div>
     </div>
+  </div>
   </div>
 </template>
 

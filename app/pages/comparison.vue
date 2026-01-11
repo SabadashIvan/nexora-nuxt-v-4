@@ -94,21 +94,23 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Breadcrumbs -->
-    <UiBreadcrumbs :items="[{ label: 'Compare Products' }]" class="mb-6" />
+  <div class="relative overflow-hidden bg-white">
+    <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
+      <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
+        <!-- Breadcrumbs -->
+        <UiBreadcrumbs :items="[{ label: 'Compare Products' }]" class="mb-6" />
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Compare Products</h1>
-      <button
-        v-if="!isEmpty"
-        class="text-sm text-red-500 hover:underline"
-        @click="clearAll"
-      >
-        Clear All
-      </button>
-    </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">Compare Products</h1>
+          <button
+            v-if="!isEmpty"
+            class="text-sm text-red-500 hover:underline"
+            @click="clearAll"
+          >
+            Clear All
+          </button>
+        </div>
 
     <!-- Loading -->
     <div v-if="loading && items.length === 0" class="animate-pulse">
@@ -238,6 +240,8 @@ function getAttributeValue(item: (typeof items.value)[number], attrCode: string)
           </tr>
         </tbody>
       </table>
+    </div>
+      </div>
     </div>
   </div>
 </template>

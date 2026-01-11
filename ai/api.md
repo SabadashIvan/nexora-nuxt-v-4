@@ -1396,7 +1396,7 @@ Rate Limit Exceeded (429):
 
 Core endpoint for SEO metadata.
 
-17.1 Get SEO Metadata for a Page
+18.1 Get SEO Metadata for a Page
 GET /api/v1/site?url={path}
 
 Query:
@@ -1416,6 +1416,70 @@ Response:
   "seoable_id": 12,
   "seoable_type": "product"
 }
+
+18.2 Get Static Page by Slug
+GET /api/v1/site/pages/{slug}
+
+Returns a single static page by its slug with SEO data. The response is cached and automatically invalidated on page changes.
+
+**Path parameters:**
+- `slug` (string): Page slug (e.g., "terms", "privacy", "faq")
+
+**Response:**
+
+{
+  "data": {
+    "id": 1,
+    "slug": "terms",
+    "title": "Terms",
+    "content": "<p>Page content HTML...</p>",
+    "excerpt": "Page excerpt text",
+    "url": "/en/pages/terms",
+    "seo": {
+      "id": 3518,
+      "path": "terms",
+      "seoable_id": 1,
+      "seoable_type": "Modules\\Site\\Models\\Page",
+      "title_h1": "",
+      "title": "",
+      "description": "",
+      "keywords": "",
+      "canonical": null,
+      "robots": "",
+      "text": "<p></p>",
+      "og_image": ""
+    }
+  }
+}
+
+**Response fields:**
+- `data.id` (number): Page identifier
+- `data.slug` (string): URL-friendly page identifier
+- `data.title` (string): Page title
+- `data.content` (string): Full page content (HTML)
+- `data.excerpt` (string): Page excerpt/summary
+- `data.url` (string): Full URL path for the page
+- `data.seo` (object): SEO metadata for the page
+  - `seo.id` (number): SEO record identifier
+  - `seo.path` (string): URL path for this page
+  - `seo.seoable_id` (number): Related entity ID
+  - `seo.seoable_type` (string): Related entity type
+  - `seo.title_h1` (string): H1 title (can be empty string)
+  - `seo.title` (string): SEO title (can be empty string)
+  - `seo.description` (string): SEO description (can be empty string)
+  - `seo.keywords` (string): SEO keywords (can be empty string)
+  - `seo.canonical` (string | null): Canonical URL (can be null)
+  - `seo.robots` (string): Robots meta tag (can be empty string)
+  - `seo.text` (string): SEO text content (HTML, can be empty)
+  - `seo.og_image` (string): Open Graph image URL (can be empty string)
+
+**Error responses:**
+- `404`: Page not found
+
+**Notes:**
+- Public endpoint (no authentication required)
+- Response is cached on the backend and invalidated when page content changes
+- Used for static pages like Terms of Service, Privacy Policy, FAQ, Returns, Shipping, etc.
 
 19. System Health API
 

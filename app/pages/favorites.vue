@@ -58,17 +58,19 @@ async function removeFromFavorites(variantId: number) {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Breadcrumbs -->
-    <UiBreadcrumbs :items="[{ label: 'Wishlist' }]" class="mb-6" />
+  <div class="relative overflow-hidden bg-white">
+    <div class="pt-16 pb-24 sm:pt-24 sm:pb-32 lg:pt-32 lg:pb-40">
+      <div class="relative mx-auto max-w-7xl px-4 sm:static sm:px-6 lg:px-8">
+        <!-- Breadcrumbs -->
+        <UiBreadcrumbs :items="[{ label: 'Wishlist' }]" class="mb-6" />
 
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">My Wishlist</h1>
-      <span v-if="!isEmpty" class="text-gray-500 dark:text-gray-400">
-        {{ favorites.length }} items
-      </span>
-    </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+          <h1 class="text-4xl font-bold tracking-tight text-gray-900">My Wishlist</h1>
+          <span v-if="!isEmpty" class="text-gray-500">
+            {{ favorites.length }} items
+          </span>
+        </div>
 
     <!-- Loading -->
     <div v-if="loading && favorites.length === 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -161,6 +163,8 @@ async function removeFromFavorites(variantId: number) {
             Out of Stock
           </button>
         </div>
+      </div>
+    </div>
       </div>
     </div>
   </div>

@@ -25,4 +25,5 @@ export * from './comments'
 export * from './reviews'
 export * from './support'
 export * from './banner'
+export * from './page'
 
