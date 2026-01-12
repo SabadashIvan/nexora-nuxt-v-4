@@ -40,8 +40,6 @@ const isMobileSearchOpen = ref(false)
 const isCatalogMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 const activeMenuId = ref<number | null>(null)
-const menuItems = ref<MenuItem[]>([])
-const isLoadingMenu = ref(false)
 const mobileSearchRef = ref<LiveSearchInstance | null>(null)
 
 // Get search data from mobile search component
@@ -224,34 +222,14 @@ onMounted(() => {
   }
 })
 
-// Fetch menu tree from API
-async function fetchMenuTree() {
-  if (isLoadingMenu.value) return
-  
-  try {
-    isLoadingMenu.value = true
-    const api = useApi()
-    const response = await api.get<MenuTreeResponse>('/site/menus/tree')
-    
-    // Handle response - check if it's wrapped in 'data' or direct array
-    if (response && typeof response === 'object') {
-      if ('data' in response && Array.isArray(response.data)) {
-        menuItems.value = response.data
-      } else if (Array.isArray(response)) {
-        menuItems.value = response
-      } else {
-        console.warn('Unexpected menu tree response format:', response)
-        menuItems.value = []
-      }
-    } else {
-      menuItems.value = []
-    }
-  } catch (error) {
-    console.error('Failed to fetch menu tree:', error)
-    menuItems.value = []
-  } finally {
-    isLoadingMenu.value = false
+function normalizeMenuTree(response: MenuTreeResponse | MenuItem[] | null | undefined): MenuItem[] {
+  if (!response) return []
+  if (Array.isArray(response)) return response
+  if ('data' in response && Array.isArray(response.data)) {
+    return response.data
   }
+  console.warn('Unexpected menu tree response format:', response)
+  return []
 }
 
 // Get current locale from system store for watching
@@ -267,13 +245,23 @@ const currentLocale = computed(() => {
   return systemStore.value?.currentLocale || 'ru'
 })
 
-// Watch for locale changes and re-fetch menu
-watch(currentLocale, async (newLocale, oldLocale) => {
-  // Only re-fetch if locale actually changed and we're not on initial mount
-  if (newLocale !== oldLocale && oldLocale !== undefined) {
-    await fetchMenuTree()
+const { data: menuTree } = await useAsyncData<MenuItem[]>(
+  'menu-tree',
+  async () => {
+    try {
+      const api = useApi()
+      const response = await api.get<MenuTreeResponse | MenuItem[]>('/site/menus/tree')
+      return normalizeMenuTree(response)
+    } catch (error) {
+      console.error('Failed to fetch menu tree:', error)
+      return []
+    }
+  },
+  {
+    watch: [currentLocale],
   }
-})
+)
+const menuItems = computed<MenuItem[]>(() => menuTree.value ?? [])
 
 // Fetch categories and menu on mount
 onMounted(async () => {
@@ -286,8 +274,6 @@ onMounted(async () => {
     console.error('Failed to fetch categories:', error)
   }
   
-  // Fetch menu tree
-  await fetchMenuTree()
 })
 </script>
 
