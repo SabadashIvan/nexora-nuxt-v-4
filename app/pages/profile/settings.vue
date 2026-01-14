@@ -3,7 +3,6 @@
  * Profile settings page
  */
 import { Github } from 'lucide-vue-next'
-import { useUserSession } from '#auth-utils'
 
 definePageMeta({
   layout: 'profile',
@@ -14,7 +13,7 @@ const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
 const linkingProvider = ref<string | null>(null)
 const oauthPollTimer = ref<ReturnType<typeof setInterval> | null>(null)
 
-const { openInPopup } = useUserSession()
+const userSession = useUserSession()
 
 onMounted(() => {
   authStore.value = useAuthStore()
@@ -36,7 +35,7 @@ async function handleLink(provider: 'github' | 'google') {
   try {
     store.setLinking()
     linkingProvider.value = provider
-    openInPopup(`/auth/${provider}`)
+    userSession.openInPopup(`/auth/${provider}`)
     startOAuthPolling()
   } catch (error) {
     console.error('OAuth linking failed:', error)
@@ -56,7 +55,10 @@ function startOAuthPolling() {
   }
   oauthPollTimer.value = setInterval(async () => {
     attempts += 1
-    await store.syncUserSession()
+    await userSession.fetch()
+    if (userSession.loggedIn.value && userSession.user.value) {
+      store.setAuthenticated(userSession.user.value)
+    }
     if (store.user?.githubId || store.user?.googleId || store.state === 'auth' || attempts >= 12) {
       if (oauthPollTimer.value) {
         clearInterval(oauthPollTimer.value)

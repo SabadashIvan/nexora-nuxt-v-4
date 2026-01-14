@@ -4,7 +4,6 @@
  * Uses session-based authentication (Laravel Sanctum)
  */
 import { Mail, Lock, Eye, EyeOff, Github } from 'lucide-vue-next'
-import { useUserSession } from '#auth-utils'
 import { useAuthStore } from '~/stores/auth.store'
 
 definePageMeta({
@@ -44,7 +43,7 @@ const fieldErrors = computed(() => {
   }
 })
 
-const { openInPopup } = useUserSession()
+const userSession = useUserSession()
 
 async function handleSubmit() {
   isSubmitting.value = true
@@ -72,7 +71,7 @@ async function handleOAuth(provider: 'github' | 'google') {
   oauthLoading.value = provider
 
   try {
-    openInPopup(`/auth/${provider}`)
+    userSession.openInPopup(`/auth/${provider}`)
     startOAuthPolling()
   } catch (error) {
     console.error('OAuth login failed:', error)
@@ -89,7 +88,10 @@ function startOAuthPolling() {
   }
   oauthPollTimer.value = setInterval(async () => {
     attempts += 1
-    await authStore.syncUserSession()
+    await userSession.fetch()
+    if (userSession.loggedIn.value && userSession.user.value) {
+      authStore.setAuthenticated(userSession.user.value)
+    }
     if (authStore.isAuthenticated || attempts >= 12) {
       if (oauthPollTimer.value) {
         clearInterval(oauthPollTimer.value)

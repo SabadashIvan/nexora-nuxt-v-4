@@ -3,7 +3,6 @@
  * Registration page
  */
 import { Mail, Lock, User, Eye, EyeOff, Github } from 'lucide-vue-next'
-import { useUserSession } from '#auth-utils'
 
 definePageMeta({
   ssr: false,
@@ -41,7 +40,7 @@ const fieldErrors = computed(() => {
   }
 })
 
-const { openInPopup } = useUserSession()
+const userSession = useUserSession()
 
 async function handleSubmit() {
   const authStore = useAuthStore()
@@ -68,7 +67,7 @@ async function handleOAuth(provider: 'github' | 'google') {
   oauthLoading.value = provider
 
   try {
-    openInPopup(`/auth/${provider}`)
+    userSession.openInPopup(`/auth/${provider}`)
     startOAuthPolling()
   } catch (error) {
     console.error('OAuth registration failed:', error)
@@ -85,7 +84,10 @@ function startOAuthPolling() {
   }
   oauthPollTimer.value = setInterval(async () => {
     attempts += 1
-    await authStore.syncUserSession()
+    await userSession.fetch()
+    if (userSession.loggedIn.value && userSession.user.value) {
+      authStore.setAuthenticated(userSession.user.value)
+    }
     if (authStore.isAuthenticated || attempts >= 12) {
       if (oauthPollTimer.value) {
         clearInterval(oauthPollTimer.value)
