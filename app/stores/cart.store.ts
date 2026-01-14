@@ -18,6 +18,7 @@ import type {
   CartItemOptionsPayload,
   CouponPayload,
   AppliedCoupon,
+  CartOptimisticOp,
 } from '~/types'
 import { minorToMajor, formatPrice } from '~/types/cart'
 import { parseApiError, getErrorMessage } from '~/utils/errors'
@@ -28,9 +29,11 @@ export const useCartStore = defineStore('cart', {
     cart: null,
     cartToken: null,
     cartVersion: null,
+    confirmedCart: null,
     loading: false,
     error: null,
     appliedCoupons: [],
+    pendingOps: [],
   }),
 
   getters: {
@@ -215,96 +218,93 @@ export const useCartStore = defineStore('cart', {
     },
 
     /**
-     * Fetch cart version from lightweight endpoint
-     * GET /api/v1/cart/v - returns version in X-Cart-Version header
-     * Used for If-Match header in mutation requests
+     * Check if optimistic UI is enabled via runtime config
      */
-    async fetchCartVersion(): Promise<number | null> {
-      // Restore token if not set (don't create new)
-      if (!this.cartToken) {
-        this.restoreToken()
+    isOptimisticEnabled(): boolean {
+      const config = useRuntimeConfig()
+      return Boolean(config.public?.features?.cartOptimisticUI)
+    },
+
+    /**
+     * Set cart state with confirmed server data
+     */
+    setCart(cart: Cart, options?: { clearPending?: boolean }): void {
+      this.confirmedCart = cloneCart(cart)
+      this.updateVersion(cart.version)
+      if (options?.clearPending) {
+        this.pendingOps = []
       }
-      
-      if (!this.cartToken) {
-        return null
-      }
-
-      try {
-        // Use $fetch directly to access response headers
-        const baseUrl = import.meta.server
-          ? (useRuntimeConfig().apiBackendUrl as string || 'http://localhost:8000')
-          : (useRuntimeConfig().public.apiBackendUrl as string || 'http://localhost:8000')
-        
-        const response = await $fetch.raw(`${baseUrl}/api/v1/cart/v`, {
-          method: 'GET',
-          headers: {
-            'X-Cart-Token': this.cartToken || '',
-            'Accept': 'application/json',
-          },
-          credentials: 'include',
-        })
-
-        // Parse version from response headers
-        const versionHeader = response.headers.get('X-Cart-Version')
-        if (versionHeader) {
-          const version = parseInt(versionHeader, 10)
-          if (!isNaN(version)) {
-            this.cartVersion = version
-            return version
-          }
-        }
-
-        // Fallback: try to get version from cart if available
-        return this.cart?.version ?? null
-      } catch (error) {
-        console.error('Fetch cart version error:', error)
-        return null
+      if (this.pendingOps.length > 0) {
+        this.rebuildOptimisticCart()
+      } else {
+        this.cart = cart
       }
     },
 
     /**
-     * Ensure cart version is available for If-Match header
-     * Fetches version if not already cached
-     * Falls back to loading full cart if version endpoint fails
-     * @returns Current cart version or null if unavailable
+     * Rebuild optimistic cart state from confirmed data + pending ops
      */
-    async ensureCartVersion(): Promise<number | null> {
-      // First check if we already have a version (from cart or cached)
-      const existingVersion = this.cartVersion ?? this.cart?.version
-      if (existingVersion !== undefined && existingVersion !== null) {
-        return existingVersion
+    rebuildOptimisticCart(): void {
+      if (!this.confirmedCart) return
+      const nextCart = cloneCart(this.confirmedCart)
+      this.pendingOps.forEach((op) => {
+        applyOptimisticOp(nextCart, op)
+      })
+      this.cart = nextCart
+    },
+
+    /**
+     * Apply an optimistic operation to the current cart
+     */
+    applyOptimisticOperation(op: CartOptimisticOp): boolean {
+      if (!this.confirmedCart) return false
+      this.pendingOps.push(op)
+      this.rebuildOptimisticCart()
+      return true
+    },
+
+    /**
+     * Finalize an optimistic operation after server success
+     */
+    finalizeOptimisticOperation(opId: string | null, cart: Cart): void {
+      this.confirmedCart = cloneCart(cart)
+      this.updateVersion(cart.version)
+
+      if (opId) {
+        this.pendingOps = this.pendingOps.filter(op => op.id !== opId)
       }
 
-      // Try to fetch version from lightweight endpoint first
-      const version = await this.fetchCartVersion()
-      if (version !== null) {
-        return version
+      if (this.pendingOps.length > 0) {
+        this.rebuildOptimisticCart()
+      } else {
+        this.cart = cart
       }
+    },
 
-      // Fallback: if version endpoint fails, try loading the full cart
-      // This ensures we get the version even if /api/v1/cart/v doesn't exist
-      if (this.cartToken) {
-        try {
-          await this.loadCart()
-          // After loading cart, check if we now have a version
-          const loadedVersion = this.cartVersion ?? this.cart?.version
-          if (loadedVersion !== undefined && loadedVersion !== null) {
-            return loadedVersion
-          }
-        } catch (error) {
-          // If cart load fails with 404, cart doesn't exist on backend
-          // This will be handled by the caller (e.g., addItem will clear token)
-          const apiError = parseApiError(error)
-          if (apiError.status === 404) {
-            // Cart expired or doesn't exist - clear token
-            this.cartToken = null
-            removeToken(TOKEN_KEYS.CART)
-          }
-          console.warn('Failed to load cart for version:', error)
-        }
+    /**
+     * Roll back an optimistic operation on concurrency/validation errors
+     */
+    rollbackOptimisticOperation(opId: string): void {
+      this.pendingOps = this.pendingOps.filter(op => op.id !== opId)
+      this.rebuildOptimisticCart()
+    },
+
+    /**
+     * Mark an optimistic operation as failed (keeps optimistic state)
+     */
+    markOptimisticFailed(opId: string): void {
+      const target = this.pendingOps.find(op => op.id === opId)
+      if (target) {
+        target.status = 'failed'
       }
+    },
 
-      return null
+    /**
+     * Determine if error should trigger optimistic rollback
+     */
+    shouldRollbackOptimistic(error: unknown): boolean {
+      const apiError = parseApiError(error)
+      return apiError.status === 409 || apiError.status === 422
     },
 
     /**
@@ -349,9 +349,7 @@ export const useCartStore = defineStore('cart', {
       try {
         const response = await api.get<Cart | CartApiResponse>('/cart', undefined, { cart: true })
         const cart = this.extractCart(response)
-        this.cart = cart
-        // Sync version from cart response
-        this.updateVersion(cart.version)
+        this.setCart(cart, { clearPending: true })
         
         // Update token if returned by API
         if (cart.token && cart.token !== this.cartToken) {
@@ -377,20 +375,18 @@ export const useCartStore = defineStore('cart', {
      * @param variantId - Product variant ID (optional if sku is provided)
      * @param quantity - Quantity to add
      * @param sku - Product variant SKU (optional if variantId is provided)
-     * @param idempotencyKey - Optional idempotency key for request deduplication
-     * 
+     *
      * If no cartToken exists, API creates a new cart automatically.
-     * If cartToken exists, If-Match header with version is required.
      */
     async addItem(
       variantId?: number, 
       quantity = 1, 
-      sku?: string,
-      idempotencyKey?: string
+      sku?: string
     ): Promise<boolean> {
       const api = useApi()
       this.loading = true
       this.error = null
+      let optimisticOpId: string | null = null
 
       try {
         // Build payload - either variant_id or sku must be provided
@@ -403,61 +399,49 @@ export const useCartStore = defineStore('cart', {
           throw new Error('Either variantId or sku must be provided')
         }
 
-        const headers: Record<string, string> = {}
-        
         // Check if we have an existing cart token
         // Restore token if not set (but don't create new one)
         if (!this.cartToken) {
           this.restoreToken()
         }
-        
-        const hasExistingCart = !!this.cartToken
 
-        if (hasExistingCart) {
-          // Existing cart: need If-Match header with version
-          // ensureCartVersion will try to fetch version and fallback to loading cart
-          const version = await this.ensureCartVersion()
-          
-          // If version is still null after ensureCartVersion, cart might be expired
-          // ensureCartVersion already cleared the token if cart was 404, so check again
-          if (version === null && this.cartToken) {
-            // Version unavailable but token still exists - this shouldn't happen
-            // but if it does, clear token and proceed as new cart
-            console.warn('Cart version unavailable, clearing token and creating new cart')
-            this.cartToken = null
-            removeToken(TOKEN_KEYS.CART)
-            // Proceed without If-Match header (new cart)
-          } else if (version !== null) {
-            // We have a version, add If-Match header
-            headers['If-Match'] = String(version)
+        if (this.isOptimisticEnabled() && (this.confirmedCart || this.cart)) {
+          const baseCart = this.confirmedCart || this.cart
+          const hasMatch = baseCart?.items.some((item) => (
+            (variantId && item.variant_id === variantId) ||
+            (sku && item.sku === sku)
+          ))
+
+          if (hasMatch) {
+            const optimisticOp: CartOptimisticOp = {
+              id: generateUUID(),
+              type: 'addItem',
+              status: 'pending',
+              payload: {
+                variantId,
+                sku,
+                quantity,
+              },
+            }
+
+            if (this.applyOptimisticOperation(optimisticOp)) {
+              optimisticOpId = optimisticOp.id
+            }
           }
         }
-        // If no cartToken, API will create new cart automatically
-        // Don't send X-Cart-Token or If-Match headers
-
-        // Add Idempotency-Key if provided
-        if (idempotencyKey) {
-          headers['Idempotency-Key'] = idempotencyKey
-        }
-
-        // Re-check hasExistingCart in case token was cleared
-        const finalHasExistingCart = !!this.cartToken
 
         const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
-          // Only include cart token if we have existing cart
-          cart: finalHasExistingCart,
-          headers: Object.keys(headers).length > 0 ? headers : undefined
+          cart: true,
         })
         
         const cart = this.extractCart(response)
-        this.cart = cart
+        this.finalizeOptimisticOperation(optimisticOpId, cart)
         
         // Save token and version from response (especially important for new cart)
         if (cart.token) {
           this.cartToken = cart.token
           setToken(TOKEN_KEYS.CART, cart.token)
         }
-        this.updateVersion(cart.version)
         
         return true
       } catch (error) {
@@ -467,6 +451,14 @@ export const useCartStore = defineStore('cart', {
         if (apiError.status === 404) {
           this.cartToken = null
           removeToken(TOKEN_KEYS.CART)
+        }
+
+        if (optimisticOpId) {
+          if (this.shouldRollbackOptimistic(error)) {
+            this.rollbackOptimisticOperation(optimisticOpId)
+          } else {
+            this.markOptimisticFailed(optimisticOpId)
+          }
         }
         
         this.error = getErrorMessage(error)
@@ -485,25 +477,34 @@ export const useCartStore = defineStore('cart', {
       const api = useApi()
       this.loading = true
       this.error = null
+      let optimisticOpId: string | null = null
 
       try {
-        // Ensure we have cart version for If-Match header
-        await this.ensureCartVersion()
-
-        const payload: UpdateCartItemPayload = { qty: quantity }
-        const headers: Record<string, string> = {}
-        const version = this.getCurrentVersion()
-        if (version !== null) {
-          headers['If-Match'] = String(version)
+        if (this.isOptimisticEnabled() && (this.confirmedCart || this.cart)) {
+          const baseCart = this.confirmedCart || this.cart
+          const hasItem = baseCart?.items.some(item => item.id === itemId)
+          if (hasItem) {
+            const optimisticOp: CartOptimisticOp = {
+              id: generateUUID(),
+              type: 'updateQty',
+              status: 'pending',
+              payload: {
+                itemId,
+                quantity,
+              },
+            }
+            if (this.applyOptimisticOperation(optimisticOp)) {
+              optimisticOpId = optimisticOp.id
+            }
+          }
         }
 
+        const payload: UpdateCartItemPayload = { qty: quantity }
         const response = await api.patch<Cart | CartApiResponse>(`/cart/items/${itemId}`, payload, { 
           cart: true,
-          headers: Object.keys(headers).length > 0 ? headers : undefined
         })
         const cart = this.extractCart(response)
-        this.cart = cart
-        this.updateVersion(cart.version)
+        this.finalizeOptimisticOperation(optimisticOpId, cart)
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -512,6 +513,14 @@ export const useCartStore = defineStore('cart', {
         if (apiError.status === 404) {
           this.cartToken = null
           removeToken(TOKEN_KEYS.CART)
+        }
+
+        if (optimisticOpId) {
+          if (this.shouldRollbackOptimistic(error)) {
+            this.rollbackOptimisticOperation(optimisticOpId)
+          } else {
+            this.markOptimisticFailed(optimisticOpId)
+          }
         }
         
         this.error = getErrorMessage(error)
@@ -529,24 +538,30 @@ export const useCartStore = defineStore('cart', {
       const api = useApi()
       this.loading = true
       this.error = null
+      let optimisticOpId: string | null = null
 
       try {
-        // Ensure we have cart version for If-Match header
-        await this.ensureCartVersion()
-
-        const headers: Record<string, string> = {}
-        const version = this.getCurrentVersion()
-        if (version !== null) {
-          headers['If-Match'] = String(version)
+        if (this.isOptimisticEnabled() && (this.confirmedCart || this.cart)) {
+          const baseCart = this.confirmedCart || this.cart
+          const hasItem = baseCart?.items.some(item => item.id === itemId)
+          if (hasItem) {
+            const optimisticOp: CartOptimisticOp = {
+              id: generateUUID(),
+              type: 'removeItem',
+              status: 'pending',
+              payload: { itemId },
+            }
+            if (this.applyOptimisticOperation(optimisticOp)) {
+              optimisticOpId = optimisticOp.id
+            }
+          }
         }
 
         const response = await api.delete<Cart | CartApiResponse>(`/cart/items/${itemId}`, { 
           cart: true,
-          headers: Object.keys(headers).length > 0 ? headers : undefined
         })
         const cart = this.extractCart(response)
-        this.cart = cart
-        this.updateVersion(cart.version)
+        this.finalizeOptimisticOperation(optimisticOpId, cart)
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -555,6 +570,14 @@ export const useCartStore = defineStore('cart', {
         if (apiError.status === 404) {
           this.cartToken = null
           removeToken(TOKEN_KEYS.CART)
+        }
+
+        if (optimisticOpId) {
+          if (this.shouldRollbackOptimistic(error)) {
+            this.rollbackOptimisticOperation(optimisticOpId)
+          } else {
+            this.markOptimisticFailed(optimisticOpId)
+          }
         }
         
         this.error = getErrorMessage(error)
@@ -574,23 +597,12 @@ export const useCartStore = defineStore('cart', {
       this.error = null
 
       try {
-        // Ensure we have cart version for If-Match header
-        await this.ensureCartVersion()
-
         const payload: CartItemOptionsPayload = { options }
-        const headers: Record<string, string> = {}
-        const version = this.getCurrentVersion()
-        if (version !== null) {
-          headers['If-Match'] = String(version)
-        }
-
         const response = await api.put<Cart | CartApiResponse>(`/cart/items/${itemId}/options`, payload, { 
           cart: true,
-          headers: Object.keys(headers).length > 0 ? headers : undefined
         })
         const cart = this.extractCart(response)
-        this.cart = cart
-        this.updateVersion(cart.version)
+        this.finalizeOptimisticOperation(null, cart)
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -618,28 +630,16 @@ export const useCartStore = defineStore('cart', {
       this.error = null
 
       try {
-        // Ensure we have cart version for If-Match header
-        await this.ensureCartVersion()
-
         const payload: CouponPayload = { code }
-        const headers: Record<string, string> = {}
-        const version = this.getCurrentVersion()
-        if (version !== null) {
-          headers['If-Match'] = String(version)
-        }
-
         const response = await api.post<{ data: Cart } | { cart: Cart; coupon: AppliedCoupon }>('/cart/coupons', payload, { 
           cart: true,
-          headers: Object.keys(headers).length > 0 ? headers : undefined
         })
         
         // Handle both response formats
         if ('data' in response) {
-          this.cart = response.data
-          this.updateVersion(response.data.version)
+          this.finalizeOptimisticOperation(null, response.data)
         } else if ('cart' in response) {
-          this.cart = response.cart
-          this.updateVersion(response.cart.version)
+          this.finalizeOptimisticOperation(null, response.cart)
           if (response.coupon) {
             this.appliedCoupons.push(response.coupon)
           }
@@ -671,22 +671,11 @@ export const useCartStore = defineStore('cart', {
       this.error = null
 
       try {
-        // Ensure we have cart version for If-Match header
-        await this.ensureCartVersion()
-
-        const headers: Record<string, string> = {}
-        const version = this.getCurrentVersion()
-        if (version !== null) {
-          headers['If-Match'] = String(version)
-        }
-
         const response = await api.delete<Cart | CartApiResponse>(`/cart/coupons/${code}`, { 
           cart: true,
-          headers: Object.keys(headers).length > 0 ? headers : undefined
         })
         const cart = this.extractCart(response)
-        this.cart = cart
-        this.updateVersion(cart.version)
+        this.finalizeOptimisticOperation(null, cart)
         this.appliedCoupons = this.appliedCoupons.filter(c => c.code !== code)
         return true
       } catch (error) {
@@ -719,24 +708,13 @@ export const useCartStore = defineStore('cart', {
       if (!authStore.isAuthenticated || !this.cartToken) return
 
       try {
-        // Ensure we have cart version for If-Match header
-        await this.ensureCartVersion()
-
-        const headers: Record<string, string> = {}
-        const version = this.getCurrentVersion()
-        if (version !== null) {
-          headers['If-Match'] = String(version)
-        }
-
         const response = await nuxtApp.runWithContext(async () => 
           await api.post<Cart | CartApiResponse>('/cart/attach', undefined, { 
             cart: true,
-            headers: Object.keys(headers).length > 0 ? headers : undefined
           })
         )
         const cart = this.extractCart(response)
-        this.cart = cart
-        this.updateVersion(cart.version)
+        this.finalizeOptimisticOperation(null, cart)
       } catch (error) {
         console.error('Attach cart error:', error)
         // Non-critical - just log the error
@@ -757,7 +735,9 @@ export const useCartStore = defineStore('cart', {
     clearCart(): void {
       this.cart = null
       this.cartVersion = null
+      this.confirmedCart = null
       this.appliedCoupons = []
+      this.pendingOps = []
     },
 
     /**
@@ -767,9 +747,11 @@ export const useCartStore = defineStore('cart', {
       this.cart = null
       this.cartToken = null
       this.cartVersion = null
+      this.confirmedCart = null
       this.loading = false
       this.error = null
       this.appliedCoupons = []
+      this.pendingOps = []
     },
   },
 })
