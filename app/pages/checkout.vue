@@ -12,6 +12,8 @@
  */
 import { Lock, AlertCircle, RefreshCw, Package, MapPin, Truck, CreditCard, ShoppingBag } from 'lucide-vue-next'
 import type { Address } from '~/types'
+import { useCheckoutDelivery } from '~/composables/useCheckoutDelivery'
+import { useCheckoutSession } from '~/composables/useCheckoutSession'
 import { useCountries } from '~/composables/useCountries'
 
 definePageMeta({
@@ -20,9 +22,10 @@ definePageMeta({
 })
 
 const router = useRouter()
-const checkoutStore = useCheckoutStore()
-const cartStore = useCartStore()
 const { countries } = useCountries()
+const checkoutSession = useCheckoutSession()
+const checkoutDelivery = useCheckoutDelivery()
+const getCartStore = () => useCartStore()
 
 // Local state
 const shippingAddress = ref<Address>({
@@ -46,13 +49,13 @@ const addressErrors = ref<Record<string, string>>({})
 const isInitialized = ref(false)
 
 // Computed
-const hasSession = computed(() => checkoutStore.hasSession)
-const items = computed(() => checkoutStore.items)
-const pricing = computed(() => checkoutStore.pricing)
-const shippingMethods = computed(() => checkoutStore.shippingMethods)
-const paymentProviders = computed(() => checkoutStore.paymentProviders)
-const error = computed(() => checkoutStore.error)
-const loading = computed(() => checkoutStore.loading)
+const hasSession = computed(() => checkoutSession.hasSession.value)
+const items = computed(() => checkoutSession.items.value)
+const pricing = computed(() => checkoutSession.pricing.value)
+const shippingMethods = computed(() => checkoutDelivery.shippingMethods.value)
+const paymentProviders = computed(() => checkoutSession.paymentProviders.value)
+const error = computed(() => checkoutSession.error.value)
+const loading = computed(() => checkoutSession.loading.value || checkoutDelivery.deliveryLoading.value)
 
 // Validation
 const isAddressValid = computed(() => {
@@ -61,7 +64,7 @@ const isAddressValid = computed(() => {
 })
 
 const isShippingSelected = computed(() => selectedShippingCode.value !== null)
-const shippingCurrency = computed(() => checkoutStore.shippingCurrency || pricing.value.currency)
+const shippingCurrency = computed(() => checkoutDelivery.shippingCurrency.value || pricing.value.currency)
 const isPaymentSelected = computed(() => selectedPaymentCode.value !== null)
 
 const canPlaceOrder = computed(() => {
@@ -84,7 +87,7 @@ const fetchShippingDebounced = debounce(async () => {
     // Reset selected shipping when address changes
     selectedShippingCode.value = null
     
-    await checkoutStore.fetchShippingMethods({
+    await checkoutDelivery.fetchShippingMethods({
       country: addr.country,
       city: addr.city,
       region: addr.region || undefined,
@@ -111,6 +114,7 @@ watch(
 // Initialize checkout on mount
 onMounted(async () => {
   // Load cart first if not already loaded
+  const cartStore = getCartStore()
   if (!cartStore.cart) {
     await cartStore.loadCart()
   }
@@ -123,19 +127,19 @@ onMounted(async () => {
   }
 
   // Start checkout session
-  await checkoutStore.startCheckout(billingSameAsShipping.value)
+  await checkoutSession.startSession(billingSameAsShipping.value)
   
   // Pre-fill address if available from previous session or user profile
-  if (checkoutStore.addresses.shipping) {
-    shippingAddress.value = { ...checkoutStore.addresses.shipping }
+  if (checkoutSession.addresses.value.shipping) {
+    shippingAddress.value = { ...checkoutSession.addresses.value.shipping }
   }
-  if (checkoutStore.addresses.billing) {
-    billingAddress.value = { ...checkoutStore.addresses.billing }
+  if (checkoutSession.addresses.value.billing) {
+    billingAddress.value = { ...checkoutSession.addresses.value.billing }
   }
-  billingSameAsShipping.value = checkoutStore.addresses.billingSameAsShipping
+  billingSameAsShipping.value = checkoutSession.addresses.value.billingSameAsShipping
 
   // Load payment providers
-  await checkoutStore.fetchPaymentProviders()
+  await checkoutSession.fetchPaymentProviders()
   
   // Select default payment if available
   if (paymentProviders.value.some(p => p.code === 'monobank_installments')) {
@@ -150,7 +154,7 @@ onMounted(async () => {
   
   // Load shipping methods if we have address
   if (shippingAddress.value.country && shippingAddress.value.city) {
-    await checkoutStore.fetchShippingMethods({
+    await checkoutDelivery.fetchShippingMethods({
       country: shippingAddress.value.country,
       city: shippingAddress.value.city,
       region: shippingAddress.value.region || undefined,
@@ -200,7 +204,7 @@ async function placeOrder() {
 
   try {
     // Step 1: Save address
-    const addressSuccess = await checkoutStore.updateAddress(
+    const addressSuccess = await checkoutSession.applyAddress(
       shippingAddress.value,
       billingSameAsShipping.value ? undefined : billingAddress.value || undefined,
       billingSameAsShipping.value
@@ -212,7 +216,7 @@ async function placeOrder() {
 
     // Step 2: Save shipping method (use code and quote_id)
     const method = selectedShippingMethod.value
-    const shippingSuccess = await checkoutStore.applyShippingMethod(
+    const shippingSuccess = await checkoutSession.applyShippingMethod(
       selectedShippingCode.value,
       method?.quote_id
     )
@@ -222,21 +226,21 @@ async function placeOrder() {
     }
 
     // Step 3: Save payment provider
-    const paymentSuccess = await checkoutStore.applyPaymentProvider(selectedPaymentCode.value)
+    const paymentSuccess = await checkoutSession.applyPaymentProvider(selectedPaymentCode.value)
     if (!paymentSuccess) {
       isProcessing.value = false
       return
     }
 
     // Step 4: Confirm checkout and create order
-    const orderId = await checkoutStore.confirmCheckout()
+    const orderId = await checkoutSession.confirmCheckout()
     if (!orderId) {
       isProcessing.value = false
       return
     }
 
     // Step 5: Initialize payment (for online payments)
-    const paymentResult = await checkoutStore.initializePayment(orderId)
+    const paymentResult = await checkoutSession.initializePayment(orderId)
 
     if (paymentResult?.payment_url) {
       // Online payment - redirect to payment gateway

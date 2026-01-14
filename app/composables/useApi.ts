@@ -33,6 +33,10 @@ const NON_PREFIXED_ENDPOINTS = [
   '/email',
 ]
 
+const COALESCE_TTL_MS = 15000
+const coalesceCache = new Map<string, { ts: number; data: unknown }>()
+const coalesceInFlight = new Map<string, Promise<unknown>>()
+
 export interface UseApiOptions {
   /** Include session credentials (cookies) - default true for auth */
   credentials?: boolean
@@ -115,6 +119,40 @@ function normalizeRequestPath(request: string | Request): string {
 
 function isCartMutation(requestPath: string, method: string): boolean {
   return method !== 'GET' && requestPath.startsWith('/api/v1/cart')
+}
+
+function shouldCoalesceRequest(requestPath: string, method: string): boolean {
+  return method === 'GET' && requestPath.startsWith('/api/v1/catalog/products')
+}
+
+function buildCoalesceKey(requestPath: string, headers: Record<string, string>): string {
+  const language = headers['Accept-Language'] || ''
+  const currency = headers['Accept-Currency'] || ''
+  return `${requestPath}|lang:${language}|cur:${currency}`
+}
+
+async function coalesceRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const cached = coalesceCache.get(key)
+  if (cached && Date.now() - cached.ts < COALESCE_TTL_MS) {
+    return cached.data as T
+  }
+
+  const inFlight = coalesceInFlight.get(key) as Promise<T> | undefined
+  if (inFlight) {
+    return inFlight
+  }
+
+  const promise = fetcher()
+    .then((data) => {
+      coalesceCache.set(key, { ts: Date.now(), data })
+      return data
+    })
+    .finally(() => {
+      coalesceInFlight.delete(key)
+    })
+
+  coalesceInFlight.set(key, promise as Promise<unknown>)
+  return promise
 }
 
 /**
@@ -337,7 +375,7 @@ export function useApi() {
 
         if (isCartRequest && import.meta.client && nuxtApp.$pinia) {
           const cartStore = useCartStore(nuxtApp.$pinia)
-          const cartVersion = await cartStore.ensureCartVersion()
+          const cartVersion = cartStore.getCurrentVersion()
           if (cartVersion !== null && !headers.has('If-Match')) {
             headers.set('If-Match', String(cartVersion))
           }
@@ -454,13 +492,20 @@ export function useApi() {
     }
 
     return nuxtApp.runWithContext(async () => {
-      return getApiClient()<T>(path, {
+      const fetcher = () => getApiClient()<T>(path, {
         method,
         headers,
         body: body ? body : undefined,
         credentials: credentials ? 'include' : 'omit',
         idempotent: headerOptions.idempotent,
       })
+
+      if (import.meta.server && shouldCoalesceRequest(path, method)) {
+        const key = buildCoalesceKey(path, headers)
+        return coalesceRequest<T>(key, fetcher)
+      }
+
+      return fetcher()
     }) as Promise<T>
   }
 
