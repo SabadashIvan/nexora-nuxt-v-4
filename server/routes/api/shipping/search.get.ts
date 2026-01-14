@@ -16,7 +16,7 @@
  * Response: { items: Array<{ label: string; value: string; meta?: Record<string, unknown> }> }
  */
 
-import { normalizeCacheKey, coalesceRequest } from '~/server/utils/coalesce'
+import { normalizeCacheKey, coalesceRequest } from '../../utils/coalesce'
 
 interface ShippingSearchItem {
   label: string
