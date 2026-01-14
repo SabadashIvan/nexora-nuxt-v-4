@@ -3,7 +3,8 @@
  * Login page
  * Uses session-based authentication (Laravel Sanctum)
  */
-import { Mail, Lock, Eye, EyeOff } from 'lucide-vue-next'
+import { Mail, Lock, Eye, EyeOff, Github } from 'lucide-vue-next'
+import { useUserSession } from '#auth-utils'
 import { useAuthStore } from '~/stores/auth.store'
 
 definePageMeta({
@@ -24,6 +25,7 @@ const form = reactive({
 
 const showPassword = ref(false)
 const isSubmitting = ref(false)
+const oauthLoading = ref<string | null>(null)
 
 // Access store inside computed
 const error = computed(() => {
@@ -40,6 +42,8 @@ const fieldErrors = computed(() => {
     return {}
   }
 })
+
+const { openInPopup } = useUserSession()
 
 async function handleSubmit() {
   isSubmitting.value = true
@@ -59,6 +63,21 @@ async function handleSubmit() {
     // If redirect is a relative path, make it locale-aware
     const redirectPath = redirect.startsWith('http') ? redirect : localePath(redirect)
     router.push(redirectPath)
+  }
+}
+
+async function handleOAuth(provider: 'github' | 'google') {
+  if (oauthLoading.value) return
+  oauthLoading.value = provider
+  const authStore = useAuthStore()
+
+  try {
+    await openInPopup(`/auth/${provider}`)
+    await authStore.syncUserSession()
+  } catch (error) {
+    console.error('OAuth login failed:', error)
+  } finally {
+    oauthLoading.value = null
   }
 }
 </script>
@@ -173,6 +192,32 @@ async function handleSubmit() {
             Sign In
           </button>
         </form>
+
+        <!-- OAuth -->
+        <div class="mt-6 space-y-3">
+          <button
+            type="button"
+            :disabled="oauthLoading === 'github'"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="handleOAuth('github')"
+          >
+            <UiSpinner v-if="oauthLoading === 'github'" size="sm" />
+            <Github v-else class="h-5 w-5" />
+            Continue with GitHub
+          </button>
+          <button
+            type="button"
+            :disabled="oauthLoading === 'google'"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="handleOAuth('google')"
+          >
+            <UiSpinner v-if="oauthLoading === 'google'" size="sm" />
+            <span class="h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+              G
+            </span>
+            Continue with Google
+          </button>
+        </div>
 
         <!-- Divider -->
         <div class="my-6 flex items-center">

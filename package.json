@@ -27,6 +27,7 @@
     "eslint": "^9.39.2",
     "lucide-vue-next": "^0.562.0",
     "nuxt": "^4.2.2",
+    "nuxt-auth-utils": "^0.9.1",
     "nuxt-auth-sanctum": "^2.1.1",
     "pinia": "^3.0.4",
     "typescript": "^5.9.3",

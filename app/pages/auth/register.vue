@@ -2,14 +2,14 @@
 /**
  * Registration page
  */
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-vue-next'
+import { Mail, Lock, User, Eye, EyeOff, Github } from 'lucide-vue-next'
+import { useUserSession } from '#auth-utils'
 
 definePageMeta({
   ssr: false,
 })
 
 const router = useRouter()
-const authStore = useAuthStore()
 
 // Locale-aware navigation
 const localePath = useLocalePath()
@@ -23,11 +23,28 @@ const form = reactive({
 
 const showPassword = ref(false)
 const isSubmitting = ref(false)
+const oauthLoading = ref<string | null>(null)
 
-const error = computed(() => authStore.error)
-const fieldErrors = computed(() => authStore.fieldErrors)
+const error = computed(() => {
+  try {
+    return useAuthStore().error
+  } catch {
+    return null
+  }
+})
+const fieldErrors = computed(() => {
+  try {
+    return useAuthStore().fieldErrors
+  } catch {
+    return {}
+  }
+})
+
+const { openInPopup } = useUserSession()
 
 async function handleSubmit() {
+  const authStore = useAuthStore()
+
   // Client-side validation
   if (form.password !== form.password_confirmation) {
     authStore.error = 'Passwords do not match'
@@ -42,6 +59,21 @@ async function handleSubmit() {
 
   if (success) {
     router.push(localePath('/'))
+  }
+}
+
+async function handleOAuth(provider: 'github' | 'google') {
+  if (oauthLoading.value) return
+  oauthLoading.value = provider
+  const authStore = useAuthStore()
+
+  try {
+    await openInPopup(`/auth/${provider}`)
+    await authStore.syncUserSession()
+  } catch (error) {
+    console.error('OAuth registration failed:', error)
+  } finally {
+    oauthLoading.value = null
   }
 }
 </script>
@@ -178,6 +210,32 @@ async function handleSubmit() {
             Create Account
           </button>
         </form>
+
+        <!-- OAuth -->
+        <div class="mt-6 space-y-3">
+          <button
+            type="button"
+            :disabled="oauthLoading === 'github'"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="handleOAuth('github')"
+          >
+            <UiSpinner v-if="oauthLoading === 'github'" size="sm" />
+            <Github v-else class="h-5 w-5" />
+            Continue with GitHub
+          </button>
+          <button
+            type="button"
+            :disabled="oauthLoading === 'google'"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="handleOAuth('google')"
+          >
+            <UiSpinner v-if="oauthLoading === 'google'" size="sm" />
+            <span class="h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+              G
+            </span>
+            Continue with Google
+          </button>
+        </div>
 
         <!-- Terms -->
         <p class="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">

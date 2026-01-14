@@ -7,6 +7,7 @@
 
 import { defineStore } from 'pinia'
 import { useNuxtApp } from '#app'
+import { useUserSession } from '#auth-utils'
 import type { 
   User, 
   LoginPayload, 
@@ -254,12 +255,14 @@ export const useAuthStore = defineStore('auth', {
       // Capture Nuxt context at the start to preserve it after await
       const nuxtApp = useNuxtApp()
       const api = useApi()
+      const { clear } = useUserSession()
 
       try {
         // Call logout endpoint if user is authenticated
         if (this.user) {
           await nuxtApp.runWithContext(async () => await api.post('/logout'))
         }
+        await nuxtApp.runWithContext(async () => await clear())
       } catch (error) {
         // Ignore errors - we're logging out anyway
         console.error('Logout error:', error)
@@ -305,6 +308,23 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.loading = false
       }
+    },
+
+    /**
+     * Sync auth store with nuxt-auth-utils session data
+     */
+    async syncUserSession(): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const { user, loggedIn, fetch } = useUserSession()
+
+      await nuxtApp.runWithContext(async () => await fetch())
+
+      if (loggedIn.value && user.value) {
+        this.setAuthenticated(user.value)
+        return true
+      }
+
+      return false
     },
 
     /**
@@ -434,7 +454,10 @@ export const useAuthStore = defineStore('auth', {
 
       // On client, try to fetch user to check if session is valid
       if (import.meta.client) {
-        await this.fetchUser()
+        const synced = await this.syncUserSession()
+        if (!synced) {
+          await this.fetchUser()
+        }
       } else {
         this.setGuest()
       }
