@@ -21,10 +21,18 @@ type SentryClient = {
 
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX = 10
+const RATE_LIMIT_MAX_KEYS = 200
 const rateLimitState = new Map<string, { windowStart: number; count: number }>()
 
 function shouldLog(key: string): boolean {
   const now = Date.now()
+  if (rateLimitState.size >= RATE_LIMIT_MAX_KEYS) {
+    for (const [storedKey, entry] of rateLimitState) {
+      if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+        rateLimitState.delete(storedKey)
+      }
+    }
+  }
   const current = rateLimitState.get(key)
   if (!current || now - current.windowStart > RATE_LIMIT_WINDOW_MS) {
     rateLimitState.set(key, { windowStart: now, count: 1 })
@@ -82,8 +90,11 @@ export function useLogger() {
           message,
           data: normalizeData(payload.data),
         })
+        return
       }
 
+      const consoleMethod = console[level] ?? console.log
+      consoleMethod(message, payload.data ?? {})
       return
     }
 
