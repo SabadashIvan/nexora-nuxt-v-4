@@ -391,6 +391,9 @@ export function useApi() {
         const isCartRequest = isCartMutation(requestPath, method)
         const canRetryBody = isRetryableBody(options.body)
         const canRetryRequest = method === 'GET' || options.idempotent === true
+        const isAuthEndpoint = ['/login', '/register', '/logout', '/forgot-password', '/reset-password'].some(
+          authPath => requestPath.startsWith(authPath) || requestPath.includes(authPath)
+        )
         const headers = new Headers(options.headers ?? {})
 
         if (response?.status === 409 && isCartRequest) {
@@ -412,7 +415,7 @@ export function useApi() {
           }
         }
 
-        if (response?.status === 419 && canRetryBody && canRetryRequest) {
+        if (response?.status === 419 && canRetryBody && (canRetryRequest || isAuthEndpoint)) {
           const retryCount = options._retry419Count ?? 0
           if (retryCount < 1) {
             await fetchCsrfCookie()
@@ -423,9 +426,6 @@ export function useApi() {
         }
 
         const apiError = parseApiError(error)
-        const isAuthEndpoint = ['/login', '/register', '/logout', '/forgot-password', '/reset-password'].some(
-          authPath => requestPath.startsWith(authPath) || requestPath.includes(authPath)
-        )
 
         if (isAuthError(apiError) && !isAuthEndpoint && import.meta.client) {
           try {
