@@ -12,6 +12,9 @@ export default defineNuxtConfig({
         process.env.NUXT_API_BACKEND_URL ||
         'http://localhost:8000',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      features: {
+        cartOptimisticUI: process.env.NUXT_PUBLIC_FEATURE_CART_OPTIMISTIC_UI === 'true',
+      },
     },
   },
 

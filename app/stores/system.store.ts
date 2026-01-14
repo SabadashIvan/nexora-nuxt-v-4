@@ -5,6 +5,7 @@
 
 import { defineStore } from 'pinia'
 import type { Locale, Currency, LanguagesResponse, CurrenciesResponse } from '~/types'
+import { applySeoMetadata, fetchSeoMetadata } from '~/composables/useSeoMetadata'
 import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
 import { getCurrencySymbol } from '~/utils/price'
 
@@ -237,10 +238,12 @@ export const useSystemStore = defineStore('system', {
      */
     async onLocaleChange() {
       // Reload SEO metadata
-      const seoStore = useSeoStore()
       const route = useRoute()
-      await seoStore.fetch(route.path)
-      seoStore.apply()
+      const config = useRuntimeConfig()
+      const siteUrl = config.public.siteUrl as string || 'http://localhost:3000'
+      const fullUrl = `${siteUrl}${route.fullPath}`
+      const meta = await fetchSeoMetadata(fullUrl)
+      applySeoMetadata(meta, route.fullPath)
 
       // Other stores can watch currentLocale and react accordingly
     },
@@ -272,4 +275,3 @@ export const useSystemStore = defineStore('system', {
     },
   },
 })
-
