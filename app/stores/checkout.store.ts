@@ -469,6 +469,7 @@ export const useCheckoutStore = defineStore('checkout', {
           { 
             cart: true,
             headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
+            idempotent: true,
           }
         )
 
@@ -512,7 +513,8 @@ export const useCheckoutStore = defineStore('checkout', {
         const payload: PaymentInitPayload = { order_id: orderId }
         const rawResponse = await api.post<PaymentInitResponse | { data: PaymentInitResponse }>(
           `/payments/${this.selectedPayment.code}/init`,
-          payload
+          payload,
+          { idempotent: true }
         )
 
         const response = this.extractData(rawResponse)

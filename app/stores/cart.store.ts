@@ -20,7 +20,7 @@ import type {
   AppliedCoupon,
 } from '~/types'
 import { minorToMajor, formatPrice } from '~/types/cart'
-import { parseApiError, getErrorMessage, CHECKOUT_ERRORS } from '~/utils/errors'
+import { parseApiError, getErrorMessage } from '~/utils/errors'
 import { ensureCartToken, getToken, TOKEN_KEYS, setToken, removeToken } from '~/utils/tokens'
 
 export const useCartStore = defineStore('cart', {
@@ -462,51 +462,6 @@ export const useCartStore = defineStore('cart', {
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        
-        // Handle 422 error with IF_MATCH_REQUIRED - this means cart exists but version was missing
-        if (apiError.status === 422 && apiError.errors?.['If-Match']?.includes('IF_MATCH_REQUIRED')) {
-          // Cart exists but we didn't send If-Match - try to get version and retry once
-          if (this.cartToken) {
-            try {
-              // Force reload cart to get version
-              await this.loadCart()
-              const version = this.getCurrentVersion()
-              if (version !== null) {
-                // Retry the request with If-Match header
-                const payload: AddToCartPayload = { qty: quantity }
-                if (variantId) {
-                  payload.variant_id = variantId
-                } else if (sku) {
-                  payload.sku = sku
-                }
-                
-                const retryHeaders: Record<string, string> = {
-                  'If-Match': String(version)
-                }
-                if (idempotencyKey) {
-                  retryHeaders['Idempotency-Key'] = idempotencyKey
-                }
-                
-                const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
-                  cart: true,
-                  headers: retryHeaders
-                })
-                
-                const cart = this.extractCart(response)
-                this.cart = cart
-                if (cart.token) {
-                  this.cartToken = cart.token
-                  setToken(TOKEN_KEYS.CART, cart.token)
-                }
-                this.updateVersion(cart.version)
-                return true
-              }
-            } catch (retryError) {
-              // Retry failed, fall through to error handling
-              console.error('Retry after IF_MATCH_REQUIRED failed:', retryError)
-            }
-          }
-        }
         
         // Handle 404 - cart doesn't exist, clear token
         if (apiError.status === 404) {

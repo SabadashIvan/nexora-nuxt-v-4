@@ -35,6 +35,7 @@ interface AuthState {
   passwordResetStatus: PasswordResetStatus | string // Allow string for backward compatibility
   /** Tracks if initial auth check has been done */
   initialized: boolean
+  state: 'guest' | 'auth' | 'linking'
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore('auth', {
     emailVerificationStatus: EmailVerificationStatus.IDLE,
     passwordResetStatus: PasswordResetStatus.IDLE,
     initialized: false,
+    state: 'guest',
   }),
 
   getters: {
@@ -55,7 +57,21 @@ export const useAuthStore = defineStore('auth', {
      * Check if user is authenticated (session-based, check user only)
      */
     isAuthenticated: (state): boolean => {
-      return !!state.user
+      return state.state === 'auth'
+    },
+
+    /**
+     * Check if user is guest
+     */
+    isGuest: (state): boolean => {
+      return state.state === 'guest'
+    },
+
+    /**
+     * Check if user is linking accounts
+     */
+    isLinking: (state): boolean => {
+      return state.state === 'linking'
     },
 
     /**
@@ -118,6 +134,32 @@ export const useAuthStore = defineStore('auth', {
     },
 
     /**
+     * Set guest state and clear user data
+     */
+    setGuest() {
+      this.user = null
+      this.state = 'guest'
+    },
+
+    /**
+     * Set authenticated state with user data
+     */
+    setAuthenticated(user: User) {
+      this.user = user
+      this.state = 'auth'
+    },
+
+    /**
+     * Set linking state (only allowed from authenticated)
+     */
+    setLinking() {
+      if (this.state !== 'auth') {
+        throw new Error('Cannot enter linking state unless authenticated.')
+      }
+      this.state = 'linking'
+    },
+
+    /**
      * Login user (session-based)
      * CSRF cookie is automatically handled by useApi() with 419 retry
      */
@@ -138,11 +180,8 @@ export const useAuthStore = defineStore('auth', {
           await api.get<ApiResponse<User> | User>('/identity/me/profile')
         )
         // Handle wrapped response - check if data is wrapped
-        this.user = ('data' in response && response.data) ? response.data : response as User
-
-        // Attach guest cart to user - capture store before await
-        const cartStore = useCartStore()
-        await nuxtApp.runWithContext(async () => await cartStore.attachCart())
+        const user = ('data' in response && response.data) ? response.data : response as User
+        this.setAuthenticated(user)
 
         // Refresh favorites to get user's favorites (instead of guest favorites)
         try {
@@ -185,7 +224,8 @@ export const useAuthStore = defineStore('auth', {
           await api.get<ApiResponse<User> | User>('/identity/me/profile')
         )
         // Handle wrapped response - check if data is wrapped
-        this.user = ('data' in response && response.data) ? response.data : response as User
+        const user = ('data' in response && response.data) ? response.data : response as User
+        this.setAuthenticated(user)
 
         // Refresh favorites to get user's favorites (instead of guest favorites)
         try {
@@ -225,7 +265,7 @@ export const useAuthStore = defineStore('auth', {
         console.error('Logout error:', error)
       } finally {
         // Clear local state regardless
-        this.user = null
+        this.setGuest()
         
         // Refresh favorites to get guest favorites (instead of user favorites)
         try {
@@ -255,11 +295,12 @@ export const useAuthStore = defineStore('auth', {
           await api.get<ApiResponse<User> | User>('/identity/me/profile')
         )
         // Handle wrapped response - check if data is wrapped
-        this.user = ('data' in response && response.data) ? response.data : response as User
+        const user = ('data' in response && response.data) ? response.data : response as User
+        this.setAuthenticated(user)
         return true
       } catch {
         // Session is invalid or expired
-        this.user = null
+        this.setGuest()
         return false
       } finally {
         this.loading = false
@@ -390,12 +431,14 @@ export const useAuthStore = defineStore('auth', {
      */
     async initialize(): Promise<void> {
       if (this.initialized) return
-      
+
       // On client, try to fetch user to check if session is valid
       if (import.meta.client) {
         await this.fetchUser()
+      } else {
+        this.setGuest()
       }
-      
+
       this.initialized = true
     },
 
@@ -504,7 +547,7 @@ export const useAuthStore = defineStore('auth', {
      * Reset store state
      */
     reset() {
-      this.user = null
+      this.setGuest()
       this.addresses = []
       this.loading = false
       this.addressLoading = false
@@ -516,4 +559,3 @@ export const useAuthStore = defineStore('auth', {
     },
   },
 })
-
