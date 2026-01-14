@@ -3,12 +3,20 @@
  * Handles session-based auth, CSRF tokens, SSR/CSR context, and error processing
  */
 
-import { useNuxtApp, useRouter, useRuntimeConfig, useCookie, useRequestEvent } from '#app'
+import {
+  useNuxtApp,
+  useRouter,
+  useRuntimeConfig,
+  useCookie,
+  useRequestEvent,
+  useRequestHeaders,
+} from '#app'
 import { getCookie } from 'h3'
-import type { ApiError } from '~/types'
-import { parseApiError, isAuthError, isCsrfError } from '~/utils/errors'
+import type { FetchOptions } from 'ofetch'
+import { parseApiError, isAuthError } from '~/utils/errors'
 import { generateUUID } from '~/utils/tokens'
 import { useAuthStore } from '~/stores/auth.store'
+import { useCartStore } from '~/stores/cart.store'
 
 // API base URL from runtime config
 const API_PREFIX = '/api/v1'
@@ -36,16 +44,23 @@ export interface UseApiOptions {
   comparison?: boolean
   /** Custom headers */
   headers?: Record<string, string>
-  /** Retry on failure */
-  retry?: number
   /** Skip API prefix (for non-standard endpoints) */
   raw?: boolean
+  /** Force idempotent behavior (adds Idempotency-Key) */
+  idempotent?: boolean
 }
 
 export interface ApiRequestOptions extends UseApiOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
   query?: Record<string, string | number | boolean | string[] | undefined>
+}
+
+interface ApiFetchOptions extends FetchOptions {
+  idempotent?: boolean
+  _retry409Count?: number
+  _retry419Count?: number
+  _idempotencyKey?: string
 }
 
 /**
@@ -60,7 +75,7 @@ function shouldSkipPrefix(endpoint: string): boolean {
  */
 function getXsrfToken(): string | null {
   if (import.meta.server) return null
-  
+
   // Laravel stores XSRF token in a cookie named XSRF-TOKEN
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
   if (match && match[1]) {
@@ -70,15 +85,49 @@ function getXsrfToken(): string | null {
   return null
 }
 
+function isRetryableBody(body: unknown): boolean {
+  if (!body) return true
+  if (typeof FormData !== 'undefined' && body instanceof FormData) return false
+  if (typeof Blob !== 'undefined' && body instanceof Blob) return false
+  if (typeof ReadableStream !== 'undefined' && body instanceof ReadableStream) return false
+  return true
+}
+
+function cloneFetchOptions(options: ApiFetchOptions): ApiFetchOptions {
+  const headers = new Headers(options.headers ?? {})
+  return {
+    ...options,
+    headers,
+  }
+}
+
+function normalizeRequestPath(request: string | Request): string {
+  const raw = typeof request === 'string' ? request : request.url
+  if (raw.startsWith('http')) {
+    try {
+      return new URL(raw).pathname
+    } catch {
+      return raw
+    }
+  }
+  return raw
+}
+
+function isCartMutation(requestPath: string, method: string): boolean {
+  return method !== 'GET' && requestPath.startsWith('/api/v1/cart')
+}
+
 /**
  * Main API composable
  */
 export function useApi() {
-  // 1. Сразу захватываем все нужные инстансы в синхронной части setup
+  // Capture Nuxt context at the start of setup
   const nuxtApp = useNuxtApp()
+  type ApiClient = ReturnType<typeof $fetch.create>
+  const nuxtAppWithClient = nuxtApp as typeof nuxtApp & { $apiClient?: ApiClient }
   const config = useRuntimeConfig()
   const router = useRouter()
-  
+
   // Lazy cookie access - only access cookies when needed and only on client
   // This prevents cookie writes during SSR/SWR cache handling
   function getCookieValue(key: string): string | null {
@@ -105,7 +154,7 @@ export function useApi() {
       return null
     }
   }
-  
+
   function setCookieValue(key: string, value: string): void {
     // Only set cookies on client side to avoid header issues during SSR/SWR
     if (import.meta.client) {
@@ -119,7 +168,7 @@ export function useApi() {
       }
     }
   }
-  
+
   /**
    * Get the base URL for API requests
    * - SSR: Use full backend URL (server-to-server)
@@ -130,7 +179,7 @@ export function useApi() {
       ? (config.apiBackendUrl as string || 'http://localhost:8000')
       : (config.public.apiBackendUrl as string || 'http://localhost:8000')
   }
-  
+
   /**
    * Fetch CSRF cookie from Laravel Sanctum
    * Must be called before login/register requests
@@ -138,7 +187,7 @@ export function useApi() {
    */
   async function fetchCsrfCookie(): Promise<void> {
     const baseUrl = getBaseUrl()
-    
+
     return nuxtApp.runWithContext(async () => {
       await $fetch(`${baseUrl}/sanctum/csrf-cookie`, {
         credentials: 'include',
@@ -154,7 +203,7 @@ export function useApi() {
   function buildHeaders(options: UseApiOptions = {}): Record<string, string> {
     const locale = getCookieValue('locale') || 'en'
     const currency = getCookieValue('currency') || 'USD'
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -213,13 +262,13 @@ export function useApi() {
    * Build full URL with query params
    */
   function buildUrl(
-    endpoint: string, 
+    endpoint: string,
     query?: Record<string, string | number | boolean | string[] | undefined>,
     options?: UseApiOptions
   ): string {
     // Normalize endpoint
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-    
+
     // Determine if we should add the /api/v1 prefix
     let path: string
     if (options?.raw || shouldSkipPrefix(normalizedEndpoint) || normalizedEndpoint.startsWith('/api/v1')) {
@@ -227,7 +276,7 @@ export function useApi() {
     } else {
       path = `${API_PREFIX}${normalizedEndpoint}`
     }
-    
+
     // Build query string
     if (query) {
       const params = new URLSearchParams()
@@ -254,17 +303,128 @@ export function useApi() {
     return path
   }
 
+  function getApiClient() {
+    const baseUrl = getBaseUrl()
+
+    const createClient = () => $fetch.create({
+      baseURL: baseUrl,
+      credentials: 'include',
+      async onRequest({ request, options }) {
+        const method = (options.method || 'GET').toString().toUpperCase()
+        const requestPath = normalizeRequestPath(request)
+        const headers = new Headers(options.headers ?? {})
+
+        if (import.meta.server) {
+          const forwarded = useRequestHeaders(['cookie'])
+          for (const [key, value] of Object.entries(forwarded)) {
+            if (value) headers.set(key, value as string)
+          }
+        }
+
+        const isCartRequest = isCartMutation(requestPath, method)
+        if (isCartRequest && options.idempotent === undefined) {
+          options.idempotent = true
+        }
+
+        if (options.idempotent) {
+          const existingKey = headers.get('Idempotency-Key')
+          const idempotencyKey = options._idempotencyKey || existingKey || generateUUID()
+          options._idempotencyKey = idempotencyKey
+          if (!existingKey) {
+            headers.set('Idempotency-Key', idempotencyKey)
+          }
+        }
+
+        if (isCartRequest && import.meta.client && nuxtApp.$pinia) {
+          const cartStore = useCartStore(nuxtApp.$pinia)
+          const cartVersion = await cartStore.ensureCartVersion()
+          if (cartVersion !== null && !headers.has('If-Match')) {
+            headers.set('If-Match', String(cartVersion))
+          }
+        }
+
+        options.headers = headers
+      },
+      async onResponseError({ request, response, options, error }) {
+        const requestPath = normalizeRequestPath(request)
+        const method = (options.method || 'GET').toString().toUpperCase()
+        const isCartRequest = isCartMutation(requestPath, method)
+        const canRetryBody = isRetryableBody(options.body)
+        const canRetryRequest = method === 'GET' || options.idempotent === true
+        const headers = new Headers(options.headers ?? {})
+
+        if (response?.status === 409 && isCartRequest) {
+          const idempotencyKey = headers.get('Idempotency-Key') || options._idempotencyKey
+          if (!idempotencyKey || !canRetryBody) {
+            throw parseApiError(error)
+          }
+
+          const retryCount = options._retry409Count ?? 0
+          if (retryCount < 3) {
+            if (import.meta.client && nuxtApp.$pinia) {
+              const cartStore = useCartStore(nuxtApp.$pinia)
+              await cartStore.loadCart()
+            }
+
+            const nextOptions = cloneFetchOptions(options)
+            nextOptions._retry409Count = retryCount + 1
+            return getApiClient()(request, nextOptions)
+          }
+        }
+
+        if (response?.status === 419 && canRetryBody && canRetryRequest) {
+          const retryCount = options._retry419Count ?? 0
+          if (retryCount < 1) {
+            await fetchCsrfCookie()
+            const nextOptions = cloneFetchOptions(options)
+            nextOptions._retry419Count = retryCount + 1
+            return getApiClient()(request, nextOptions)
+          }
+        }
+
+        const apiError = parseApiError(error)
+        const isAuthEndpoint = ['/login', '/register', '/logout', '/forgot-password', '/reset-password'].some(
+          authPath => requestPath.startsWith(authPath) || requestPath.includes(authPath)
+        )
+
+        if (isAuthError(apiError) && !isAuthEndpoint && import.meta.client) {
+          try {
+            if (nuxtApp.$pinia) {
+              const authStore = useAuthStore(nuxtApp.$pinia)
+              await authStore.logout()
+              router.push('/auth/login' as any)
+            }
+          } catch (storeError) {
+            console.warn('Could not access auth store for auto-logout:', storeError)
+          }
+        }
+
+        throw apiError
+      },
+    })
+
+    if (import.meta.server) {
+      // SSR: create per-request instances to avoid cross-user leakage.
+      return createClient()
+    }
+
+    if (!nuxtAppWithClient.$apiClient) {
+      nuxtAppWithClient.$apiClient = createClient()
+    }
+
+    return nuxtAppWithClient.$apiClient
+  }
+
   /**
    * Core fetch function with automatic CSRF retry
    */
   async function request<T>(
     endpoint: string,
-    options: ApiRequestOptions = {},
-    _csrfRetried = false // Internal flag to prevent infinite retry loops
+    options: ApiRequestOptions = {}
   ): Promise<T> {
-    const { method = 'GET', body, query, retry = 0, credentials = true, ...headerOptions } = options
+    const { method = 'GET', body, query, credentials = true, ...headerOptions } = options
     const isMutationRequest = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
-    
+
     // For ALL modifying requests (POST, PUT, PATCH, DELETE), ensure CSRF cookie is fetched
     // XSRF is required for: Auth, Identity, Cart, Checkout, Favorites, Comparison, Notifications, Audience
     // Only on client-side and only if XSRF token is not already available
@@ -275,69 +435,23 @@ export function useApi() {
         await nuxtApp.runWithContext(() => fetchCsrfCookie())
       }
     }
-    
+
     const path = buildUrl(endpoint, query, headerOptions)
     const headers = buildHeaders(headerOptions)
-    
+
     // For GET requests, XSRF token is not needed
     if (!isMutationRequest) {
       delete headers['X-XSRF-TOKEN']
     }
 
-    // All requests go directly to backend (both SSR and CSR)
-    const baseUrl = getBaseUrl()
-    const url = `${baseUrl}${path}`
-
-    // Auth endpoints that should not trigger auto-logout on errors
-    const isAuthEndpoint = ['/login', '/register', '/logout', '/forgot-password', '/reset-password'].some(
-      authPath => endpoint.startsWith(authPath) || endpoint.includes(authPath)
-    )
-
-    // Используем runWithContext, чтобы Nuxt "помнил" себя внутри асинхронного вызова
-    // Используем явное приведение типа для обхода проблемы "Excessive stack depth" в TypeScript
     return nuxtApp.runWithContext(async () => {
-      try {
-        return await $fetch<T>(url, {
-          method,
-          headers,
-          body: body ? body : undefined,
-          retry,
-          // Include credentials for session-based auth (cookies)
-          credentials: credentials ? 'include' : 'omit',
-        }) as T
-      } catch (error: unknown) {
-        const apiError = parseApiError(error)
-        
-        // Handle 419 CSRF token mismatch - refresh token and retry once
-        if (isCsrfError(apiError) && !_csrfRetried && import.meta.client && isMutationRequest) {
-          try {
-            // Refresh CSRF token
-            await fetchCsrfCookie()
-            // Retry the request once with fresh token
-            return await request<T>(endpoint, options, true)
-          } catch (retryError) {
-            // If retry fails, throw the original error
-            throw apiError
-          }
-        }
-        
-        // Handle 401 authentication error
-        if (isAuthError(apiError) && !isAuthEndpoint && import.meta.client) {
-          try {
-            // Передаем $pinia явно, чтобы стор не пытался найти её через контекст
-            if (nuxtApp.$pinia) {
-              const authStore = useAuthStore(nuxtApp.$pinia)
-              await authStore.logout()
-              router.push('/auth/login' as any)
-            }
-          } catch (storeError) {
-            // Store access failed, skip auto-logout
-            console.warn('Could not access auth store for auto-logout:', storeError)
-          }
-        }
-        
-        throw apiError
-      }
+      return getApiClient()<T>(path, {
+        method,
+        headers,
+        body: body ? body : undefined,
+        credentials: credentials ? 'include' : 'omit',
+        idempotent: headerOptions.idempotent,
+      })
     }) as Promise<T>
   }
 
@@ -426,7 +540,7 @@ export function useApiData<T>(
   }
 ) {
   const api = useApi()
-  
+
   return useAsyncData<T>(
     key,
     () => api.get<T>(endpoint, options?.query, options?.apiOptions),
@@ -439,6 +553,3 @@ export function useApiData<T>(
     }
   )
 }
-
-// Type exports
-export type { ApiError }
