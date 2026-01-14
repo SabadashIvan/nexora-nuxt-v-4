@@ -6,6 +6,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     apiBackendUrl: process.env.NUXT_API_BACKEND_URL || 'http://localhost:8000',
     apiSecret: process.env.NUXT_API_SECRET,
+    oauth: {
+      github: {
+        clientId: process.env.NUXT_OAUTH_GITHUB_CLIENT_ID,
+        clientSecret: process.env.NUXT_OAUTH_GITHUB_CLIENT_SECRET,
+      },
+      google: {
+        clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID,
+        clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
+      },
+    },
     public: {
       apiBackendUrl:
         process.env.NUXT_PUBLIC_API_BACKEND_URL ||
@@ -26,6 +36,7 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
     '@nuxt/test-utils/module',
     '@nuxtjs/google-fonts',
+    'nuxt-auth-utils',
   ],
 
   css: ['./app/assets/css/main.css'],

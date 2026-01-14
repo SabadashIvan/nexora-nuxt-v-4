@@ -254,12 +254,12 @@ export const useAuthStore = defineStore('auth', {
       // Capture Nuxt context at the start to preserve it after await
       const nuxtApp = useNuxtApp()
       const api = useApi()
-
       try {
         // Call logout endpoint if user is authenticated
         if (this.user) {
           await nuxtApp.runWithContext(async () => await api.post('/logout'))
         }
+        await nuxtApp.runWithContext(async () => await useUserSession().clear())
       } catch (error) {
         // Ignore errors - we're logging out anyway
         console.error('Logout error:', error)
