@@ -26,6 +26,7 @@ const form = reactive({
 const showPassword = ref(false)
 const isSubmitting = ref(false)
 const oauthLoading = ref<string | null>(null)
+const oauthPollTimer = ref<ReturnType<typeof setInterval> | null>(null)
 
 // Access store inside computed
 const error = computed(() => {
@@ -69,17 +70,40 @@ async function handleSubmit() {
 async function handleOAuth(provider: 'github' | 'google') {
   if (oauthLoading.value) return
   oauthLoading.value = provider
-  const authStore = useAuthStore()
 
   try {
-    await openInPopup(`/auth/${provider}`)
-    await authStore.syncUserSession()
+    openInPopup(`/auth/${provider}`)
+    startOAuthPolling()
   } catch (error) {
     console.error('OAuth login failed:', error)
   } finally {
     oauthLoading.value = null
   }
 }
+
+function startOAuthPolling() {
+  const authStore = useAuthStore()
+  let attempts = 0
+  if (oauthPollTimer.value) {
+    clearInterval(oauthPollTimer.value)
+  }
+  oauthPollTimer.value = setInterval(async () => {
+    attempts += 1
+    await authStore.syncUserSession()
+    if (authStore.isAuthenticated || attempts >= 12) {
+      if (oauthPollTimer.value) {
+        clearInterval(oauthPollTimer.value)
+        oauthPollTimer.value = null
+      }
+    }
+  }, 1000)
+}
+
+onBeforeUnmount(() => {
+  if (oauthPollTimer.value) {
+    clearInterval(oauthPollTimer.value)
+  }
+})
 </script>
 
 <template>

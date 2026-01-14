@@ -12,6 +12,7 @@ definePageMeta({
 
 const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
 const linkingProvider = ref<string | null>(null)
+const oauthPollTimer = ref<ReturnType<typeof setInterval> | null>(null)
 
 const { openInPopup } = useUserSession()
 
@@ -35,8 +36,8 @@ async function handleLink(provider: 'github' | 'google') {
   try {
     store.setLinking()
     linkingProvider.value = provider
-    await openInPopup(`/auth/${provider}`)
-    await store.syncUserSession()
+    openInPopup(`/auth/${provider}`)
+    startOAuthPolling()
   } catch (error) {
     console.error('OAuth linking failed:', error)
   } finally {
@@ -46,6 +47,30 @@ async function handleLink(provider: 'github' | 'google') {
     }
   }
 }
+
+function startOAuthPolling() {
+  const store = useAuthStore()
+  let attempts = 0
+  if (oauthPollTimer.value) {
+    clearInterval(oauthPollTimer.value)
+  }
+  oauthPollTimer.value = setInterval(async () => {
+    attempts += 1
+    await store.syncUserSession()
+    if (store.user?.githubId || store.user?.googleId || store.state === 'auth' || attempts >= 12) {
+      if (oauthPollTimer.value) {
+        clearInterval(oauthPollTimer.value)
+        oauthPollTimer.value = null
+      }
+    }
+  }, 1000)
+}
+
+onBeforeUnmount(() => {
+  if (oauthPollTimer.value) {
+    clearInterval(oauthPollTimer.value)
+  }
+})
 </script>
 
 <template>
