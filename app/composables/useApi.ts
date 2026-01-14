@@ -337,7 +337,7 @@ export function useApi() {
 
         if (isCartRequest && import.meta.client && nuxtApp.$pinia) {
           const cartStore = useCartStore(nuxtApp.$pinia)
-          const cartVersion = await cartStore.ensureCartVersion()
+          const cartVersion = cartStore.getCurrentVersion()
           if (cartVersion !== null && !headers.has('If-Match')) {
             headers.set('If-Match', String(cartVersion))
           }
