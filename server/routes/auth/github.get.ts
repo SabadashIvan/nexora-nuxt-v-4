@@ -1,5 +1,4 @@
 import { sendRedirect } from 'h3'
-import { defineOAuthGitHubEventHandler, getUserSession, setUserSession } from '#auth-utils/server'
 
 const getNameParts = (name?: string) => {
   const trimmed = (name || '').trim()
