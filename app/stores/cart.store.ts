@@ -432,6 +432,7 @@ export const useCartStore = defineStore('cart', {
       this.error = null
       let optimisticOpId: string | null = null
 
+      let lastError: unknown = null
       try {
         // Build payload - either variant_id or sku must be provided
         const payload: AddToCartPayload = { qty: quantity }
@@ -474,7 +475,6 @@ export const useCartStore = defineStore('cart', {
           }
         }
 
-        let lastError: unknown = null
         for (let attempt = 0; attempt < 2; attempt += 1) {
           try {
             const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
@@ -514,6 +514,18 @@ export const useCartStore = defineStore('cart', {
           }
         }
         
+        this.error = getErrorMessage(lastError)
+        console.error('Add to cart error:', lastError)
+        return false
+      } catch (error) {
+        lastError = error
+        if (optimisticOpId) {
+          if (this.shouldRollbackOptimistic(lastError)) {
+            this.rollbackOptimisticOperation(optimisticOpId)
+          } else {
+            this.markOptimisticFailed(optimisticOpId)
+          }
+        }
         this.error = getErrorMessage(lastError)
         console.error('Add to cart error:', lastError)
         return false
