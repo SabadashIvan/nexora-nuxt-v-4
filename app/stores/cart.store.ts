@@ -22,7 +22,53 @@ import type {
 } from '~/types'
 import { minorToMajor, formatPrice } from '~/types/cart'
 import { parseApiError, getErrorMessage } from '~/utils/errors'
-import { ensureCartToken, getToken, TOKEN_KEYS, setToken, removeToken } from '~/utils/tokens'
+import { ensureCartToken, generateUUID, getToken, TOKEN_KEYS, setToken, removeToken } from '~/utils/tokens'
+import { useAuthStore } from '~/stores/auth.store'
+
+function cloneCart(cart: Cart): Cart {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(cart)
+  }
+  return JSON.parse(JSON.stringify(cart)) as Cart
+}
+
+function recalculateTotals(cart: Cart): void {
+  const itemsMinor = cart.items.reduce((sum, item) => sum + item.line_total_minor, 0)
+  const shippingMinor = cart.totals.shipping_minor || 0
+  const taxMinor = cart.totals.tax_minor || 0
+  const discountsMinor = cart.totals.discounts_minor || 0
+
+  cart.totals.items_minor = itemsMinor
+  cart.totals.grand_total_minor = itemsMinor + shippingMinor + taxMinor - discountsMinor
+}
+
+function applyOptimisticOp(cart: Cart, op: CartOptimisticOp): void {
+  if (op.type === 'updateQty' && op.payload.itemId && op.payload.quantity !== undefined) {
+    const item = cart.items.find(cartItem => cartItem.id === op.payload.itemId)
+    if (!item) return
+    item.qty = op.payload.quantity
+    item.line_total_minor = (item.price.effective_minor * item.qty) + item.options_total_minor
+    recalculateTotals(cart)
+    return
+  }
+
+  if (op.type === 'removeItem' && op.payload.itemId) {
+    cart.items = cart.items.filter(cartItem => cartItem.id !== op.payload.itemId)
+    recalculateTotals(cart)
+    return
+  }
+
+  if (op.type === 'addItem' && op.payload.quantity !== undefined && (op.payload.variantId || op.payload.sku)) {
+    const match = cart.items.find((cartItem) => (
+      (op.payload.variantId && cartItem.variant_id === op.payload.variantId) ||
+      (op.payload.sku && cartItem.sku === op.payload.sku)
+    ))
+    if (!match) return
+    match.qty += op.payload.quantity
+    match.line_total_minor = (match.price.effective_minor * match.qty) + match.options_total_minor
+    recalculateTotals(cart)
+  }
+}
 
 export const useCartStore = defineStore('cart', {
   state: (): CartState => ({

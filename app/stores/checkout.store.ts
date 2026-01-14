@@ -431,8 +431,6 @@ export const useCheckoutStore = defineStore('checkout', {
           undefined,
           { 
             cart: true,
-            headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
-            idempotent: true,
           }
         )
 
