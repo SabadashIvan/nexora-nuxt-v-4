@@ -17,6 +17,7 @@ import { parseApiError, isAuthError } from '~/utils/errors'
 import { generateUUID } from '~/utils/tokens'
 import { useAuthStore } from '~/stores/auth.store'
 import { useCartStore } from '~/stores/cart.store'
+import { useLogger } from '~/composables/useLogger'
 
 // API base URL from runtime config
 const API_PREFIX = '/api/v1'
@@ -165,6 +166,7 @@ export function useApi() {
   const nuxtAppWithClient = nuxtApp as typeof nuxtApp & { $apiClient?: ApiClient }
   const config = useRuntimeConfig()
   const router = useRouter()
+  const logger = useLogger()
 
   // Lazy cookie access - only access cookies when needed and only on client
   // This prevents cookie writes during SSR/SWR cache handling
@@ -404,6 +406,15 @@ export function useApi() {
 
           const retryCount = options._retry409Count ?? 0
           if (retryCount < 3) {
+            logger.debug('Retrying cart mutation after 409 conflict', {
+              category: 'api.retry',
+              key: `api:409:${requestPath}`,
+              data: {
+                attempt: retryCount + 1,
+                method,
+                path: requestPath,
+              },
+            })
             if (import.meta.client && nuxtApp.$pinia) {
               const cartStore = useCartStore(nuxtApp.$pinia)
               await cartStore.loadCart()
@@ -418,6 +429,15 @@ export function useApi() {
         if (response?.status === 419 && canRetryBody && (canRetryRequest || isAuthEndpoint)) {
           const retryCount = options._retry419Count ?? 0
           if (retryCount < 1) {
+            logger.debug('Retrying request after 419 CSRF response', {
+              category: 'api.retry',
+              key: `api:419:${requestPath}`,
+              data: {
+                attempt: retryCount + 1,
+                method,
+                path: requestPath,
+              },
+            })
             await fetchCsrfCookie()
             const nextOptions = cloneFetchOptions(options)
             nextOptions._retry419Count = retryCount + 1
@@ -435,7 +455,11 @@ export function useApi() {
               router.push('/auth/login' as any)
             }
           } catch (storeError) {
-            console.warn('Could not access auth store for auto-logout:', storeError)
+            logger.warn('Could not access auth store for auto-logout', {
+              category: 'auth.logout',
+              key: 'auth:auto-logout:store-error',
+              data: { error: storeError },
+            })
           }
         }
 
