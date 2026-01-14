@@ -30,6 +30,11 @@ onMounted(async () => {
     isVerifying.value = true
     await authStore.verifyEmail(id.value, hash.value)
     isVerifying.value = false
+
+    // Remove token from URL after processing (secure token flow)
+    const router = useRouter()
+    const cleanUrl = localePath('/auth/email-verification')
+    router.replace(cleanUrl)
   }
 })
 

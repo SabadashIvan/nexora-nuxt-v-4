@@ -53,6 +53,10 @@ async function handleSubmit() {
   isSubmitting.value = false
 
   if (success) {
+    // Remove token from URL before redirect (secure token flow)
+    const cleanUrl = localePath('/auth/reset-password')
+    router.replace(cleanUrl)
+
     // Redirect to login after short delay
     setTimeout(() => {
       router.push(localePath('/auth/login'))

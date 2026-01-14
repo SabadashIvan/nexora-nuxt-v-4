@@ -92,6 +92,7 @@ export interface NotificationsState {
   preferences: NotificationPreferences | null
   loading: boolean
   error: string | null
+  filter?: 'all' | 'unread' | 'archived' // Filter state
   pagination: {
     currentPage: number
     lastPage: number

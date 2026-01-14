@@ -6,15 +6,16 @@ const route = useRoute()
 const blogStore = useBlogStore()
 
 const page = computed(() => route.query.page ? parseInt(route.query.page as string) : 1)
+const sort = computed(() => (route.query.sort as string) || 'newest')
 
 // Fetch posts and categories with SSR
 const { pending } = await useAsyncData(
-  `blog-posts-${page.value}`,
+  `blog-posts-${page.value}-${sort.value}`,
   async () => {
-    await blogStore.fetchPosts({ page: page.value })
+    await blogStore.fetchPosts({ page: page.value, sort: sort.value })
     return blogStore.posts
   },
-  { watch: [page] }
+  { watch: [page, sort] }
 )
 
 await useAsyncData('blog-categories', async () => {
@@ -51,6 +52,18 @@ function handlePageChange(newPage: number) {
           <p class="mt-2 text-base text-gray-600">
             Discover tips, guides, and stories from our team
           </p>
+        </div>
+        <!-- Sort dropdown -->
+        <div class="flex items-center gap-4">
+          <label class="text-sm font-medium text-gray-700">Sort:</label>
+          <select
+            :value="sort"
+            @change="(e) => navigateTo({ path: localePath('/blog'), query: { ...route.query, sort: (e.target as HTMLSelectElement).value } })"
+            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
         </div>
       </div>
 

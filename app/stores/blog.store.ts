@@ -142,9 +142,16 @@ export const useBlogStore = defineStore('blog', {
           queryParams.search = params.search
         }
 
-        // Only add sort if it's defined
+        // Only add sort if it's defined (persist to route query)
         if (params?.sort) {
           queryParams.sort = params.sort
+        } else {
+          // Check route query for sort (source of truth)
+          const route = useRoute()
+          const routeSort = route.query.sort as string | undefined
+          if (routeSort) {
+            queryParams.sort = routeSort
+          }
         }
 
         console.log('Fetching blog posts with query params:', queryParams)

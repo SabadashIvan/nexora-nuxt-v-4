@@ -53,5 +53,6 @@ export interface OrdersState {
   order: Order | null
   loading: boolean
   error: string | null
+  statusFilter?: string | null // Filter by order status
 }
 

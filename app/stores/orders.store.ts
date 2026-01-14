@@ -18,6 +18,7 @@ export const useOrdersStore = defineStore('orders', {
     order: null,
     loading: false,
     error: null,
+    statusFilter: null, // Filter by status
     pagination: {
       page: 1,
       perPage: 10,
@@ -45,17 +46,25 @@ export const useOrdersStore = defineStore('orders', {
   actions: {
     /**
      * Fetch user orders
+     * @param status - Optional status filter
      */
-    async fetchOrders(page = 1): Promise<void> {
+    async fetchOrders(page = 1, status?: string): Promise<void> {
       const api = useApi()
       this.loading = true
       this.error = null
+      this.statusFilter = status || null
 
       try {
-        const response = await api.get<PaginatedResponse<Order>>('/orders', {
+        const queryParams: Record<string, string | number> = {
           page,
           per_page: this.pagination.perPage,
-        })
+        }
+
+        if (status) {
+          queryParams.status = status
+        }
+
+        const response = await api.get<PaginatedResponse<Order>>('/orders', queryParams)
 
         this.orders = response.data
         this.pagination = {
@@ -115,6 +124,7 @@ export const useOrdersStore = defineStore('orders', {
       this.order = null
       this.loading = false
       this.error = null
+      this.statusFilter = null
       this.pagination = {
         page: 1,
         perPage: 10,

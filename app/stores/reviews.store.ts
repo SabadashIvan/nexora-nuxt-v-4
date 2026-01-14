@@ -7,6 +7,7 @@
 import { defineStore } from 'pinia'
 import type {
   Review,
+  ReviewReply,
   ReviewsState,
   ReviewsResponse,
   CreateReviewPayload,
@@ -135,6 +136,45 @@ export const useReviewsStore = defineStore('reviews', {
         this.error = apiError.message
         this.fieldErrors = getFieldErrors(apiError)
         console.error('Create review error:', error)
+        return null
+      } finally {
+        this.submitting = false
+      }
+    },
+
+    /**
+     * Reply to a review (store/admin reply)
+     * POST /api/v1/reviews/{reviewId}/reply
+     * Note: This endpoint may not exist in API yet - placeholder implementation
+     */
+    async replyToReview(reviewId: number, message: string): Promise<ReviewReply | null> {
+      const api = useApi()
+      this.submitting = true
+      this.clearErrors()
+
+      try {
+        // TODO: Verify endpoint exists in API
+        // Expected: POST /api/v1/reviews/{reviewId}/reply
+        // Body: { message: string }
+        const reply = await api.post<ReviewReply>(`/reviews/${reviewId}/reply`, {
+          message,
+        })
+
+        // Update local state - add reply to the review
+        const review = this.reviews.find(r => r.id === reviewId)
+        if (review) {
+          if (!review.replies) {
+            review.replies = []
+          }
+          review.replies.push(reply)
+        }
+
+        return reply
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Reply to review error:', error)
         return null
       } finally {
         this.submitting = false

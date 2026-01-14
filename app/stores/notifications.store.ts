@@ -26,6 +26,7 @@ export const useNotificationsStore = defineStore('notifications', {
     preferences: null,
     loading: false,
     error: null,
+    filter: 'all', // 'all' | 'unread' | 'archived'
     pagination: {
       currentPage: 1,
       lastPage: 1,
@@ -68,17 +69,26 @@ export const useNotificationsStore = defineStore('notifications', {
     /**
      * Fetch notifications list
      * GET /api/v1/notifications
+     * @param filter - Filter type: 'all' | 'unread' | 'archived'
      */
-    async fetchNotifications(page = 1, perPage = 15): Promise<void> {
+    async fetchNotifications(page = 1, perPage = 15, filter: 'all' | 'unread' | 'archived' = 'all'): Promise<void> {
       const api = useApi()
       this.loading = true
       this.error = null
+      this.filter = filter
 
       try {
-        const response = await api.get<NotificationsListResponse>('/notifications', {
+        const queryParams: Record<string, string | number> = {
           page,
           per_page: perPage,
-        })
+        }
+
+        // Add filter query parameter if not 'all'
+        if (filter !== 'all') {
+          queryParams.filter = filter
+        }
+
+        const response = await api.get<NotificationsListResponse>('/notifications', queryParams)
 
         if (page === 1) {
           this.notifications = response.data
@@ -217,6 +227,52 @@ export const useNotificationsStore = defineStore('notifications', {
       const unread = this.unreadNotifications
       for (const notification of unread) {
         await this.markAsRead(notification.id)
+      }
+    },
+
+    /**
+     * Archive notification
+     * POST /api/v1/notifications/{id}/archive
+     */
+    async archiveNotification(notificationId: string): Promise<boolean> {
+      const api = useApi()
+
+      try {
+        await api.post(`/notifications/${notificationId}/archive`)
+        
+        // Remove from local state if archived
+        this.notifications = this.notifications.filter(n => n.id !== notificationId)
+        
+        // Update unread count if it was unread
+        const notification = this.notifications.find(n => n.id === notificationId)
+        if (notification && !notification.read_at) {
+          this.unreadCount = Math.max(0, this.unreadCount - 1)
+        }
+
+        return true
+      } catch (error) {
+        console.error('Archive notification error:', error)
+        return false
+      }
+    },
+
+    /**
+     * Unarchive notification
+     * POST /api/v1/notifications/{id}/unarchive
+     */
+    async unarchiveNotification(notificationId: string): Promise<boolean> {
+      const api = useApi()
+
+      try {
+        await api.post(`/notifications/${notificationId}/unarchive`)
+        
+        // Refresh notifications to get unarchived notification back
+        await this.fetchNotifications(1, this.pagination.perPage, this.filter)
+
+        return true
+      } catch (error) {
+        console.error('Unarchive notification error:', error)
+        return false
       }
     },
 

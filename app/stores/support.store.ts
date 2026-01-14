@@ -21,6 +21,8 @@ export const useSupportStore = defineStore('support', {
     success: false,
     retryAfter: null,
     fieldErrors: {},
+    types: [], // Support request types
+    typesLoading: false,
   }),
 
   getters: {
@@ -104,6 +106,31 @@ export const useSupportStore = defineStore('support', {
         return false
       } finally {
         this.loading = false
+      }
+    },
+
+    /**
+     * Fetch support request types
+     * GET /api/v1/customer-support/types
+     */
+    async fetchTypes(): Promise<void> {
+      const api = useApi()
+      this.typesLoading = true
+
+      try {
+        const types = await api.get<Array<{ id: string; name: string; code: string }>>('/customer-support/types')
+        this.types = types
+      } catch (error) {
+        console.error('Fetch support types error:', error)
+        // Graceful fallback: use default types if API fails
+        this.types = [
+          { id: '1', name: 'General', code: 'general' },
+          { id: '2', name: 'Technical', code: 'technical' },
+          { id: '3', name: 'Billing', code: 'billing' },
+          { id: '4', name: 'Other', code: 'other' },
+        ]
+      } finally {
+        this.typesLoading = false
       }
     },
 
