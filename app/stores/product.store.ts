@@ -5,13 +5,14 @@
  */
 
 import { defineStore } from 'pinia'
-import type { 
-  ProductVariant, 
+import type {
+  Product,
   ProductState,
-  AttributeValue,
   ApiResponse,
 } from '~/types'
+import type { ProductDTO } from '~/types/api/dto/product.dto'
 import { getErrorMessage } from '~/utils/errors'
+import { mapProductDTOToModel } from '~/utils/mappers/product.mapper'
 
 export const useProductStore = defineStore('product', {
   state: (): ProductState => ({
@@ -27,7 +28,7 @@ export const useProductStore = defineStore('product', {
     /**
      * Get current variant (selected or main product)
      */
-    currentVariant: (state): ProductVariant | null => {
+    currentVariant: (state): Product | null => {
       return state.selectedVariant || state.product
     },
 
@@ -152,29 +153,31 @@ export const useProductStore = defineStore('product', {
     /**
      * Fetch product by slug or ID
      */
-    async fetch(slugOrId: string): Promise<ProductVariant | null> {
+    async fetch(slugOrId: string): Promise<Product | null> {
       const api = useApi()
       this.loading = true
       this.error = null
 
       try {
-        const response = await api.get<ApiResponse<ProductVariant> | ProductVariant>(`/catalog/variants/${slugOrId}`)
+        const response = await api.get<ApiResponse<ProductDTO> | ProductDTO>(`/catalog/variants/${slugOrId}`)
         
         console.log('Raw API response:', response)
         console.log('Response type:', typeof response)
         console.log('Has data property:', 'data' in response)
         
         // Handle wrapped response - check if data is wrapped
-        let product: ProductVariant
+        let productDTO: ProductDTO
         if ('data' in response && response.data) {
           // Response is wrapped in { data: {...} }
-          product = response.data
-          console.log('Extracted product from data wrapper:', product)
+          productDTO = response.data
+          console.log('Extracted product from data wrapper:', productDTO)
         } else {
           // Direct response
-          product = response as ProductVariant
-          console.log('Using direct response as product:', product)
+          productDTO = response as ProductDTO
+          console.log('Using direct response as product:', productDTO)
         }
+
+        const product = mapProductDTOToModel(productDTO)
         
         console.log('Final product variant:', {
           id: product?.id,
@@ -230,7 +233,7 @@ export const useProductStore = defineStore('product', {
     /**
      * Find variant matching selected options
      */
-    findVariantByOptions(): ProductVariant | null {
+    findVariantByOptions(): Product | null {
       if (!this.variants.length) return null
 
       return this.variants.find(variant => {
@@ -302,7 +305,7 @@ export const useProductStore = defineStore('product', {
     /**
      * Get variant for specific options combination
      */
-    getVariantForOptions(options: Record<string, string>): ProductVariant | null {
+    getVariantForOptions(options: Record<string, string>): Product | null {
       return this.variants.find(variant => {
         // Check attribute_values (new structure)
         if (variant.attribute_values && variant.attribute_values.length > 0) {
@@ -337,4 +340,3 @@ export const useProductStore = defineStore('product', {
     },
   },
 })
-
