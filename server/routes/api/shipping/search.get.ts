@@ -16,7 +16,7 @@
  * Response: { items: Array<{ label: string; value: string; meta?: Record<string, unknown> }> }
  */
 
-import { normalizeCacheKey, coalesceRequest } from '../../utils/coalesce'
+import { normalizeCacheKey, coalesceRequest } from '../../../utils/coalesce'
 
 interface ShippingSearchItem {
   label: string
@@ -33,15 +33,15 @@ interface ShippingSearchResponse {
  * Provider keys should come from runtime config or environment variables
  */
 async function fetchFromProvider(
-  provider: string,
-  type: 'settlements' | 'warehouses',
-  query?: string,
-  cityId?: string
+  _provider: string,
+  _type: 'settlements' | 'warehouses',
+  _query?: string,
+  _cityId?: string
 ): Promise<ShippingSearchResponse> {
-  const config = useRuntimeConfig()
+  const _config = useRuntimeConfig()
   
   // Provider keys should be in server-side config (never exposed to client)
-  // Example: config.shippingProviders?.[provider]?.apiKey
+  // Example: _config.shippingProviders?.[_provider]?.apiKey
   // For now, this is a placeholder that would call the actual provider API
   
   // TODO: Implement actual provider integration
