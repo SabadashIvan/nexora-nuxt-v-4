@@ -11,9 +11,10 @@
  */
 
 import { ref, computed, watch } from 'vue'
-import { useAsyncData } from '#app'
-import { useDebouncedRef } from '~/composables/useDebounce'
-import { useApi } from '~/composables/useApi'
+import { useDebouncedRef } from './useDebounce'
+
+// Nuxt auto-imports: useAsyncData, useApi
+// These are available globally in Nuxt but TypeScript may need explicit reference
 
 export interface ShippingSearchItem {
   label: string
@@ -38,9 +39,7 @@ export function useShippingSearch() {
   const debouncedQuery = useDebouncedRef(query, 300)
 
   // Search results
-  const { data: results, pending, error, refresh } = useAsyncData<{
-    items: ShippingSearchItem[]
-  }>(
+  const { data: results, pending, error, refresh } = useAsyncData(
     'shipping-search',
     async () => {
       if (!provider.value || !type.value) {
@@ -51,7 +50,7 @@ export function useShippingSearch() {
         return { items: [] }
       }
 
-      const params: ShippingSearchParams = {
+      const params: Record<string, string | number | boolean | string[] | undefined> = {
         provider: provider.value,
         type: type.value,
       }
@@ -66,13 +65,12 @@ export function useShippingSearch() {
 
       // Call Nitro endpoint (not direct provider API)
       const api = useApi()
-      return await api.get<{ items: ShippingSearchItem[] }>('/api/shipping/search', params, {
+      const response = await api.get<{ items: ShippingSearchItem[] }>('/api/shipping/search', params, {
         raw: true, // Skip /api/v1 prefix
       })
+      return response
     },
     {
-      // Keep key stable (don't embed query into key)
-      key: 'shipping-search',
       // Watch debounced query and cityId
       watch: [debouncedQuery, cityId, provider, type],
     }
@@ -89,7 +87,10 @@ export function useShippingSearch() {
     cityId,
     provider,
     type,
-    results: computed(() => results.value?.items || []),
+    results: computed(() => {
+      const data = results.value as { items: ShippingSearchItem[] } | null | undefined
+      return data?.items || []
+    }),
     pending,
     error,
 
