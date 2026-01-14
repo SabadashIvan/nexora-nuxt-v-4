@@ -336,13 +336,11 @@ export const useCartStore = defineStore('cart', {
     },
 
     /**
-     * Mark an optimistic operation as failed (keeps optimistic state)
+     * Mark an optimistic operation as failed (rollback optimistic state)
      */
     markOptimisticFailed(opId: string): void {
-      const target = this.pendingOps.find(op => op.id === opId)
-      if (target) {
-        target.status = 'failed'
-      }
+      this.pendingOps = this.pendingOps.filter(op => op.id !== opId)
+      this.rebuildOptimisticCart()
     },
 
     /**
@@ -476,39 +474,48 @@ export const useCartStore = defineStore('cart', {
           }
         }
 
-        const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
-          cart: true,
-        })
-        
-        const cart = this.extractCart(response)
-        this.finalizeOptimisticOperation(optimisticOpId, cart)
-        
-        // Save token and version from response (especially important for new cart)
-        if (cart.token) {
-          this.cartToken = cart.token
-          setToken(TOKEN_KEYS.CART, cart.token)
-        }
-        
-        return true
-      } catch (error) {
-        const apiError = parseApiError(error)
-        
-        // Handle 404 - cart doesn't exist, clear token
-        if (apiError.status === 404) {
-          this.cartToken = null
-          removeToken(TOKEN_KEYS.CART)
+        let lastError: unknown = null
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            const response = await api.post<Cart | CartApiResponse>('/cart/items', payload, { 
+              cart: true,
+            })
+            
+            const cart = this.extractCart(response)
+            this.finalizeOptimisticOperation(optimisticOpId, cart)
+            
+            // Save token and version from response (especially important for new cart)
+            if (cart.token) {
+              this.cartToken = cart.token
+              setToken(TOKEN_KEYS.CART, cart.token)
+            }
+            
+            return true
+          } catch (error) {
+            const apiError = parseApiError(error)
+            lastError = error
+            
+            // Handle 404 - cart doesn't exist, clear token and retry once
+            if (apiError.status === 404 && attempt === 0) {
+              this.cartToken = null
+              removeToken(TOKEN_KEYS.CART)
+              continue
+            }
+            
+            break
+          }
         }
 
         if (optimisticOpId) {
-          if (this.shouldRollbackOptimistic(error)) {
+          if (this.shouldRollbackOptimistic(lastError)) {
             this.rollbackOptimisticOperation(optimisticOpId)
           } else {
             this.markOptimisticFailed(optimisticOpId)
           }
         }
         
-        this.error = getErrorMessage(error)
-        console.error('Add to cart error:', error)
+        this.error = getErrorMessage(lastError)
+        console.error('Add to cart error:', lastError)
         return false
       } finally {
         this.loading = false
