@@ -367,6 +367,15 @@ export function useApi() {
             }
 
             const nextOptions = cloneFetchOptions(options)
+            if (import.meta.client && nuxtApp.$pinia) {
+              const cartStore = useCartStore(nuxtApp.$pinia)
+              const cartVersion = cartStore.getCurrentVersion()
+              if (cartVersion !== null) {
+                const nextHeaders = new Headers(nextOptions.headers ?? {})
+                nextHeaders.set('If-Match', String(cartVersion))
+                nextOptions.headers = nextHeaders
+              }
+            }
             nextOptions._retry409Count = retryCount + 1
             return getApiClient()(request, nextOptions)
           }
