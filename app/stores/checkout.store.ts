@@ -474,7 +474,8 @@ export const useCheckoutStore = defineStore('checkout', {
         const payload: PaymentInitPayload = { order_id: orderId }
         const rawResponse = await api.post<PaymentInitResponse | { data: PaymentInitResponse }>(
           `/payments/${this.selectedPayment.code}/init`,
-          payload
+          payload,
+          { idempotent: true }
         )
 
         const response = this.extractData(rawResponse)

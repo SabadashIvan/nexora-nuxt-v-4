@@ -353,9 +353,11 @@ export function useApi() {
         const headers = new Headers(options.headers ?? {})
 
         if (import.meta.server) {
-          const forwarded = useRequestHeaders(['cookie'])
+          const forwarded = useRequestHeaders(['cookie', 'accept-language'])
           for (const [key, value] of Object.entries(forwarded)) {
-            if (value) headers.set(key, value as string)
+            if (value && !headers.has(key)) {
+              headers.set(key, value as string)
+            }
           }
         }
 
@@ -405,15 +407,6 @@ export function useApi() {
             }
 
             const nextOptions = cloneFetchOptions(options)
-            if (import.meta.client && nuxtApp.$pinia) {
-              const cartStore = useCartStore(nuxtApp.$pinia)
-              const cartVersion = cartStore.getCurrentVersion()
-              if (cartVersion !== null) {
-                const nextHeaders = new Headers(nextOptions.headers ?? {})
-                nextHeaders.set('If-Match', String(cartVersion))
-                nextOptions.headers = nextHeaders
-              }
-            }
             nextOptions._retry409Count = retryCount + 1
             return getApiClient()(request, nextOptions)
           }
