@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  CONFLICT: 409,
   CSRF_MISMATCH: 419,
   VALIDATION_ERROR: 422,
   RATE_LIMIT: 429,
@@ -22,6 +23,7 @@ export const ERROR_MESSAGES: Record<number, string> = {
   401: 'You are not authenticated. Please log in.',
   403: 'You do not have permission to access this resource.',
   404: 'The requested resource was not found.',
+  409: 'The request could not be completed due to a conflict.',
   419: 'Session expired. Please try again.',
   422: 'Validation failed. Please check your input.',
   429: 'Too many requests. Please try again later.',
@@ -59,54 +61,132 @@ export const CHECKOUT_ERRORS = {
   SESSION_EXPIRED: 'SESSION_EXPIRED',
 } as const
 
+class ApiBaseError extends Error implements ApiError {
+  status: number
+  errors?: Record<string, string[]>
+  data?: unknown
+
+  constructor(message: string, status: number, errors?: Record<string, string[]>, data?: unknown) {
+    super(message)
+    this.status = status
+    this.errors = errors
+    this.data = data
+    this.name = new.target.name
+    Object.setPrototypeOf(this, new.target.prototype)
+  }
+}
+
+export class ConcurrencyEvent extends ApiBaseError {
+  resource: string
+  version?: number
+
+  constructor(message: string, resource = 'cart', version?: number, data?: unknown) {
+    super(message, ERROR_CODES.CONFLICT, undefined, data)
+    this.resource = resource
+    this.version = version
+  }
+}
+
+export class ValidationError extends ApiBaseError {
+  constructor(message: string, errors: Record<string, string[]>, data?: unknown) {
+    super(message, ERROR_CODES.VALIDATION_ERROR, errors, data)
+  }
+}
+
+export class SessionError extends ApiBaseError {
+  code: 'csrf' | 'unauthorized' | 'expired'
+
+  constructor(message: string, code: 'csrf' | 'unauthorized' | 'expired', status: number, data?: unknown) {
+    super(message, status, undefined, data)
+    this.code = code
+  }
+}
+
+export class UnknownApiError extends ApiBaseError {
+  statusCode: number
+
+  constructor(message: string, statusCode: number, data?: unknown) {
+    super(message, statusCode, undefined, data)
+    this.statusCode = statusCode
+  }
+}
+
+function normalizeMessage(message: string | undefined, status: number): string {
+  return message || ERROR_MESSAGES[status] || ERROR_MESSAGES[500] || 'An unexpected error occurred.'
+}
+
 /**
  * Parse API error response into a structured format
  */
 export function parseApiError(error: unknown): ApiError {
-  // Handle fetch errors
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      status: 500,
-    }
+  if (error instanceof ApiBaseError) {
+    return error
   }
 
-  // Handle API error responses
-  if (typeof error === 'object' && error !== null) {
-    const err = error as Record<string, unknown>
-    
-    // Check for standard API error format
-    if ('data' in err && typeof err.data === 'object' && err.data !== null) {
-      const data = err.data as Record<string, unknown>
-      return {
-        message: (data.message as string) || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
-        errors: data.errors as Record<string, string[]> | undefined,
-        status: (err.status as number) || (data.status as number) || 500,
-      }
-    }
+  const err = error as Record<string, unknown> | undefined
+  const response = err?.response as Record<string, unknown> | undefined
+  const status = (err?.status as number | undefined)
+    ?? (response?.status as number | undefined)
+    ?? ERROR_CODES.SERVER_ERROR
+  const data = (err?.data as Record<string, unknown> | undefined)
+    ?? (response?._data as Record<string, unknown> | undefined)
+  const message = normalizeMessage(
+    (data?.message as string | undefined)
+    ?? (data?.error as string | undefined)
+    ?? (data?.detail as string | undefined)
+    ?? (response?.statusText as string | undefined)
+    ?? (err?.message as string | undefined),
+    status
+  )
 
-    // Direct error object
-    return {
-      message: (err.message as string) || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
-      errors: err.errors as Record<string, string[]> | undefined,
-      status: (err.status as number) || 500,
-    }
+  if (status === ERROR_CODES.CONFLICT) {
+    const version = data?.version
+    return new ConcurrencyEvent(message, 'cart', typeof version === 'number' ? version : undefined, data)
   }
 
-  return {
-    message: ERROR_MESSAGES[500] || 'An unexpected error occurred.',
-    status: 500,
+  if (status === ERROR_CODES.VALIDATION_ERROR) {
+    const errors = (data?.errors as Record<string, string[]> | undefined) ?? {}
+    return new ValidationError(message, errors, data)
   }
+
+  if (status === ERROR_CODES.UNAUTHORIZED) {
+    return new SessionError(message, 'unauthorized', status, data)
+  }
+
+  if (status === ERROR_CODES.CSRF_MISMATCH) {
+    return new SessionError(message, 'csrf', status, data)
+  }
+
+  return new UnknownApiError(message, status, data)
+}
+
+export function isConcurrencyEvent(error: unknown): error is ConcurrencyEvent {
+  return error instanceof ConcurrencyEvent
+}
+
+export function isValidationError(error: ApiError | unknown): boolean {
+  const parsed = error && typeof error === 'object' && 'status' in error
+    ? error as ApiError
+    : parseApiError(error)
+  return parsed.status === ERROR_CODES.VALIDATION_ERROR
+}
+
+export function isSessionError(error: unknown): error is SessionError {
+  return error instanceof SessionError
+}
+
+export function isUnknownApiError(error: unknown): error is UnknownApiError {
+  return error instanceof UnknownApiError
 }
 
 /**
  * Get user-friendly error message
  */
 export function getErrorMessage(error: ApiError | unknown): string {
-  const parsed = error && typeof error === 'object' && 'message' in error 
-    ? error as ApiError 
+  const parsed = error && typeof error === 'object' && 'message' in error
+    ? error as ApiError
     : parseApiError(error)
-  
+
   return parsed.message || ERROR_MESSAGES[parsed.status] || ERROR_MESSAGES[500] || 'An unexpected error occurred.'
 }
 
@@ -115,7 +195,7 @@ export function getErrorMessage(error: ApiError | unknown): string {
  */
 export function getFieldErrors(error: ApiError): Record<string, string> {
   if (!error.errors) return {}
-  
+
   const fieldErrors: Record<string, string> = {}
   for (const [field, messages] of Object.entries(error.errors)) {
     fieldErrors[field] = messages[0] || ''
@@ -124,21 +204,11 @@ export function getFieldErrors(error: ApiError): Record<string, string> {
 }
 
 /**
- * Check if error is a validation error (422)
- */
-export function isValidationError(error: ApiError | unknown): boolean {
-  const parsed = error && typeof error === 'object' && 'status' in error 
-    ? error as ApiError 
-    : parseApiError(error)
-  return parsed.status === ERROR_CODES.VALIDATION_ERROR
-}
-
-/**
  * Check if error is an authentication error (401)
  */
 export function isAuthError(error: ApiError | unknown): boolean {
-  const parsed = error && typeof error === 'object' && 'status' in error 
-    ? error as ApiError 
+  const parsed = error && typeof error === 'object' && 'status' in error
+    ? error as ApiError
     : parseApiError(error)
   return parsed.status === ERROR_CODES.UNAUTHORIZED
 }
@@ -148,8 +218,8 @@ export function isAuthError(error: ApiError | unknown): boolean {
  * Laravel returns 419 when XSRF token is invalid or expired
  */
 export function isCsrfError(error: ApiError | unknown): boolean {
-  const parsed = error && typeof error === 'object' && 'status' in error 
-    ? error as ApiError 
+  const parsed = error && typeof error === 'object' && 'status' in error
+    ? error as ApiError
     : parseApiError(error)
   return parsed.status === ERROR_CODES.CSRF_MISMATCH
 }
@@ -159,8 +229,8 @@ export function isCsrfError(error: ApiError | unknown): boolean {
  */
 export function isCheckoutError(error: ApiError): boolean {
   const checkoutErrorMessages = Object.values(CHECKOUT_ERRORS)
-  return checkoutErrorMessages.some(code => 
-    error.message?.includes(code) || 
+  return checkoutErrorMessages.some(code =>
+    error.message?.includes(code) ||
     (error.errors && Object.keys(error.errors).some(key => key.includes(code)))
   )
 }
@@ -169,19 +239,22 @@ export function isCheckoutError(error: ApiError): boolean {
  * Create a typed API error for throwing
  */
 export function createApiError(status: number, message?: string, errors?: Record<string, string[]>): ApiError {
-  return {
-    status,
-    message: message || ERROR_MESSAGES[status] || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
-    errors,
+  const apiError = new UnknownApiError(
+    message || ERROR_MESSAGES[status] || ERROR_MESSAGES[500] || 'An unexpected error occurred.',
+    status
+  )
+  if (errors) {
+    apiError.errors = errors
   }
+  return apiError
 }
 
 /**
  * Check if error is a rate limit error (429)
  */
 export function isRateLimitError(error: ApiError | unknown): boolean {
-  const parsed = error && typeof error === 'object' && 'status' in error 
-    ? error as ApiError 
+  const parsed = error && typeof error === 'object' && 'status' in error
+    ? error as ApiError
     : parseApiError(error)
   return parsed.status === ERROR_CODES.RATE_LIMIT
 }
@@ -228,7 +301,7 @@ export function getAuthErrorMessage(
   if (status === ERROR_CODES.RATE_LIMIT) {
     const retryTime = extractRetryTime(error)
     const template = AUTH_ERROR_MESSAGES[endpoint]?.[429] ?? ERROR_MESSAGES[429] ?? 'Too many requests.'
-    
+
     if (retryTime !== null) {
       return template.replace('{time}', String(retryTime))
     }
@@ -252,4 +325,3 @@ export function getAuthErrorMessage(
   // For other errors, use backend message or generic message
   return error.message || (ERROR_MESSAGES[status] ?? defaultMessage)
 }
-
