@@ -159,16 +159,59 @@ You are a **Lead Frontend Architect** for a production-grade Nuxt 4 e-commerce a
 
 ## 📖 Documentation Files Reference
 
+**📍 Start here:** `ai/README.md` - Central navigation hub with complete file index
+
+### Core Documentation
 | File | Purpose | When to Use |
 |------|---------|-------------|
-| `master-prompt.md` | Overall AI role and responsibilities | Understanding your role |
-| `architecture.md` | Complete system architecture | Understanding structure, patterns |
-| `api.md` | All API endpoints and contracts | Making API calls |
-| `stores.md` | Store definitions and behavior | Working with state management |
-| `checkout-flow.md` | Checkout process details | Implementing checkout |
-| `system-core.md` | Immutable core rules | Understanding constraints |
-| `constitution/*.md` | Specific rule sets | Following specific rules |
-| `operations/ai-rules.md` | Output format rules | Generating code |
+| `ai/core/master-prompt.md` | Overall AI role and responsibilities | Understanding your role |
+| `ai/core/architecture.md` | Complete system architecture | Understanding structure, patterns |
+| `ai/core/system-core.md` | Immutable core rules | Understanding constraints |
+
+### API Documentation (9 domain-specific files)
+| File | Domains | When to Use |
+|------|---------|-------------|
+| `ai/api/authentication.md` | Auth, Identity, OAuth | User authentication, profile management |
+| `ai/api/catalog.md` | Products, Categories, Search | Catalog pages, product listings |
+| `ai/api/cart-favorites.md` | Cart, Wishlist, Comparison | Shopping cart, favorites functionality |
+| `ai/api/checkout-payments.md` | Checkout, Payments | Purchase flow, payment processing |
+| `ai/api/shipping-orders.md` | Shipping, Orders | Order management, shipping selection |
+| `ai/api/content.md` | Blog, Comments, Reviews | Content pages, user-generated content |
+| `ai/api/notifications-loyalty.md` | Notifications, Loyalty | Notifications, loyalty points |
+| `ai/api/audience-support.md` | Audience, Support | Newsletter, contact forms, support |
+| `ai/api/system-seo.md` | System, SEO, Menus | System config, SEO metadata |
+
+See `ai/api/README.md` for detailed API navigation.
+
+### State Management
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `ai/stores/stores.md` | All 17 Pinia stores | Working with state management |
+
+See `ai/stores/README.md` for store index.
+
+### Business Flows
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `ai/flows/checkout-flow.md` | Complete checkout process | Implementing checkout |
+
+### Constitution (Immutable Rules)
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `ai/constitution/api-rules.md` | API contract rules | API integration |
+| `ai/constitution/rendering.md` | SSR vs CSR rules | Page rendering decisions |
+| `ai/constitution/checkout.md` | Checkout-specific rules | Checkout implementation |
+| `ai/constitution/seo-i18n.md` | SEO and i18n rules | SEO and localization |
+| `ai/constitution/tokens.md` | Token model rules | Token management |
+
+### Operations & Reference
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `ai/operations/not-implemented.md` | Frontend integration roadmap | Planning new features |
+| `ai/operations/frontend-todo.md` | Quick actionable checklist | Daily development tasks |
+| `ai/operations/ai-rules.md` | Operational rules | Code generation standards |
+| `ai/reference/endpoint-index.md` | Alphabetical endpoint list | Quick endpoint lookup |
+| `ai/reference/dto-mapping.md` | DTO mapping guide | Data transformation |
 
 ## 🚫 Common Mistakes to Avoid
 
@@ -183,12 +226,12 @@ You are a **Lead Frontend Architect** for a production-grade Nuxt 4 e-commerce a
 
 ## ✅ Checklist Before Generating Code
 
-- [ ] Read relevant documentation from `ai/` folder
-- [ ] Understand SSR vs CSR requirements
-- [ ] Check API endpoints in `api.md`
-- [ ] Review store patterns in `stores.md`
-- [ ] Verify rendering rules in `constitution/rendering.md`
-- [ ] Check API rules in `constitution/api-rules.md`
+- [ ] Read relevant documentation from `ai/` folder (start with `ai/README.md`)
+- [ ] Understand SSR vs CSR requirements (see `ai/constitution/rendering.md`)
+- [ ] Check API endpoints (see `ai/api/README.md` for domain-specific files)
+- [ ] Review store patterns (see `ai/stores/stores.md`)
+- [ ] Verify rendering rules (`ai/constitution/rendering.md`)
+- [ ] Check API rules (`ai/constitution/api-rules.md`)
 - [ ] Ensure proper error handling
 - [ ] Include TypeScript types
 - [ ] Follow existing patterns

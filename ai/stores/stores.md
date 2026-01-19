@@ -553,17 +553,40 @@ Payload:
 
 Status becomes "shipping".
 
-fetchShippingMethods()
-GET /shipping/methods?country=...&city=...
+fetchShippingMethods(checkoutSessionId, destination)
+GET /api/v1/shipping/methods?checkout_session_id={id}&dest.country=...&dest.city=...
 
 
 Stores the result into:
 
 shippingMethods[]
 
-applyShippingMethod(methodId)
-PUT /checkout/{id}/shipping-method
+**Parameters:**
+- `checkout_session_id` (required): Current checkout session ID
+- `dest.country` (required): Destination country code
+- `dest.city` (required): Destination city
+- `dest.region` (optional): Destination region/state
+- `dest.postal` (optional): Destination postal code
 
+applyShippingMethod(methodCode, quoteId, warehouseId?)
+PUT /api/v1/checkout/{id}/shipping-method
+
+**Body:**
+```json
+{
+  "method_code": "np_warehouse",
+  "quote_id": "q_01k8awpra03ck0bq331y0j3fd5",
+  "provider_metadata": {
+    "warehouse_external_id": "1ec09d88-e1c2-11ec-8f4a-48df37b921db"  // Optional: for warehouse methods
+  }
+}
+```
+
+**Warehouse Support:**
+For shipping methods that require warehouse selection (pickup points):
+1. Use `useShippingSearch()` composable to search settlements
+2. Then search warehouses for selected city
+3. Include `warehouse_external_id` in provider_metadata when applying
 
 Updates:
 
@@ -608,23 +631,58 @@ order list
 
 order details
 
+order status filtering
+
 State
-orders: Order[]
-order: Order | null
-loading: boolean
+```typescript
+{
+  orders: Order[],
+  order: Order | null,
+  statuses: OrderStatus[],        // Available order statuses
+  pagination: PaginationMeta | null,
+  loading: boolean,
+  error: string | null
+}
+```
+
+Getters
+- `orderCount`: Total number of orders
+- `hasOrders`: Whether user has any orders
+- `availableStatuses`: List of order statuses for filtering
 
 Actions
-fetchOrders()
-GET /orders
 
-fetchOrder(id)
-GET /orders/{id}
+**fetchOrders(page, perPage, statuses)**
+GET /api/v1/orders?page={page}&per_page={perPage}&statuses[]={ids}
+
+Load paginated orders list with optional status filtering.
+- `statuses` parameter accepts array of status IDs: [1, 2, 3]
+- Multiple statuses can be selected simultaneously
+
+**fetchOrder(id)**
+GET /api/v1/orders/{id}
+
+Load detailed order information including:
+- Order lines with options
+- Totals and discounts
+- Loyalty points used
+- Shipping details
+- Shipment tracking
+- Payment intent status
+- Addresses
+
+**fetchOrderStatuses()**
+GET /api/v1/orders/statuses
+
+Load list of available order statuses.
+Response: Array of `{ id, title }` objects
+Example: [{ id: 1, title: "Pending" }, { id: 2, title: "Paid" }]
 
 SSR Behavior
 
 Orders are CSR, not SSR
 
-Must have Authorization token
+Must have Authorization token (cookie-based session)
 
 10. Blog Store (blog.store.ts)
 Purpose
@@ -799,11 +857,140 @@ GET /api/v1/reviews (or product-specific endpoint)
 createReview(payload)
 POST /api/v1/reviews
 
+**14.2 Create Reply to Review**
+POST /api/v1/reviews/{review_id}/replies
+
+Body:
+{
+  "body": "Thank you for your feedback!"
+}
+
 SSR Behavior
 
 CSR-only (reviews are not SEO-critical)
 
-15. Token Notes
+15. Loyalty Store (loyalty.store.ts)
+
+Purpose
+
+Manages loyalty points account and transaction history for authenticated users.
+
+State
+```typescript
+{
+  account: LoyaltyAccount | null,     // { user_id, balance, pending }
+  history: LoyaltyTransaction[],      // Array of transactions
+  historyPagination: PaginationMeta | null,
+  loading: boolean,
+  error: string | null
+}
+```
+
+Getters
+- `activeBalance`: Formatted active balance string
+- `pendingBalance`: Formatted pending balance string
+- `hasLoyaltyAccount`: Whether user has loyalty account loaded
+- `totalTransactions`: Total count from pagination
+
+Actions
+
+**fetchLoyaltyAccount()**
+GET /api/v1/loyalty
+
+Loads current balance (active + pending) for authenticated user.
+
+**fetchLoyaltyHistory(page, perPage)**
+GET /api/v1/loyalty/history?page={page}&per_page={perPage}
+
+Loads paginated transaction history.
+
+Response includes:
+- Transaction type: "Accrual" or "Spending"
+- Amount (formatted with sign: "+$100.00" or "-$10.00")
+- Description
+- Expiration date (for accruals)
+- Created date
+
+SSR Behavior
+
+CSR-only (requires authentication, user-specific data)
+
+**Authentication:** Required (cookie-based session)
+
+16. Notifications Store (notifications.store.ts)
+
+Purpose
+
+Manages user notifications, preferences, and notification actions.
+
+State
+```typescript
+{
+  notifications: Notification[],
+  preferences: NotificationChannel[],
+  unreadCount: number,
+  currentFilter: 'all' | 'unread' | 'archived',
+  hasMorePages: boolean,
+  loading: boolean,
+  error: string | null
+}
+```
+
+Getters
+- `unreadNotifications`: Filter unread notifications
+- `archivedNotifications`: Filter archived notifications  
+- `hasUnread`: Whether there are unread notifications
+
+Actions
+
+**fetchNotifications(filter)**
+GET /api/v1/notifications?filter={all|unread|archived}
+
+Load notifications with optional filter.
+
+**fetchUnreadCount()**
+GET /api/v1/notifications/count
+
+Get count of unread notifications (for badge display).
+
+**fetchPreferences()**
+GET /api/v1/notifications/preferences
+
+Load notification preferences matrix (channels and groups).
+
+**togglePreference(channel, group)**
+PUT /api/v1/notifications/preferences/{channel}/{group}
+
+Toggle notification preference for specific channel and group.
+Channels: 1 (Mail), 2 (Database), 3 (Broadcast)
+
+**markAsRead(id)**
+PUT /api/v1/notifications/{id}/read
+
+Mark specific notification as read.
+
+**markAllAsRead()**
+PUT /api/v1/notifications/read-all
+
+Mark all unread notifications as read.
+
+**archiveNotification(id)**
+PUT /api/v1/notifications/{id}/archive
+
+Archive notification (removes from default list).
+
+**restoreNotification(id)**
+PUT /api/v1/notifications/{id}/restore
+
+Restore previously archived notification.
+
+SSR Behavior
+
+CSR-only (requires authentication, user-specific data)
+
+**Authentication:** Required (cookie-based session)
+
+17. Token Notes
 
 The following stores require tokens:
 
