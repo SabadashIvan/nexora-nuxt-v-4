@@ -66,7 +66,7 @@ Shipping Methods	GET /api/v1/shipping/methods	GET	Returns available shipping met
 Shipping Selection	PUT /api/v1/checkout/{id}/shipping-method	PUT	Sets chosen shipping method
 Payment Provider	PUT /api/v1/checkout/{id}/payment-provider	PUT	Sets payment type
 Confirm	POST /api/v1/checkout/{id}/confirm	POST	Creates final order
-Payment Init	POST /api/v1/payments/{provider}/init	POST	Initializes payment (after confirm)
+Payment Init	POST /api/v1/payments/init	POST	Initializes payment (after confirm)
 
 **Important Notes:**
 
@@ -80,7 +80,7 @@ Payment Init	POST /api/v1/payments/{provider}/init	POST	Initializes payment (aft
 - Checkout does NOT initialize payments.
 
 - Payment initialization happens exclusively via:
-  **POST** `/api/v1/payments/{provider}/init` (after order confirmation)
+  **POST** `/api/v1/payments/init` (after order confirmation, with provider_code in body)
 
 - Coupons belong to Cart domain, NOT checkout:
   - **POST** `/api/v1/cart/coupons`
@@ -211,19 +211,48 @@ X-Cart-Token: <token>
    **GET** `/api/v1/shipping/methods`
    
    Query params:
-   - country
-   - region
-   - city
-   - postal
+   - `checkout_session_id` (required): Current checkout session ID
+   - `dest.country` (required): Destination country
+   - `dest.city` (required): Destination city
+   - `dest.region` (optional): Destination region/state
+   - `dest.postal` (optional): Destination postal code
 
-2. User selects one
+2. **For warehouse shipping methods:**
+   a. Search for settlements:
+      **GET** `/api/v1/shipping/{provider_code}/settlements/search?city_name={query}`
+   
+   b. User selects city from search results
+   
+   c. Search for warehouses:
+      **GET** `/api/v1/shipping/{provider_code}/warehouses/search`
+      Query params:
+      - `method_code`: Shipping method code
+      - `city_external_id`: Selected city's external ID
+      - `checkout_session_id`: Current checkout session ID
+      - `search` (optional): Warehouse name/number filter
+   
+   d. User selects warehouse/pickup point
 
 3. Save selection:
    **PUT** `/api/v1/checkout/{id}/shipping-method`
    
    Body:
    ```json
-   { "method_id": 4 }
+   {
+     "method_code": "standard_shipping",
+     "quote_id": "q_01k8awpra03ck0bq331y0j3fd5"
+   }
+   ```
+   
+   **For warehouse methods, include warehouse metadata:**
+   ```json
+   {
+     "method_code": "np_warehouse",
+     "quote_id": "q_01k8awpra03ck0bq331y0j3fd5",
+     "provider_metadata": {
+       "warehouse_external_id": "1ec09d88-e1c2-11ec-8f4a-48df37b921db"
+     }
+   }
    ```
 
 4. Prices update automatically
@@ -282,24 +311,32 @@ X-Cart-Token: <token>
 
 **After order creation:**
 1. Initialize payment (if online provider):
-   **POST** `/api/v1/payments/{provider}/init`
+   **POST** `/api/v1/payments/init`
    
    Body:
    ```json
-   { "order_id": 8192 }
+   {
+     "order_id": 8192,
+     "provider_code": "liqpay"
+   }
    ```
    
    Response:
    ```json
    {
-     "payment_url": "https://provider.com/pay?session=...",
-     "status": "pending"
+     "data": {
+       "payment_intent_id": 1,
+       "status": 1,
+       "payment_url": "https://provider.com/pay?session=..."
+     }
    }
    ```
 
 2. Redirect based on payment type:
    - **Online payment**: Redirect to `payment_url`
-   - **Offline payment**: Redirect to `/profile/order/{order_id}`
+   - **Offline payment**: Redirect to `/profile/orders/{order_id}`
+   
+**Note:** Payment API now uses unified endpoint with `provider_code` in request body instead of URL path.
 
 5. Edge Cases & Error Handling
 
@@ -422,7 +459,15 @@ Checkout depends on cart items:
 
 **Payment Initialization:**
 After order confirmation, payment initialization happens via:
-- **POST** `/api/v1/payments/{provider}/init`
+- **POST** `/api/v1/payments/init`
+
+**Request body:**
+```json
+{
+  "order_id": 123,
+  "provider_code": "liqpay"  // Required: payment provider code
+}
+```
 
 The selected provider determines:
 - redirect-based flow (online payments)
@@ -431,9 +476,11 @@ The selected provider determines:
 
 **Payment Flow:**
 1. User confirms checkout → order created
-2. Frontend calls payment init endpoint
-3. For online payments: redirect to payment gateway
+2. Frontend calls payment init endpoint with order_id and provider_code
+3. For online payments: redirect to payment_url from response
 4. For offline payments: show instructions and redirect to order page
+
+**Migration Note:** The old endpoint format `/api/v1/payments/{provider}/init` is deprecated. Always use the unified `/api/v1/payments/init` endpoint with provider_code in the request body.
 
 6.3 System Config Integration
 
@@ -511,6 +558,8 @@ So no SSR SEO needed. Checkout is CSR-only.
 **Selection Components:**
 - ShippingMethodCard.vue - Shipping method selection
 - PaymentProviderCard.vue - Payment provider selection
+- SettlementSearch.vue - City/settlement search for warehouse methods
+- WarehouseSelector.vue - Warehouse/pickup point selection
 
 **Summary Components:**
 - OrderSummary.vue - Complete order summary sidebar
@@ -644,9 +693,12 @@ X-Cart-Token: <token>
 - [ ] All UI components created
 - [ ] Address validation rules defined
 - [ ] Payment provider list endpoint accessible
-- [ ] Shipping methods endpoint accessible
+- [ ] Shipping methods endpoint accessible (with checkout_session_id parameter)
+- [ ] Warehouse search composable created (useShippingSearch)
+- [ ] Settlement and warehouse search components created
+- [ ] Warehouse metadata support in shipping method application
 - [ ] Order confirmation flow tested
-- [ ] Payment initialization flow tested
+- [ ] Payment initialization flow tested (with unified endpoint)
 - [ ] Cart invalidation handling implemented
 - [ ] Currency change reactivity implemented
 
