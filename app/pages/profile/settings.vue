@@ -31,7 +31,6 @@ const passwordFieldErrors = ref<Record<string, string>>({})
 // Email change form state
 const emailForm = reactive({
   email: '',
-  password: '',
 })
 const emailSubmitting = ref(false)
 const emailSuccess = ref(false)
@@ -54,7 +53,7 @@ const isPasswordValid = computed(() => {
 // Email validation
 const isEmailValid = computed(() => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(emailForm.email) && emailForm.password.length >= 1
+  return emailRegex.test(emailForm.email)
 })
 
 // Handle password change request
@@ -98,8 +97,7 @@ async function handleEmailChange() {
   emailFieldErrors.value = {}
 
   const payload: ChangeEmailRequestPayload = {
-    email: emailForm.email,
-    password: emailForm.password,
+    new_email: emailForm.email,
   }
 
   const success = await authStore.value.requestEmailChange(payload)
@@ -108,7 +106,6 @@ async function handleEmailChange() {
     emailSuccess.value = true
     // Reset form
     emailForm.email = ''
-    emailForm.password = ''
   } else {
     emailError.value = authStore.value.error
     emailFieldErrors.value = authStore.value.fieldErrors
@@ -411,35 +408,13 @@ onBeforeUnmount(() => {
             :disabled="emailSubmitting"
             :class="[
               'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-              emailFieldErrors.email ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600',
+              emailFieldErrors.new_email ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600',
               'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             ]"
           />
-          <p v-if="emailFieldErrors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ emailFieldErrors.email }}
-          </p>
-        </div>
-
-        <div>
-          <label for="email_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ $t('profile.settings.confirmWithPassword') }}
-          </label>
-          <input
-            id="email_password"
-            v-model="emailForm.password"
-            type="password"
-            required
-            :disabled="emailSubmitting"
-            :class="[
-              'mt-1 block w-full px-3 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
-              emailFieldErrors.password ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600',
-              'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
-            ]"
-          />
-          <p v-if="emailFieldErrors.password" class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {{ emailFieldErrors.password }}
+          <p v-if="emailFieldErrors.new_email" class="mt-1 text-sm text-red-600 dark:text-red-400">
+            {{ emailFieldErrors.new_email }}
           </p>
         </div>
 

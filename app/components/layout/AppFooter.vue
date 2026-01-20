@@ -7,21 +7,23 @@ import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, MessageCircle } from
 
 // Locale-aware navigation
 const localePath = useLocalePath()
-const systemStore = useSystemStore()
+const systemStore = shallowRef<ReturnType<typeof useSystemStore> | null>(null)
 
 const currentYear = new Date().getFullYear()
 
 // Fetch contacts on mount (client-side only)
 onMounted(async () => {
-  if (!systemStore.contacts) {
-    await systemStore.fetchContacts()
+  systemStore.value = useSystemStore()
+
+  if (!systemStore.value.contacts) {
+    await systemStore.value.fetchContacts()
   }
 })
 
 // Computed properties for contact data with fallbacks
-const contacts = computed(() => systemStore.contacts?.contacts)
-const socials = computed(() => systemStore.contacts?.socials ?? [])
-const messengers = computed(() => systemStore.contacts?.messengers ?? [])
+const contacts = computed(() => systemStore.value?.contacts?.contacts)
+const socials = computed(() => systemStore.value?.contacts?.socials ?? [])
+const messengers = computed(() => systemStore.value?.contacts?.messengers ?? [])
 
 const email = computed(() => contacts.value?.email ?? 'support@nexora.shop')
 const phones = computed(() => contacts.value?.phones ?? ['+1 (234) 567-890'])
@@ -212,4 +214,3 @@ function getSocialIcon(title: string) {
     </div>
   </footer>
 </template>
-

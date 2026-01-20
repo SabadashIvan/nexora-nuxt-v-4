@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Email Change Confirmation Page
- * Confirms email change using id and hash from email link
- * URL: /auth/change-email-confirm?id=xxx&hash=xxx
+ * Confirms email change using token from email link
+ * URL: /auth/change-email-confirm?token=xxx&email=user%40example.com
  */
 import { CheckCircle, XCircle, Loader2 } from 'lucide-vue-next'
 
@@ -17,14 +17,14 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 
 const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
-const id = computed(() => route.query.id as string | undefined)
-const hash = computed(() => route.query.hash as string | undefined)
+const token = computed(() => route.query.token as string | undefined)
+const queryEmail = computed(() => route.query.email as string | undefined)
 const status = ref<'loading' | 'success' | 'error'>('loading')
 
 onMounted(async () => {
   authStore.value = useAuthStore()
 
-  if (!id.value || !hash.value) {
+  if (!token.value) {
     status.value = 'error'
     if (authStore.value) {
       authStore.value.error = t('auth.changeEmail.invalidLink')
@@ -33,7 +33,17 @@ onMounted(async () => {
   }
 
   // Auto-confirm on mount
-  const success = await authStore.value.confirmEmailChange(id.value, hash.value)
+  const email = queryEmail.value ?? authStore.value?.user?.email
+
+  if (!email) {
+    status.value = 'error'
+    if (authStore.value) {
+      authStore.value.error = t('auth.changeEmail.invalidLink')
+    }
+    return
+  }
+
+  const success = await authStore.value.confirmEmailChange(token.value, email)
 
   if (success) {
     status.value = 'success'

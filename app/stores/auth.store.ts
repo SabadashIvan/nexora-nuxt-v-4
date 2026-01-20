@@ -632,9 +632,9 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * Confirm email change with verification link
-     * GET /api/v1/change-email/{id}/{hash}
+     * POST /api/v1/change-email/confirm/{token}
      */
-    async confirmEmailChange(id: string, hash: string): Promise<boolean> {
+    async confirmEmailChange(token: string, email: string): Promise<boolean> {
       const nuxtApp = useNuxtApp()
       const api = useApi()
       this.loading = true
@@ -642,7 +642,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         await nuxtApp.runWithContext(async () =>
-          await api.get(`/change-email/${id}/${hash}`)
+          await api.post(`/change-email/confirm/${token}`, { email })
         )
         // Refresh user to get updated email
         await this.fetchUser()

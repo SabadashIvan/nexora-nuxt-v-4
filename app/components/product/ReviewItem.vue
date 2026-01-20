@@ -15,14 +15,14 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const authStore = useAuthStore()
-const reviewsStore = useReviewsStore()
+const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
+const reviewsStore = shallowRef<ReturnType<typeof useReviewsStore> | null>(null)
 
 const hasReplies = computed(() => props.review.replies && props.review.replies.length > 0)
 const hasPros = computed(() => props.review.pros && props.review.pros.trim().length > 0)
 const hasCons = computed(() => props.review.cons && props.review.cons.trim().length > 0)
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-const submitting = computed(() => reviewsStore.submitting)
+const isAuthenticated = computed(() => authStore.value?.isAuthenticated ?? false)
+const submitting = computed(() => reviewsStore.value?.submitting ?? false)
 
 // Reply form state
 const showReplyForm = ref(false)
@@ -32,7 +32,8 @@ function toggleReplyForm() {
 }
 
 async function handleReplySubmit(body: string) {
-  const reply = await reviewsStore.createReply(props.review.id, body)
+  if (!reviewsStore.value) return
+  const reply = await reviewsStore.value.createReply(props.review.id, body)
   if (reply) {
     showReplyForm.value = false
     emit('replyCreated')
@@ -42,6 +43,11 @@ async function handleReplySubmit(body: string) {
 function handleReplyCancel() {
   showReplyForm.value = false
 }
+
+onMounted(() => {
+  authStore.value = useAuthStore()
+  reviewsStore.value = useReviewsStore()
+})
 
 // Format date relative to now
 function formatDate(dateString: string): string {
@@ -192,4 +198,3 @@ function formatDate(dateString: string): string {
     </div>
   </article>
 </template>
-

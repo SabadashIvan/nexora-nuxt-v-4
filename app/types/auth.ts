@@ -114,8 +114,7 @@ export interface ChangePasswordConfirmPayload {
  * POST /api/v1/change-email/request
  */
 export interface ChangeEmailRequestPayload {
-  email: string
-  password: string
+  new_email: string
 }
 
 // Enums are now imported from ./enums
