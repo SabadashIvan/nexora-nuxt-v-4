@@ -3,7 +3,7 @@
  * Main application header with navigation - Tailwind template design
  * Uses mega menu from API endpoint /api/v1/site/menus/tree
  */
-import { 
+import {
   Menu,
   Search,
   X,
@@ -13,6 +13,7 @@ import {
   User,
   ShoppingCart,
   LogOut,
+  Bell,
 } from 'lucide-vue-next'
 import { useCartStore } from '~/stores/cart.store'
 import { useAuthStore } from '~/stores/auth.store'
@@ -20,6 +21,7 @@ import { useCatalogStore } from '~/stores/catalog.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
 import { useSystemStore } from '~/stores/system.store'
+import { useNotificationsStore } from '~/stores/notifications.store'
 import type { MenuItem, MenuTreeResponse, ProductListItem } from '~/types'
 import { useApi } from '~/composables/useApi'
 import { getImageUrl } from '~/utils/image'
@@ -82,6 +84,15 @@ const favoritesCount = computed(() => {
 const comparisonCount = computed(() => {
   try {
     return useComparisonStore().count
+  } catch {
+    return 0
+  }
+})
+
+const unreadNotificationCount = computed(() => {
+  try {
+    if (!isAuthenticated.value) return 0
+    return useNotificationsStore().unreadCount
   } catch {
     return 0
   }
@@ -408,6 +419,22 @@ onMounted(async () => {
                   {{ cartItemCount > 99 ? '99+' : cartItemCount }}
                 </span>
                 <span class="sr-only">{{ $t('navigation.itemsInCart') }}</span>
+              </NuxtLink>
+
+              <!-- Notifications (only for authenticated users) -->
+              <NuxtLink
+                v-if="isAuthenticated"
+                :to="localePath('/profile/notifications')"
+                class="group -m-2 flex items-center p-2 relative"
+              >
+                <Bell class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500" />
+                <span
+                  v-if="unreadNotificationCount > 0"
+                  class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-medium text-white"
+                >
+                  {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+                </span>
+                <span class="sr-only">{{ $t('navigation.viewNotifications') }}</span>
               </NuxtLink>
 
               <!-- User Menu -->

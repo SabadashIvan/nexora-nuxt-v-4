@@ -117,4 +117,55 @@ export interface ChangeEmailRequestPayload {
   new_email: string
 }
 
+/**
+ * Backend address format (different from frontend IdentityAddress)
+ * Backend returns is_default_shipping/is_default_billing, frontend expects type + is_default
+ */
+export interface BackendAddress {
+  id: number
+  first_name: string
+  last_name: string
+  street: string
+  city: string
+  country: string
+  postal_code: string
+  phone?: string
+  is_default_shipping?: boolean
+  is_default_billing?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+/**
+ * Adapt backend address format to frontend IdentityAddress format
+ */
+export function adaptBackendAddress(backendAddr: BackendAddress): IdentityAddress {
+  // Determine type based on which default flag is set
+  let type: IdentityAddressType | string = IdentityAddressType.SHIPPING
+  let isDefault = false
+
+  if (backendAddr.is_default_shipping) {
+    type = IdentityAddressType.SHIPPING
+    isDefault = true
+  } else if (backendAddr.is_default_billing) {
+    type = IdentityAddressType.BILLING
+    isDefault = true
+  }
+
+  return {
+    id: backendAddr.id,
+    type,
+    first_name: backendAddr.first_name,
+    last_name: backendAddr.last_name,
+    street: backendAddr.street,
+    city: backendAddr.city,
+    country: backendAddr.country,
+    postal_code: backendAddr.postal_code,
+    phone: backendAddr.phone,
+    is_default: isDefault,
+    created_at: backendAddr.created_at,
+    updated_at: backendAddr.updated_at,
+  }
+}
+
 // Enums are now imported from ./enums

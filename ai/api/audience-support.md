@@ -137,54 +137,127 @@ Handles webhook events from external mailing providers to synchronize local subs
 
 ## Leads API
 
-Used for contact forms and product inquiries.
+Used for quick buy/callback requests and product inquiries.
 
-### 1. Contact Form Submission (Simple)
+### 1. Create Lead (Quick Buy / Callback Request)
 `POST /api/v1/leads`
 
-Basic lead submission for contact forms.
+Submit a new lead for quick buy or callback request. Rate limited to 3 attempts per 60 minutes per email/IP combination.
+
+**Authentication:** None required (public endpoint)
+
+**Rate Limiting:**
+- 3 attempts per 60 minutes per email/IP combination
+- Returns 429 with `retry_after` field indicating seconds until retry is allowed
 
 **Body:**
 ```json
 {
-  "name": "John Doe",
-  "email": "john@mail.com",
-  "message": "Please contact me"
-}
-```
-
----
-
-### 2. Create Lead with Product Items
-`POST /api/v1/leads`
-
-Submit a new lead with product items. Rate limited to 3 attempts per 60 minutes per email/IP combination.
-
-**Body:**
-```json
-{
-  "items": [                    // Required: Array of product variants
+  "items": [
     {
       "variant_id": 1234,
-      "title": "iPhone 15 Pro",
-      "qty": 1,
-      "price": "999.99",
-      "url": "https://example.com/products/iphone-15-pro"
+      "qty": 1
     }
   ],
-  "name": "John Doe",          // Required: Customer name
-  "email": "john@example.com", // Required: Customer email
-  "phone": "+1234567890",      // Optional: Customer phone
-  "comment": "Please call me back" // Optional: Additional comment
+  "customer_name": "John Doe",
+  "customer_phone": "+380501234567",
+  "customer_email": "john@example.com",
+  "comment": "Please call after 6 PM",
+  "currency": "UAH",
+  "locale": "uk",
+  "ip_address": "",
+  "user_agent": "Mozilla/5.0...",
+  "source": "product_page"
 }
 ```
 
-**Response:**
-- Status: 201 Created
+**Fields:**
+- `items` (required): Array of product variants with variant_id and qty
+- `customer_name` (required): Customer's full name (minimum 2 characters)
+- `customer_phone` (required): Customer's phone number (minimum 10 digits)
+- `customer_email` (optional): Customer's email address (must be valid email if provided)
+- `comment` (optional): Additional comment or request details
+- `currency` (required): Currency code (e.g., "UAH", "USD")
+- `locale` (required): Locale code (e.g., "uk", "en")
+- `ip_address` (required): Client IP address (automatically captured server-side from request headers)
+- `user_agent` (required): Browser user agent (captured from `navigator.userAgent`)
+- `source` (optional): Request source identifier (e.g., "product_page", "landing_page")
 
-**Error responses:**
-- `422`: Validation error
-- `429`: Too many attempts (rate limit exceeded)
+**Response Examples:**
+
+Success (201):
+```json
+{
+  "data": {
+    "id": 1,
+    "status": "new",
+    "created_at": "2026-01-20T10:30:00.000000Z"
+  }
+}
+```
+
+Validation Error (422):
+```json
+{
+  "message": "The customer phone field must be at least 10 characters. (and 1 more error)",
+  "errors": {
+    "customer_name": [
+      "The customer name field must be at least 2 characters."
+    ],
+    "customer_phone": [
+      "The customer phone field must be at least 10 characters."
+    ]
+  }
+}
+```
+
+Rate Limit Exceeded (429):
+```json
+{
+  "message": "Too many lead submission attempts. Please try again in 3540 seconds.",
+  "error": "too_many_attempts",
+  "retry_after": 3540
+}
+```
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/leads.store.ts`
+```typescript
+async createLead(payload: CreateLeadPayload): Promise<boolean> {
+  const clientInfo = getClientInfo()
+  const fullPayload = {
+    ...payload,
+    ip_address: '', // Server-side extraction
+    user_agent: clientInfo.user_agent,
+  }
+  await api.post<LeadApiResponse>('/leads', fullPayload)
+}
+```
+
+**Component:** `/app/components/product/QuickBuyModal.vue`
+- Modal form for quick buy/callback requests
+- Includes name, phone, email (optional), comment fields
+- Real-time validation (name min 2 chars, phone min 10 digits)
+- Handles rate limiting with retry countdown
+- Displays field-level validation errors
+- Success message with auto-close
+
+**Usage Example:**
+```vue
+<QuickBuyModal
+  :is-open="showQuickBuy"
+  :product="{ variantId: 1234, title: 'iPhone 15 Pro', price: '$999' }"
+  @update:is-open="showQuickBuy = $event"
+/>
+```
+
+**Notes:**
+- Metadata (ip_address, user_agent) is automatically captured
+- IP address extracted server-side from request headers (X-Forwarded-For, etc.)
+- User agent captured from browser via `navigator.userAgent`
+- No authentication required (public endpoint)
+- CSRF protection applies (XSRF token required)
 
 ---
 

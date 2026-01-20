@@ -8,4 +8,5 @@ export * from './price'
 export * from './format'
 export * from './validator'
 export * from './image'
+export * from './client-info'
 

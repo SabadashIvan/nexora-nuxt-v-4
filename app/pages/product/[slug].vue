@@ -3,7 +3,7 @@
 /**
  * Product detail page - SSR for SEO
  */
-import { Heart, ShoppingCart, Share2, GitCompare } from 'lucide-vue-next'
+import { Heart, ShoppingCart, Share2, GitCompare, Phone } from 'lucide-vue-next'
 import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
@@ -138,6 +138,7 @@ const quantity = ref(1)
 const selectedImageIndex = ref(0)
 const isAddingToCart = ref(false)
 const isMounted = ref(false)
+const showQuickBuyModal = ref(false)
 
 // Computed - use product.value directly (from useAsyncData)
 const currentVariant = computed(() => product.value)
@@ -183,6 +184,17 @@ const isInComparison = computed(() => {
   }
   return false
 })
+
+// Computed for QuickBuyModal product info
+const quickBuyProductInfo = computed(() => {
+  if (!product.value) return null
+  return {
+    variantId: product.value.id,
+    title: product.value.title,
+    price: product.value.price_formatted || product.value.price?.effective || undefined,
+  }
+})
+
 // Helper to compute selected options from product data (for SSR/initial render consistency)
 const computeSelectedOptionsFromProduct = (): Record<string, string> => {
   const options: Record<string, string> = {}
@@ -713,6 +725,14 @@ const gridImages = computed(() => {
                   <Share2 class="h-5 w-5" />
                   <span class="text-sm">{{ $t('product.page.share') }}</span>
                 </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors"
+                  @click="showQuickBuyModal = true"
+                >
+                  <Phone class="h-5 w-5" />
+                  <span class="text-sm">{{ $t('product.page.quickBuy') }}</span>
+                </button>
               </div>
             </form>
           </div>
@@ -803,4 +823,11 @@ const gridImages = computed(() => {
       </div>
     </div>
   </div>
+
+  <!-- Quick Buy Modal -->
+  <ProductQuickBuyModal
+    v-if="quickBuyProductInfo"
+    v-model:is-open="showQuickBuyModal"
+    :product="quickBuyProductInfo"
+  />
 </template>

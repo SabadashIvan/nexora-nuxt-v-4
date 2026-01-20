@@ -26,6 +26,15 @@ export interface CartItemOption {
 }
 
 /**
+ * Cart item image - can be object, string URL, or null
+ * Backend may return either format
+ */
+export type CartItemImage =
+  | { id: number | null; url: string }
+  | string
+  | null
+
+/**
  * Cart item from API
  */
 export interface CartItem {
@@ -35,6 +44,8 @@ export interface CartItem {
   variant_id: number
   /** Product SKU */
   sku: string
+  /** Product name/title */
+  name?: string
   /** Quantity in cart */
   qty: number
   /** Price information */
@@ -45,6 +56,8 @@ export interface CartItem {
   options_total_minor: number
   /** Line total in minor units (qty * effective_price + options) */
   line_total_minor: number
+  /** Product image - can be object or string URL */
+  image?: CartItemImage
 }
 
 /**

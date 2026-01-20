@@ -6,10 +6,11 @@
 
 import { defineStore } from 'pinia'
 import { useNuxtApp } from '#app'
-import type { 
-  Cart, 
-  CartItem, 
-  CartTotals, 
+import type {
+  Cart,
+  CartItem,
+  CartItemImage,
+  CartTotals,
   CartState,
   CartApiResponse,
   CartWarning,
@@ -30,6 +31,16 @@ function cloneCart(cart: Cart): Cart {
     return structuredClone(cart)
   }
   return JSON.parse(JSON.stringify(cart)) as Cart
+}
+
+/**
+ * Get image URL from cart item image
+ * Handles both string and object formats from backend
+ */
+export function getCartItemImageUrl(image: CartItemImage | undefined): string | null {
+  if (!image) return null
+  if (typeof image === 'string') return image
+  return image.url
 }
 
 function recalculateTotals(cart: Cart): void {

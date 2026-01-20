@@ -362,11 +362,211 @@ Confirm the email address change using the token from the confirmation email.
 
 ---
 
+## 6. CSRF Protection
+
+### CSRF Cookie Endpoint
+`GET /sanctum/csrf-cookie`
+
+Initializes CSRF protection by setting the XSRF-TOKEN cookie. This endpoint is part of Laravel Sanctum's CSRF protection mechanism.
+
+**Authentication:** None required
+
+**Response:**
+- Status: 204 No Content
+- Sets `XSRF-TOKEN` cookie in response headers
+
+**Usage:**
+- Called automatically by `useApi()` composable before the first API request
+- No manual implementation needed in components or pages
+- Cookie is HTTP-only and used for all subsequent mutation requests
+
+**Frontend Implementation:**
+
+The CSRF cookie is automatically handled by the `useApi()` composable in `/app/composables/useApi.ts`:
+
+```typescript
+// Automatically called on first request
+await $fetch('/sanctum/csrf-cookie', {
+  baseURL: config.public.apiBackendUrl,
+  credentials: 'include'
+})
+```
+
+**Notes:**
+- Only needs to be called once per session
+- All POST/PUT/DELETE requests automatically include XSRF token
+- Token is read from cookie and sent in `X-XSRF-TOKEN` header
+- This is Laravel Sanctum's standard CSRF protection
+- No action required from developers using `useApi()`
+
+---
+
+## 7. Contact Channels Management
+
+Endpoints for linking and managing notification delivery channels (Telegram, Phone).
+
+### 7.1 Link Contact Channel
+`POST /api/v1/identity/contacts/{channel}`
+
+Links a contact channel for receiving notifications (Telegram or Phone).
+
+**Authentication:** Required (cookie-based)
+
+**Path parameters:**
+- `channel` (integer): Channel identifier
+  - `2` = Telegram
+  - `3` = Phone
+
+**Body (for Phone channel):**
+```json
+{
+  "phone": "+380501234567"
+}
+```
+
+**Body (for Telegram channel):**
+```json
+{}
+```
+
+**Response Examples:**
+
+**Telegram (Returns Deeplink):**
+```json
+{
+  "data": "https://t.me/YourBot?start=verification_token_here",
+  "meta": {
+    "type": "deeplink"
+  }
+}
+```
+
+**Phone (Success):**
+- Status: 204 No Content
+
+**Error responses:**
+- `401`: Unauthenticated
+- `422`: Validation error (invalid phone number, channel already linked)
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/auth.store.ts`
+```typescript
+async linkContactChannel(
+  channel: 'telegram' | 'phone',
+  phone?: string
+): Promise<{data: string, meta: {type: 'deeplink'}} | void> {
+  const api = useApi()
+  const channelValue = channel === 'telegram' ? 2 : 3
+  const body = phone ? { phone } : {}
+  return await api.post(`/identity/contacts/${channelValue}`, body)
+}
+```
+
+**Usage Example (Telegram):**
+```vue
+<script setup>
+const authStore = useAuthStore()
+
+async function linkTelegram() {
+  const response = await authStore.linkContactChannel('telegram')
+  if (response?.meta?.type === 'deeplink') {
+    // Redirect user to Telegram bot
+    window.open(response.data, '_blank')
+  }
+}
+</script>
+```
+
+**Usage Example (Phone):**
+```vue
+<script setup>
+const authStore = useAuthStore()
+const phoneNumber = ref('')
+
+async function linkPhone() {
+  await authStore.linkContactChannel('phone', phoneNumber.value)
+  // Phone number linked successfully
+}
+</script>
+```
+
+---
+
+### 7.2 Unlink Contact Channel
+`DELETE /api/v1/identity/contacts/{channel}`
+
+Unlinks a previously connected contact channel.
+
+**Authentication:** Required (cookie-based)
+
+**Path parameters:**
+- `channel` (integer): Channel identifier
+  - `2` = Telegram
+  - `3` = Phone
+
+**Response:**
+- Status: 204 No Content
+
+**Error responses:**
+- `401`: Unauthenticated
+- `404`: Channel not linked
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/auth.store.ts`
+```typescript
+async unlinkContactChannel(channel: 'telegram' | 'phone'): Promise<void> {
+  const api = useApi()
+  const channelValue = channel === 'telegram' ? 2 : 3
+  await api.delete(`/identity/contacts/${channelValue}`)
+}
+```
+
+**Usage Example:**
+```vue
+<script setup>
+const authStore = useAuthStore()
+
+async function unlinkTelegram() {
+  await authStore.unlinkContactChannel('telegram')
+  // Telegram unlinked successfully
+}
+</script>
+```
+
+**Notes:**
+- **Telegram Flow:**
+  1. Frontend calls `POST /identity/contacts/2`
+  2. Backend returns Telegram bot deeplink
+  3. User clicks deeplink → Opens Telegram
+  4. User sends `/start` command to bot
+  5. Bot verifies token and links account
+  6. User returns to website (channel linked)
+
+- **Phone Flow:**
+  1. Frontend calls `POST /identity/contacts/3` with phone number
+  2. Backend validates and stores phone number
+  3. Channel immediately linked (no verification required)
+
+- **Channel IDs:**
+  - `2` = Telegram (requires deeplink interaction)
+  - `3` = Phone (direct linking)
+
+- **Use Cases:**
+  - Enable push notifications via Telegram
+  - Enable SMS notifications via Phone
+  - Manage notification delivery preferences
+
+---
+
 ## Common API Rules
 
-1. Call `GET /sanctum/csrf-cookie` once on app init
+1. Call `GET /sanctum/csrf-cookie` once on app init (handled automatically)
 2. Ensure all mutation requests include XSRF token automatically
 3. Use cookie-based authentication (Laravel Sanctum)
 4. Handle 401 responses by redirecting to login
 5. Handle 422 validation errors appropriately
 6. Handle 429 rate limit errors with retry-after
+7. Contact channel management requires authentication
+8. Telegram linking requires user interaction via deeplink
