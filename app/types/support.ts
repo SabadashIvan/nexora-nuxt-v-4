@@ -56,6 +56,15 @@ export interface SupportRequestResponse {
 }
 
 /**
+ * Support request type option from API
+ * GET /api/v1/customer-support/requests/types
+ */
+export interface SupportRequestTypeOption {
+  id: number
+  title: string
+}
+
+/**
  * Support store state
  */
 export interface SupportState {
@@ -65,4 +74,6 @@ export interface SupportState {
   success: boolean
   retryAfter: number | null
   fieldErrors: Record<string, string>
+  requestTypes: SupportRequestTypeOption[]
+  requestTypesLoading: boolean
 }

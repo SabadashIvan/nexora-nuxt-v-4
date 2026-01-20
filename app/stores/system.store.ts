@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import type { Locale, Currency, LanguagesResponse, CurrenciesResponse } from '~/types'
+import type { Locale, Currency, LanguagesResponse, CurrenciesResponse, SiteContacts, SiteContactsResponse } from '~/types'
 import { applySeoMetadata, fetchSeoMetadata } from '~/composables/useSeoMetadata'
 import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
 import { getCurrencySymbol } from '~/utils/price'
@@ -14,6 +14,7 @@ interface SystemState {
   currencies: Currency[]
   currentLocale: string
   currentCurrency: string
+  contacts: SiteContacts | null
   loading: boolean
   error: string | null
   initialized: boolean
@@ -25,6 +26,7 @@ export const useSystemStore = defineStore('system', {
     currencies: [],
     currentLocale: 'ru', // Must match nuxt.config.ts i18n.defaultLocale
     currentCurrency: 'USD',
+    contacts: null,
     loading: false,
     error: null,
     initialized: false,
@@ -173,6 +175,22 @@ export const useSystemStore = defineStore('system', {
       }
     },
 
+    /**
+     * Fetch site contacts from API
+     * GET /api/v1/site/contacts
+     */
+    async fetchContacts() {
+      const api = useApi()
+
+      try {
+        const response = await api.get<SiteContactsResponse | SiteContacts>('/site/contacts')
+        // Handle both wrapped and unwrapped response
+        this.contacts = 'data' in response ? response.data : response
+      } catch (error) {
+        console.error('Contacts fetch error:', error)
+        // Don't set error - contacts are optional
+      }
+    },
 
     /**
      * Set current locale (state and cookie only)

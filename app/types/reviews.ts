@@ -53,6 +53,14 @@ export interface CreateReviewPayload {
 }
 
 /**
+ * Payload for creating a reply to a review
+ */
+export interface CreateReplyPayload {
+  /** Reply text */
+  body: string
+}
+
+/**
  * API response for reviews list
  * Uses simplified pagination with has_more_pages
  */

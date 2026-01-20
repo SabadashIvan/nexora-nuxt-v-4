@@ -53,6 +53,8 @@ export const useCheckoutStore = defineStore('checkout', {
     shippingMethods: [],
     shippingCurrency: null,
     selectedShipping: null,
+    selectedSettlement: null,
+    selectedWarehouse: null,
     paymentProviders: [],
     selectedPayment: null,
     pricing: { ...initialPricing },
@@ -310,8 +312,13 @@ export const useCheckoutStore = defineStore('checkout', {
      * Select shipping method
      * @param methodCode - Shipping method code
      * @param quoteId - Optional quote ID from shipping methods response
+     * @param providerMetadata - Optional provider-specific metadata (warehouse selection)
      */
-    async applyShippingMethod(methodCode: string, quoteId?: string): Promise<boolean> {
+    async applyShippingMethod(
+      methodCode: string,
+      quoteId?: string,
+      providerMetadata?: { warehouse_external_id?: string; settlement_external_id?: string }
+    ): Promise<boolean> {
       if (!this.checkoutId) {
         this.error = 'No checkout session'
         return false
@@ -322,14 +329,20 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        const payload: SetShippingMethodPayload = { 
+        const payload: SetShippingMethodPayload = {
           method_code: methodCode,
           quote_id: quoteId,
         }
+
+        // Add provider metadata if warehouse-based shipping
+        if (providerMetadata) {
+          payload.provider_metadata = providerMetadata
+        }
+
         const rawResponse = await api.put<{ shipping_method: ShippingMethod; pricing: CheckoutPricing } | { data: { shipping_method: ShippingMethod; pricing: CheckoutPricing } }>(
           `/checkout/${this.checkoutId}/shipping-method`,
           payload,
-          { 
+          {
             cart: true,
           }
         )
@@ -471,9 +484,12 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        const payload: PaymentInitPayload = { order_id: orderId }
+        const payload: PaymentInitPayload = {
+          order_id: orderId,
+          provider_code: this.selectedPayment.code,
+        }
         const rawResponse = await api.post<PaymentInitResponse | { data: PaymentInitResponse }>(
-          `/payments/${this.selectedPayment.code}/init`,
+          '/payments/init',
           payload,
           { idempotent: true }
         )
@@ -569,6 +585,8 @@ export const useCheckoutStore = defineStore('checkout', {
       this.shippingMethods = []
       this.shippingCurrency = null
       this.selectedShipping = null
+      this.selectedSettlement = null
+      this.selectedWarehouse = null
       this.paymentProviders = []
       this.selectedPayment = null
       this.pricing = { ...initialPricing }

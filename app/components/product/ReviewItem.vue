@@ -3,18 +3,45 @@
  * Review Item Component
  * Displays a single product review with rating, pros/cons, and optional replies
  */
-import { Star, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-vue-next'
+import { Star, ThumbsUp, ThumbsDown, MessageCircle, Reply } from 'lucide-vue-next'
 import type { Review } from '~/types'
 
 const props = defineProps<{
   review: Review
 }>()
 
+const emit = defineEmits<{
+  replyCreated: []
+}>()
+
 const { t } = useI18n()
+const authStore = useAuthStore()
+const reviewsStore = useReviewsStore()
 
 const hasReplies = computed(() => props.review.replies && props.review.replies.length > 0)
 const hasPros = computed(() => props.review.pros && props.review.pros.trim().length > 0)
 const hasCons = computed(() => props.review.cons && props.review.cons.trim().length > 0)
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const submitting = computed(() => reviewsStore.submitting)
+
+// Reply form state
+const showReplyForm = ref(false)
+
+function toggleReplyForm() {
+  showReplyForm.value = !showReplyForm.value
+}
+
+async function handleReplySubmit(body: string) {
+  const reply = await reviewsStore.createReply(props.review.id, body)
+  if (reply) {
+    showReplyForm.value = false
+    emit('replyCreated')
+  }
+}
+
+function handleReplyCancel() {
+  showReplyForm.value = false
+}
 
 // Format date relative to now
 function formatDate(dateString: string): string {
@@ -113,33 +140,54 @@ function formatDate(dateString: string): string {
       </div>
     </div>
     
-    <!-- Replies -->
-    <div v-if="hasReplies" class="mt-4 pt-4 border-t border-gray-100">
-      <div class="flex items-center gap-1.5 mb-3">
+    <!-- Reply button -->
+    <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+      <div v-if="hasReplies" class="flex items-center gap-1.5">
         <MessageCircle class="h-4 w-4 text-gray-400" />
         <span class="text-xs font-medium text-gray-500">
           {{ review.replies!.length }} {{ review.replies!.length === 1 ? $t('product.reviewItem.reply') : $t('product.reviewItem.replies') }}
         </span>
       </div>
-      
-      <div class="space-y-3">
-        <div
-          v-for="reply in review.replies"
-          :key="reply.id"
-          class="ml-4 pl-4 border-l-2 border-gray-200"
-        >
-          <div class="flex items-center gap-2 mb-1">
-            <span class="text-sm font-medium text-gray-900">
-              {{ reply.author.name }}
-            </span>
-            <span class="text-xs text-gray-500">
-              {{ formatDate(reply.created_at) }}
-            </span>
-          </div>
-          <p class="text-sm text-gray-700">
-            {{ reply.body }}
-          </p>
+      <div v-else />
+
+      <button
+        v-if="isAuthenticated"
+        type="button"
+        class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
+        @click="toggleReplyForm"
+      >
+        <Reply class="h-3.5 w-3.5" />
+        {{ showReplyForm ? $t('product.reviewItem.cancelReply') : $t('product.reviewItem.writeReply') }}
+      </button>
+    </div>
+
+    <!-- Reply form -->
+    <ProductReviewReplyForm
+      v-if="showReplyForm"
+      :review-id="review.id"
+      :loading="submitting"
+      @submit="handleReplySubmit"
+      @cancel="handleReplyCancel"
+    />
+
+    <!-- Replies list -->
+    <div v-if="hasReplies" class="mt-4 space-y-3">
+      <div
+        v-for="reply in review.replies"
+        :key="reply.id"
+        class="ml-4 pl-4 border-l-2 border-gray-200"
+      >
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-sm font-medium text-gray-900">
+            {{ reply.author.name }}
+          </span>
+          <span class="text-xs text-gray-500">
+            {{ formatDate(reply.created_at) }}
+          </span>
         </div>
+        <p class="text-sm text-gray-700">
+          {{ reply.body }}
+        </p>
       </div>
     </div>
   </article>

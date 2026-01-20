@@ -99,6 +99,10 @@ export interface CheckoutState {
   shippingMethods: ShippingMethod[]
   shippingCurrency: string | null
   selectedShipping: ShippingMethod | null
+  /** Selected settlement for warehouse-based shipping */
+  selectedSettlement: { external_id: string; name: string } | null
+  /** Selected warehouse/pickup point for warehouse-based shipping */
+  selectedWarehouse: { external_id: string; name: string; address: string } | null
   paymentProviders: PaymentProvider[]
   selectedPayment: PaymentProvider | null
   pricing: CheckoutPricing
@@ -136,6 +140,13 @@ export interface SetShippingMethodPayload {
   method_code: string
   /** Quote ID from shipping methods response */
   quote_id?: string
+  /** Provider-specific metadata (e.g., warehouse selection) */
+  provider_metadata?: {
+    /** External ID of selected warehouse/pickup point */
+    warehouse_external_id?: string
+    /** External ID of selected settlement/city */
+    settlement_external_id?: string
+  }
 }
 
 export interface SetPaymentProviderPayload {
@@ -149,6 +160,7 @@ export interface CheckoutConfirmResponse {
 // Payment initialization
 export interface PaymentInitPayload {
   order_id: number
+  provider_code: string
 }
 
 export interface PaymentInitResponse {

@@ -2,7 +2,7 @@
 /**
  * Profile layout with sidebar navigation
  */
-import { User, Package, MapPin, Settings, Bell, CreditCard, LogOut } from 'lucide-vue-next'
+import { User, Package, MapPin, Settings, Bell, CreditCard, LogOut, Coins } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +30,8 @@ async function handleLogout() {
 const navigation = computed(() => [
   { name: 'Dashboard', to: localePath('/profile'), icon: User, exact: true },
   { name: 'My Orders', to: localePath('/profile/orders'), icon: Package },
+  { name: 'Loyalty Points', to: localePath('/profile/loyalty'), icon: Coins },
+  { name: 'Notifications', to: localePath('/profile/notifications'), icon: Bell },
   { name: 'Addresses', to: localePath('/profile/addresses'), icon: MapPin },
   { name: 'Settings', to: localePath('/profile/settings'), icon: Settings },
 ])

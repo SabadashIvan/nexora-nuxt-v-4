@@ -91,4 +91,31 @@ export interface ResetPasswordResponse {
   status: string
 }
 
+/**
+ * Change password request payload
+ * POST /api/v1/change-password/request
+ */
+export interface ChangePasswordRequestPayload {
+  current_password: string
+  new_password: string
+  new_password_confirmation: string
+}
+
+/**
+ * Change password confirm payload
+ * POST /api/v1/change-password/confirm/{token}
+ */
+export interface ChangePasswordConfirmPayload {
+  email: string
+}
+
+/**
+ * Change email request payload
+ * POST /api/v1/change-email/request
+ */
+export interface ChangeEmailRequestPayload {
+  email: string
+  password: string
+}
+
 // Enums are now imported from ./enums
