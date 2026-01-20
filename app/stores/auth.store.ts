@@ -7,15 +7,18 @@
 
 import { defineStore } from 'pinia'
 import { useNuxtApp } from '#app'
-import type { 
-  User, 
-  LoginPayload, 
-  RegisterPayload, 
+import type {
+  User,
+  LoginPayload,
+  RegisterPayload,
   ForgotPasswordPayload,
   ResetPasswordPayload,
   IdentityAddress,
   CreateAddressPayload,
   UpdateAddressPayload,
+  ChangePasswordRequestPayload,
+  ChangePasswordConfirmPayload,
+  ChangeEmailRequestPayload,
 } from '~/types'
 import { 
   EmailVerificationStatus,
@@ -540,6 +543,117 @@ export const useAuthStore = defineStore('auth', {
         return false
       } finally {
         this.addressLoading = false
+      }
+    },
+
+    // ==========================================
+    // Password & Email Change
+    // ==========================================
+
+    /**
+     * Request password change (sends confirmation email)
+     * POST /api/v1/change-password/request
+     * Requires authentication
+     */
+    async requestPasswordChange(payload: ChangePasswordRequestPayload): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post('/change-password/request', payload)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Request password change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Confirm password change with token
+     * POST /api/v1/change-password/confirm/{token}
+     */
+    async confirmPasswordChange(token: string, payload: ChangePasswordConfirmPayload): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post(`/change-password/confirm/${token}`, payload)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Confirm password change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Request email change (sends confirmation email to new address)
+     * POST /api/v1/change-email/request
+     * Requires authentication
+     */
+    async requestEmailChange(payload: ChangeEmailRequestPayload): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post('/change-email/request', payload)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Request email change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Confirm email change with verification link
+     * POST /api/v1/change-email/confirm/{token}
+     */
+    async confirmEmailChange(token: string, email: string): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post(`/change-email/confirm/${token}`, { email })
+        )
+        // Refresh user to get updated email
+        await this.fetchUser()
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        console.error('Confirm email change error:', error)
+        return false
+      } finally {
+        this.loading = false
       }
     },
 

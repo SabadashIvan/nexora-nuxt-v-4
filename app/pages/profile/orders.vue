@@ -2,7 +2,7 @@
 /**
  * Order history page
  */
-import { Package, Eye } from 'lucide-vue-next'
+import { Package, Eye, Filter, X } from 'lucide-vue-next'
 import { formatDate } from '~/utils/format'
 import { getImageUrl } from '~/utils'
 
@@ -26,18 +26,46 @@ const defaultPagination = {
 onMounted(async () => {
   const store = useOrdersStore()
   ordersStore.value = store
-  await store.fetchOrders()
+  // Fetch statuses and orders in parallel
+  await Promise.all([
+    store.fetchOrderStatuses(),
+    store.fetchOrders(),
+  ])
 })
 
 const orders = computed(() => ordersStore.value?.orders ?? [])
 const pagination = computed(() => ordersStore.value?.pagination ?? defaultPagination)
 const loading = computed(() => ordersStore.value?.loading ?? false)
+const statuses = computed(() => ordersStore.value?.statuses ?? [])
+const selectedStatuses = computed(() => ordersStore.value?.selectedStatuses ?? [])
+const hasActiveFilters = computed(() => selectedStatuses.value.length > 0)
 
 async function handlePageChange(page: number) {
   const store = ordersStore.value
   if (!store) return
 
   await store.goToPage(page)
+}
+
+async function handleStatusToggle(statusId: number) {
+  const store = ordersStore.value
+  if (!store) return
+
+  store.toggleStatus(statusId)
+  // Re-fetch orders with new filter, reset to page 1
+  await store.fetchOrders(1)
+}
+
+async function handleClearFilters() {
+  const store = ordersStore.value
+  if (!store) return
+
+  store.clearStatusFilters()
+  await store.fetchOrders(1)
+}
+
+function isStatusSelected(statusId: number): boolean {
+  return selectedStatuses.value.includes(statusId)
 }
 
 function getStatusVariant(status: string) {
@@ -56,6 +84,39 @@ function getStatusVariant(status: string) {
 <template>
   <div>
     <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">My Orders</h1>
+
+    <!-- Status Filters -->
+    <div v-if="statuses.length > 0" class="mb-6">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <Filter class="h-4 w-4" />
+          Filter:
+        </span>
+        <button
+          v-for="status in statuses"
+          :key="status.id"
+          type="button"
+          class="px-3 py-1.5 text-sm rounded-full border transition-colors"
+          :class="[
+            isStatusSelected(status.id)
+              ? 'bg-indigo-500 text-white border-indigo-500'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500'
+          ]"
+          @click="handleStatusToggle(status.id)"
+        >
+          {{ status.title }}
+        </button>
+        <button
+          v-if="hasActiveFilters"
+          type="button"
+          class="px-3 py-1.5 text-sm rounded-full border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors flex items-center gap-1"
+          @click="handleClearFilters"
+        >
+          <X class="h-3.5 w-3.5" />
+          Clear
+        </button>
+      </div>
+    </div>
 
     <!-- Loading -->
     <div v-if="loading && orders.length === 0" class="space-y-4">

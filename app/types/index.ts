@@ -26,4 +26,6 @@ export * from './reviews'
 export * from './support'
 export * from './banner'
 export * from './page'
+export * from './shipping'
+export * from './loyalty'
 

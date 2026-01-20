@@ -7,9 +7,11 @@
 import { defineStore } from 'pinia'
 import type {
   Review,
+  ReviewReply,
   ReviewsState,
   ReviewsResponse,
   CreateReviewPayload,
+  CreateReplyPayload,
 } from '~/types'
 import { parseApiError, getFieldErrors, getErrorMessage } from '~/utils/errors'
 
@@ -135,6 +137,47 @@ export const useReviewsStore = defineStore('reviews', {
         this.error = apiError.message
         this.fieldErrors = getFieldErrors(apiError)
         console.error('Create review error:', error)
+        return null
+      } finally {
+        this.submitting = false
+      }
+    },
+
+    /**
+     * Create a reply to a review
+     * POST /api/v1/reviews/{review_id}/replies
+     * Requires authentication
+     */
+    async createReply(reviewId: number, body: string): Promise<ReviewReply | null> {
+      const api = useApi()
+      this.submitting = true
+      this.clearErrors()
+
+      try {
+        const payload: CreateReplyPayload = { body }
+        const reply = await api.post<ReviewReply | { data: ReviewReply }>(
+          `/reviews/${reviewId}/replies`,
+          payload
+        )
+
+        // Handle both wrapped and unwrapped response
+        const replyData = 'data' in reply ? reply.data : reply
+
+        // Add reply to the review in local state
+        const review = this.reviews.find(r => r.id === reviewId)
+        if (review) {
+          if (!review.replies) {
+            review.replies = []
+          }
+          review.replies.push(replyData)
+        }
+
+        return replyData
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Create reply error:', error)
         return null
       } finally {
         this.submitting = false

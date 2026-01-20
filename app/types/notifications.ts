@@ -84,12 +84,61 @@ export interface MarkAsReadResponse {
 }
 
 /**
+ * Notification filter types
+ */
+export type NotificationFilter = 'all' | 'unread' | 'archived'
+
+/**
+ * Notification group with enabled status
+ * Part of the preferences matrix
+ */
+export interface NotificationGroupDetail {
+  value: number
+  title: string
+  description: string
+  enabled: boolean
+}
+
+/**
+ * Contact channel details
+ */
+export interface ContactChannelDetail {
+  value: number
+  can_link: boolean
+  can_unlink: boolean
+  is_linked: boolean
+}
+
+/**
+ * Notification channel with groups
+ * Part of the preferences matrix response
+ */
+export interface NotificationChannelDetail {
+  value: number
+  title: string
+  contact_channel: ContactChannelDetail
+  groups: NotificationGroupDetail[]
+}
+
+/**
+ * Response for preferences matrix
+ * GET /api/v1/notifications/preferences
+ */
+export interface NotificationPreferencesMatrixResponse {
+  data: NotificationChannelDetail[]
+}
+
+/**
  * Notifications store state
  */
 export interface NotificationsState {
   notifications: Notification[]
   unreadCount: number
   preferences: NotificationPreferences | null
+  /** Detailed preferences matrix with channels and groups */
+  preferencesMatrix: NotificationChannelDetail[]
+  /** Current filter for notifications list */
+  currentFilter: NotificationFilter
   loading: boolean
   error: string | null
   pagination: {

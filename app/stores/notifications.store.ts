@@ -16,6 +16,9 @@ import type {
   UpdateChannelPreferencePayload,
   MarkAsReadResponse,
   NotificationChannel,
+  NotificationFilter,
+  NotificationChannelDetail,
+  NotificationPreferencesMatrixResponse,
 } from '~/types'
 import { getErrorMessage } from '~/utils/errors'
 
@@ -24,6 +27,8 @@ export const useNotificationsStore = defineStore('notifications', {
     notifications: [],
     unreadCount: 0,
     preferences: null,
+    preferencesMatrix: [],
+    currentFilter: 'all',
     loading: false,
     error: null,
     pagination: {
@@ -66,19 +71,39 @@ export const useNotificationsStore = defineStore('notifications', {
 
   actions: {
     /**
+     * Set current filter
+     */
+    setFilter(filter: NotificationFilter): void {
+      this.currentFilter = filter
+    },
+
+    /**
      * Fetch notifications list
      * GET /api/v1/notifications
+     * @param page - Page number
+     * @param perPage - Items per page
+     * @param filter - Filter type (all, unread, archived)
      */
-    async fetchNotifications(page = 1, perPage = 15): Promise<void> {
+    async fetchNotifications(page = 1, perPage = 15, filter?: NotificationFilter): Promise<void> {
       const api = useApi()
       this.loading = true
       this.error = null
 
+      // Use provided filter or current filter from state
+      const activeFilter = filter ?? this.currentFilter
+
       try {
-        const response = await api.get<NotificationsListResponse>('/notifications', {
+        const query: Record<string, string | number> = {
           page,
           per_page: perPage,
-        })
+        }
+
+        // Add filter parameter if not 'all'
+        if (activeFilter && activeFilter !== 'all') {
+          query.filter = activeFilter
+        }
+
+        const response = await api.get<NotificationsListResponse>('/notifications', query)
 
         if (page === 1) {
           this.notifications = response.data
@@ -93,6 +118,11 @@ export const useNotificationsStore = defineStore('notifications', {
           perPage: response.meta.per_page,
           total: response.meta.total,
         }
+
+        // Update current filter if provided
+        if (filter) {
+          this.currentFilter = filter
+        }
       } catch (error) {
         this.error = getErrorMessage(error)
         console.error('Fetch notifications error:', error)
@@ -106,7 +136,59 @@ export const useNotificationsStore = defineStore('notifications', {
      */
     async loadMore(): Promise<void> {
       if (!this.hasMorePages || this.loading) return
-      await this.fetchNotifications(this.pagination.currentPage + 1)
+      await this.fetchNotifications(this.pagination.currentPage + 1, this.pagination.perPage, this.currentFilter)
+    },
+
+    /**
+     * Fetch preferences matrix
+     * GET /api/v1/notifications/preferences
+     */
+    async fetchPreferencesMatrix(): Promise<void> {
+      const api = useApi()
+      this.loading = true
+
+      try {
+        const response = await api.get<NotificationPreferencesMatrixResponse | NotificationChannelDetail[]>('/notifications/preferences')
+        // Handle both wrapped and unwrapped response
+        this.preferencesMatrix = Array.isArray(response) ? response : (response?.data ?? [])
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        console.error('Fetch preferences matrix error:', error)
+        this.preferencesMatrix = []
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Toggle preference for a channel/group combination
+     * PUT /api/v1/notifications/preferences/{channel}/{group}
+     */
+    async togglePreference(channelValue: number, groupValue: number): Promise<boolean> {
+      const api = useApi()
+
+      // Find current state
+      const channel = this.preferencesMatrix.find(c => c.value === channelValue)
+      if (!channel) return false
+
+      const group = channel.groups.find(g => g.value === groupValue)
+      if (!group) return false
+
+      const newEnabled = !group.enabled
+
+      try {
+        await api.put(`/notifications/preferences/${channelValue}/${groupValue}`, {
+          enabled: newEnabled,
+        })
+
+        // Update local state optimistically
+        group.enabled = newEnabled
+        return true
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        console.error('Toggle preference error:', error)
+        return false
+      }
     },
 
     /**
@@ -227,6 +309,8 @@ export const useNotificationsStore = defineStore('notifications', {
       this.notifications = []
       this.unreadCount = 0
       this.preferences = null
+      this.preferencesMatrix = []
+      this.currentFilter = 'all'
       this.loading = false
       this.error = null
       this.pagination = {

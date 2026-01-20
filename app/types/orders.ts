@@ -55,3 +55,11 @@ export interface OrdersState {
   error: string | null
 }
 
+/**
+ * Order status option from /orders/statuses endpoint
+ */
+export interface OrderStatusOption {
+  id: number
+  title: string
+}
+

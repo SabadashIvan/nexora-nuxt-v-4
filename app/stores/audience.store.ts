@@ -109,7 +109,7 @@ export const useAudienceStore = defineStore('audience', {
     },
 
     /**
-     * Unsubscribe from audience
+     * Unsubscribe from audience (with email)
      * DELETE /api/v1/audience/unsubscribe
      */
     async unsubscribe(email: string): Promise<boolean> {
@@ -124,7 +124,7 @@ export const useAudienceStore = defineStore('audience', {
           method: 'DELETE',
           body: payload,
         })
-        
+
         this.status = 'unsubscribed'
         this.message = response.message
         return true
@@ -132,6 +132,32 @@ export const useAudienceStore = defineStore('audience', {
         this.error = getErrorMessage(error)
         this.status = 'error'
         console.error('Unsubscribe error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Unsubscribe authenticated user from audience
+     * POST /api/v1/audience/unsubscribe
+     * Requires authentication - uses user's email from session
+     */
+    async unsubscribeFromAccount(): Promise<boolean> {
+      const api = useApi()
+      this.loading = true
+      this.clearState()
+
+      try {
+        const response = await api.post<AudienceUnsubscribeResponse>('/audience/unsubscribe', {})
+
+        this.status = 'unsubscribed'
+        this.message = response.message
+        return true
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        this.status = 'error'
+        console.error('Unsubscribe from account error:', error)
         return false
       } finally {
         this.loading = false
