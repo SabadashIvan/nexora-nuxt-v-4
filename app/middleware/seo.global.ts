@@ -5,7 +5,7 @@
 
 import { NOINDEX_ROUTES } from '~/types/seo'
 import { getActivePinia } from 'pinia'
-import { useSeoStore } from '~/stores/seo.store'
+import { applyNoIndexMeta, applySeoMetadata, fetchSeoMetadata } from '~/composables/useSeoMetadata'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip SEO for noindex routes
@@ -18,11 +18,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   if (shouldSkipSeo) {
     // Apply noindex meta for private routes
-    useHead({
-      meta: [
-        { name: 'robots', content: 'noindex, nofollow' },
-      ],
-    })
+    applyNoIndexMeta()
     return
   }
 
@@ -30,27 +26,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const pinia = getActivePinia()
   if (!pinia) {
     // Pinia not available yet - apply fallback SEO
-    useHead({
-      title: 'Nexora Shop',
-      meta: [
-        { name: 'description', content: 'Your trusted e-commerce destination' },
-      ],
-    })
+    applySeoMetadata({ title: 'Nexora Shop', description: 'Your trusted e-commerce destination' })
     return
   }
 
   // Fetch SEO metadata for public pages
   try {
     const config = useRuntimeConfig()
-    const seoStore = useSeoStore()
-    
     // Build full frontend URL
     const siteUrl = config.public.siteUrl as string || 'http://localhost:3000'
     // Use fullPath to include query parameters
     const fullUrl = `${siteUrl}${to.fullPath}`
     
-    await seoStore.fetch(fullUrl)
-    seoStore.apply(to.fullPath)
+    const meta = await fetchSeoMetadata(fullUrl)
+    applySeoMetadata(meta, to.fullPath)
 
     // Add hreflang and canonical tags for multilingual SEO
     try {
@@ -147,11 +136,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
   } catch (error) {
     console.error('Failed to fetch SEO metadata:', error)
     // Apply fallback SEO
-    useHead({
-      title: 'Nexora Shop',
-      meta: [
-        { name: 'description', content: 'Your trusted e-commerce destination' },
-      ],
-    })
+    applySeoMetadata({ title: 'Nexora Shop', description: 'Your trusted e-commerce destination' })
   }
 })

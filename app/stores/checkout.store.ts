@@ -133,24 +133,6 @@ export const useCheckoutStore = defineStore('checkout', {
     },
 
     /**
-     * Get If-Match headers from cart store
-     */
-    async getIfMatchHeaders(): Promise<Record<string, string>> {
-      const cartStore = useCartStore()
-      const headers: Record<string, string> = {}
-      
-      // Ensure we have cart version
-      await cartStore.ensureCartVersion()
-      const version = cartStore.getCurrentVersion()
-      
-      if (version !== null) {
-        headers['If-Match'] = String(version)
-      }
-      
-      return headers
-    },
-
-    /**
      * Start checkout session
      * @param billingSameAsShipping - Whether billing address is same as shipping (default: true)
      */
@@ -160,9 +142,6 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        // Get If-Match headers
-        const ifMatchHeaders = await this.getIfMatchHeaders()
-
         const payload: StartCheckoutPayload = {
           billing_same_as_shipping: billingSameAsShipping,
         }
@@ -172,7 +151,6 @@ export const useCheckoutStore = defineStore('checkout', {
           payload,
           { 
             cart: true,
-            headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
           }
         )
 
@@ -222,9 +200,6 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        // Get If-Match headers
-        const ifMatchHeaders = await this.getIfMatchHeaders()
-
         const payload: CheckoutUpdateAddressPayload = {
           shipping_address: shippingAddress,
           billing_same_as_shipping: billingSameAsShipping,
@@ -239,7 +214,6 @@ export const useCheckoutStore = defineStore('checkout', {
           payload,
           { 
             cart: true,
-            headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
           }
         )
 
@@ -348,9 +322,6 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        // Get If-Match headers
-        const ifMatchHeaders = await this.getIfMatchHeaders()
-
         const payload: SetShippingMethodPayload = { 
           method_code: methodCode,
           quote_id: quoteId,
@@ -360,7 +331,6 @@ export const useCheckoutStore = defineStore('checkout', {
           payload,
           { 
             cart: true,
-            headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
           }
         )
 
@@ -415,16 +385,12 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        // Get If-Match headers
-        const ifMatchHeaders = await this.getIfMatchHeaders()
-
         const payload: SetPaymentProviderPayload = { provider_code: providerCode }
         const rawResponse = await api.put<{ payment_provider: PaymentProvider; pricing: CheckoutPricing } | { data: { payment_provider: PaymentProvider; pricing: CheckoutPricing } }>(
           `/checkout/${this.checkoutId}/payment-provider`,
           payload,
           { 
             cart: true,
-            headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
           }
         )
 
@@ -460,15 +426,11 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        // Get If-Match headers
-        const ifMatchHeaders = await this.getIfMatchHeaders()
-
         const rawResponse = await api.post<CheckoutConfirmResponse | { data: CheckoutConfirmResponse }>(
           `/checkout/${this.checkoutId}/confirm`,
           undefined,
           { 
             cart: true,
-            headers: Object.keys(ifMatchHeaders).length > 0 ? ifMatchHeaders : undefined,
           }
         )
 
@@ -512,7 +474,8 @@ export const useCheckoutStore = defineStore('checkout', {
         const payload: PaymentInitPayload = { order_id: orderId }
         const rawResponse = await api.post<PaymentInitResponse | { data: PaymentInitResponse }>(
           `/payments/${this.selectedPayment.code}/init`,
-          payload
+          payload,
+          { idempotent: true }
         )
 
         const response = this.extractData(rawResponse)

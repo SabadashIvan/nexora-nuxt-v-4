@@ -8,7 +8,7 @@ import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
-import type { ProductVariant, ApiResponse } from '~/types'
+import type { Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
 const route = useRoute()
@@ -28,91 +28,10 @@ const slug = computed(() => route.params.slug as string)
 const { data: product, pending, error, refresh } = await useAsyncData(
   () => `product-${slug.value}-${locale.value}`,
   async () => {
-    const currentSlug = slug.value
-    console.log('[Fetch] Starting fetch for slug:', currentSlug, 'isServer:', import.meta.server)
-    
-    const api = useApi()
-    
-    try {
-      const response = await api.get<ApiResponse<ProductVariant> | ProductVariant>(`/catalog/variants/${currentSlug}`)
-      
-      console.log('[SSR/CSR] Raw API response type:', typeof response)
-      console.log('[SSR/CSR] Raw API response:', JSON.stringify(response, null, 2))
-      console.log('[SSR/CSR] Has data property:', 'data' in response)
-      
-      // Handle wrapped response - API might return { data: ProductVariant } or ProductVariant directly
-      let productData: ProductVariant | null = null
-      
-      if (response && typeof response === 'object') {
-        // Check if response is wrapped in { data: ... }
-        if ('data' in response && response.data) {
-          productData = response.data as ProductVariant
-          console.log('[SSR/CSR] Extracted from data wrapper')
-        } 
-        // Check if response has ProductVariant properties directly
-        else if ('id' in response || 'title' in response || 'slug' in response) {
-          // Direct response - it's already a ProductVariant
-          productData = response as ProductVariant
-          console.log('[SSR/CSR] Using direct response')
-        }
-      }
-      
-      if (!productData) {
-        console.error('[SSR/CSR] Failed to extract product data from response:', response)
-        return null
-      }
-      
-      // Double-check: if productData still has 'data' property, extract it
-      if (productData && typeof productData === 'object' && 'data' in productData && productData.data) {
-        console.warn('[SSR/CSR] ProductData still wrapped, extracting again')
-        productData = productData.data as ProductVariant
-      }
-      
-      console.log('[SSR/CSR] Final product data:', {
-        id: productData.id,
-        title: productData.title,
-        hasPrice: !!productData.price,
-        priceType: typeof productData.price,
-        hasImages: productData.images?.length > 0,
-      })
-      
-      // Ensure productData is a plain object for proper serialization
-      // Create a clean copy to avoid any reactivity issues
-      const cleanProductData: ProductVariant = {
-        ...productData,
-        // Ensure all nested objects are properly copied
-        price: productData.price,
-        images: productData.images ? [...productData.images] : [],
-        attribute_values: productData.attribute_values ? [...productData.attribute_values] : [],
-        product: productData.product ? { ...productData.product } : undefined,
-        variant_options: productData.variant_options ? { ...productData.variant_options } : undefined,
-      }
-      
-      console.log('[SSR/CSR] Clean product data:', {
-        id: cleanProductData.id,
-        title: cleanProductData.title,
-      })
-      
-      // Also populate store for option selection functionality
-      const productStore = useProductStore()
-      productStore.product = cleanProductData
-      productStore.selectedVariant = null
-      productStore.selectedOptions = {}
-      
-      // Initialize selected options
-      if (cleanProductData.attribute_values && cleanProductData.attribute_values.length > 0) {
-        cleanProductData.attribute_values.forEach(attr => {
-          productStore.selectedOptions[attr.attribute.code] = attr.code
-        })
-      }
-      
-      return cleanProductData
-    } catch (err) {
-      console.error('[SSR/CSR] Error fetching product:', err)
-      return null
-    }
+    const productStore = useProductStore()
+    return await productStore.fetch(slug.value)
   },
-  { 
+  {
     watch: [() => route.params.slug, locale],
     server: true,
     // SWR-like behavior: show cached data immediately, then refresh in background
@@ -166,13 +85,13 @@ onMounted(() => {
       console.log('[Client] Product value changed:', newProduct)
       if (newProduct) {
         // Check if it's wrapped in { data: ... }
-        let actualProduct: ProductVariant | null = null
+        let actualProduct: Product | null = null
         if (typeof newProduct === 'object' && newProduct !== null) {
           if ('data' in newProduct && newProduct.data) {
             console.warn('[Client] Product value is wrapped in data object! Unwrapping...')
-            actualProduct = newProduct.data as ProductVariant
+            actualProduct = newProduct.data as Product
           } else if ('id' in newProduct || 'title' in newProduct) {
-            actualProduct = newProduct as ProductVariant
+            actualProduct = newProduct as Product
           }
         }
         if (actualProduct) {
@@ -353,7 +272,7 @@ const reviewsCount = computed(() => {
     return product.value.rating.count || 0
   }
   // Legacy support
-  return (product.value as ProductVariant & { reviews_count?: number })?.reviews_count || 0
+  return (product.value as Product & { reviews_count?: number })?.reviews_count || 0
 })
 const productPrice = computed((): ProductPrice | null => {
   if (!product.value) return null
@@ -885,4 +804,3 @@ const gridImages = computed(() => {
     </div>
   </div>
 </template>
-

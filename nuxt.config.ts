@@ -6,12 +6,25 @@ export default defineNuxtConfig({
   runtimeConfig: {
     apiBackendUrl: process.env.NUXT_API_BACKEND_URL || 'http://localhost:8000',
     apiSecret: process.env.NUXT_API_SECRET,
+    oauth: {
+      github: {
+        clientId: process.env.NUXT_OAUTH_GITHUB_CLIENT_ID,
+        clientSecret: process.env.NUXT_OAUTH_GITHUB_CLIENT_SECRET,
+      },
+      google: {
+        clientId: process.env.NUXT_OAUTH_GOOGLE_CLIENT_ID,
+        clientSecret: process.env.NUXT_OAUTH_GOOGLE_CLIENT_SECRET,
+      },
+    },
     public: {
       apiBackendUrl:
         process.env.NUXT_PUBLIC_API_BACKEND_URL ||
         process.env.NUXT_API_BACKEND_URL ||
         'http://localhost:8000',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      features: {
+        cartOptimisticUI: process.env.NUXT_PUBLIC_FEATURE_CART_OPTIMISTIC_UI === 'true',
+      },
     },
   },
 
@@ -23,6 +36,7 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
     '@nuxt/test-utils/module',
     '@nuxtjs/google-fonts',
+    'nuxt-auth-utils',
   ],
 
   css: ['./app/assets/css/main.css'],

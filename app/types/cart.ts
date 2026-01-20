@@ -168,10 +168,28 @@ export interface CartState {
   cartToken: string | null
   /** Cart version for optimistic concurrency control (If-Match header) */
   cartVersion: number | null
+  /** Last confirmed cart state from the server */
+  confirmedCart: Cart | null
   loading: boolean
   error: string | null
   /** Applied coupons (legacy) */
   appliedCoupons: AppliedCoupon[]
+  /** Pending optimistic cart operations */
+  pendingOps: CartOptimisticOp[]
+}
+
+export type CartOptimisticOpType = 'updateQty' | 'removeItem' | 'addItem'
+
+export interface CartOptimisticOp {
+  id: string
+  type: CartOptimisticOpType
+  status: 'pending' | 'failed'
+  payload: {
+    itemId?: string
+    quantity?: number
+    variantId?: number
+    sku?: string
+  }
 }
 
 /**

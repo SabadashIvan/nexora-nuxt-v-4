@@ -67,6 +67,14 @@ export interface ProductRating {
   count: number
 }
 
+export interface ProductPriceFormatted extends ProductPrice {
+  formatted: {
+    list?: string
+    sale?: string
+    effective: string
+  }
+}
+
 export interface ProductData {
   id: number
   description?: string
@@ -75,14 +83,14 @@ export interface ProductData {
   available_options?: unknown[]
 }
 
-export interface ProductVariant {
+export interface Product {
   id: number
   product_id: number
   title: string
   slug: string
   sku: string
   is_favorite: boolean
-  price: ProductPrice
+  price: ProductPriceFormatted
   is_in_stock: boolean
   images: ProductImage[]
   attribute_values: AttributeValue[]
@@ -105,6 +113,8 @@ export interface ProductVariant {
   related_products?: RelatedProduct[]
 }
 
+export type ProductVariant = Product
+
 export interface RelatedProduct {
   id: number
   name: string
@@ -115,9 +125,9 @@ export interface RelatedProduct {
 }
 
 export interface ProductState {
-  product: ProductVariant | null
-  variants: ProductVariant[]
-  selectedVariant: ProductVariant | null
+  product: Product | null
+  variants: Product[]
+  selectedVariant: Product | null
   selectedOptions: Record<string, string>
   loading: boolean
   error: string | null
@@ -133,4 +143,3 @@ export interface ComparisonResponse {
     }
   }
 }
-
