@@ -51,9 +51,12 @@ const filteredWarehouses = computed(() => {
 watch(
   () => props.cityExternalId,
   async (cityId) => {
+    // Always clear the selected warehouse when city changes
+    // The old warehouse is no longer valid for the new city
+    emit('update:modelValue', null)
+
     if (!cityId) {
       clearWarehouses()
-      emit('update:modelValue', null)
       return
     }
 

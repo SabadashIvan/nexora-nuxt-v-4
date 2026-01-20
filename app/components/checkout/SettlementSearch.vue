@@ -89,13 +89,13 @@ function onBlur(): void {
   }, 200)
 }
 
-// Initialize query from model value
+// Keep query in sync with model value
 watch(
   () => props.modelValue,
   (settlement) => {
-    if (settlement && !query.value) {
-      query.value = settlement.name
-    }
+    // Always mirror the model value to keep UI in sync
+    // When modelValue is cleared or changed, query should reflect that
+    query.value = settlement?.name ?? ''
   },
   { immediate: true }
 )
