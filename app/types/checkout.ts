@@ -43,6 +43,8 @@ export interface ShippingMethod {
   eta: string | null
   /** Quote ID for this shipping option */
   quote_id: string
+  /** Shipping provider code (e.g., 'nova_post') */
+  provider_code?: string
 }
 
 /**
