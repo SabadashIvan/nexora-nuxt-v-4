@@ -23,9 +23,13 @@ const emit = defineEmits<{
   'update:isOpen': [value: boolean]
 }>()
 
-// Store access
-const leadsStore = useLeadsStore()
-const systemStore = useSystemStore()
+function getLeadsStore() {
+  return useLeadsStore()
+}
+
+function getSystemStore() {
+  return useSystemStore()
+}
 
 // Form state
 const form = reactive({
@@ -44,12 +48,12 @@ const isPhoneValid = computed(() => {
 const isFormValid = computed(() => isNameValid.value && isPhoneValid.value)
 
 // Store state
-const loading = computed(() => leadsStore.loading)
-const success = computed(() => leadsStore.success)
-const error = computed(() => leadsStore.error)
-const fieldErrors = computed(() => leadsStore.fieldErrors)
-const isRateLimited = computed(() => leadsStore.isRateLimited)
-const retryAfter = computed(() => leadsStore.retryAfter)
+const loading = computed(() => getLeadsStore().loading)
+const success = computed(() => getLeadsStore().success)
+const error = computed(() => getLeadsStore().error)
+const fieldErrors = computed(() => getLeadsStore().fieldErrors)
+const isRateLimited = computed(() => getLeadsStore().isRateLimited)
+const retryAfter = computed(() => getLeadsStore().retryAfter)
 
 // Methods
 function close() {
@@ -65,12 +69,13 @@ function resetForm() {
   form.customer_phone = ''
   form.customer_email = ''
   form.comment = ''
-  leadsStore.reset()
+  getLeadsStore().reset()
 }
 
 async function handleSubmit() {
   if (!isFormValid.value || loading.value) return
 
+  const systemStore = getSystemStore()
   const payload = {
     items: [{ variant_id: props.product.variantId, qty: 1 }],
     customer_name: form.customer_name.trim(),
@@ -82,7 +87,7 @@ async function handleSubmit() {
     source: 'product_page',
   }
 
-  const result = await leadsStore.createLead(payload)
+  const result = await getLeadsStore().createLead(payload)
 
   if (result) {
     // Close after success message is shown

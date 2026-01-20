@@ -5,19 +5,17 @@
  * SSR enabled for SEO
  */
 import { MapPin, Phone, Clock, ExternalLink } from 'lucide-vue-next'
-import { useSystemStore } from '~/stores/system.store'
 import type { SiteLocation, LocationSchedule } from '~/types'
 
 definePageMeta({
   layout: 'default',
 })
 
-const systemStore = useSystemStore()
-
 // Fetch locations with SSR
 const { data: locations, pending } = await useAsyncData(
   'site-locations',
   async () => {
+    const systemStore = useSystemStore()
     return await systemStore.fetchLocations()
   },
   {
