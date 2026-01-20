@@ -12,9 +12,12 @@
  */
 import { Lock, AlertCircle, RefreshCw, Package, MapPin, Truck, CreditCard, ShoppingBag } from 'lucide-vue-next'
 import type { Address } from '~/types'
+import type { Settlement, Warehouse } from '~/types/shipping'
 import { useCheckoutDelivery } from '~/composables/useCheckoutDelivery'
 import { useCheckoutSession } from '~/composables/useCheckoutSession'
 import { useCountries } from '~/composables/useCountries'
+import SettlementSearch from '~/components/checkout/SettlementSearch.vue'
+import WarehouseSelector from '~/components/checkout/WarehouseSelector.vue'
 
 definePageMeta({
   layout: 'checkout',
@@ -47,6 +50,8 @@ const selectedPaymentCode = ref<string>('monobank_installments')
 const isProcessing = ref(false)
 const addressErrors = ref<Record<string, string>>({})
 const isInitialized = ref(false)
+const selectedSettlement = ref<Settlement | null>(null)
+const selectedWarehouse = ref<Warehouse | null>(null)
 
 // Computed
 const hasSession = computed(() => checkoutSession.hasSession.value)
@@ -67,8 +72,39 @@ const isShippingSelected = computed(() => selectedShippingCode.value !== null)
 const shippingCurrency = computed(() => checkoutDelivery.shippingCurrency.value || pricing.value.currency)
 const isPaymentSelected = computed(() => selectedPaymentCode.value !== null)
 
+// Detect if selected method requires warehouse selection
+const isWarehouseMethod = computed(() => {
+  const method = selectedShippingMethod.value
+  if (!method) return false
+  const code = method.code.toLowerCase()
+  const name = method.name.toLowerCase()
+  const keywords = ['warehouse', 'pickup', 'postomat', 'branch', 'відділення', 'nova_post']
+  return keywords.some(k => code.includes(k) || name.includes(k))
+})
+
+// Get provider code from method code (e.g., "nova_post_warehouse" -> "nova_post")
+const selectedProviderCode = computed(() => {
+  const method = selectedShippingMethod.value
+  if (!method) return ''
+  // If provider_code exists, use it; otherwise extract from code
+  if (method.provider_code) return method.provider_code
+  // Extract provider from method code (remove last segment)
+  const parts = method.code.split('_')
+  if (parts.length > 1) {
+    return parts.slice(0, -1).join('_')
+  }
+  return method.code
+})
+
 const canPlaceOrder = computed(() => {
-  return isAddressValid.value && isShippingSelected.value && isPaymentSelected.value && !isProcessing.value
+  const baseValid = isAddressValid.value && isShippingSelected.value && isPaymentSelected.value && !isProcessing.value
+
+  // Warehouse methods require warehouse selection
+  if (isWarehouseMethod.value) {
+    return baseValid && selectedWarehouse.value !== null
+  }
+
+  return baseValid
 })
 
 // Debounce helper
@@ -110,6 +146,12 @@ watch(
     }
   }
 )
+
+// Clear warehouse selection when shipping method changes
+watch(selectedShippingCode, () => {
+  selectedSettlement.value = null
+  selectedWarehouse.value = null
+})
 
 // Initialize checkout on mount
 onMounted(async () => {
@@ -214,11 +256,19 @@ async function placeOrder() {
       return
     }
 
-    // Step 2: Save shipping method (use code and quote_id)
+    // Step 2: Save shipping method with warehouse metadata if applicable
     const method = selectedShippingMethod.value
+    const providerMetadata = isWarehouseMethod.value && selectedWarehouse.value
+      ? {
+          warehouse_external_id: selectedWarehouse.value.external_id,
+          settlement_external_id: selectedSettlement.value?.external_id,
+        }
+      : undefined
+
     const shippingSuccess = await checkoutSession.applyShippingMethod(
       selectedShippingCode.value,
-      method?.quote_id
+      method?.quote_id,
+      providerMetadata
     )
     if (!shippingSuccess) {
       isProcessing.value = false
@@ -295,7 +345,7 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
                 v-if="error.includes('cart') || error.includes('session')"
                 class="mt-2 inline-flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:underline"
                 :disabled="isProcessing"
-                @click="checkoutStore.restartCheckout()"
+                @click="checkoutSession.restartSession()"
               >
                 <RefreshCw class="h-4 w-4" />
                 Restart checkout
@@ -568,6 +618,49 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
               <p v-else class="text-gray-500 dark:text-gray-400 text-center py-4">
                 No shipping methods available
               </p>
+
+              <!-- Warehouse Selection (for warehouse-based methods) -->
+              <div v-if="selectedShippingCode && isWarehouseMethod" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                <!-- Settlement/City Search -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select City *
+                  </label>
+                  <SettlementSearch
+                    v-model="selectedSettlement"
+                    :provider-code="selectedProviderCode"
+                    placeholder="Search for your city..."
+                  />
+                </div>
+
+                <!-- Warehouse Selector -->
+                <div v-if="selectedSettlement">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select Pickup Point *
+                  </label>
+                  <WarehouseSelector
+                    v-model="selectedWarehouse"
+                    :provider-code="selectedProviderCode"
+                    :method-code="selectedShippingCode"
+                    :city-external-id="selectedSettlement.external_id"
+                    :checkout-session-id="checkoutSession.checkoutId.value || ''"
+                  />
+                </div>
+
+                <!-- Selected Warehouse Summary -->
+                <div v-if="selectedWarehouse" class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div class="flex items-start gap-3">
+                    <MapPin class="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p class="font-medium text-green-800 dark:text-green-200">{{ selectedWarehouse.name }}</p>
+                      <p class="text-sm text-green-600 dark:text-green-400">{{ selectedWarehouse.address }}</p>
+                      <p v-if="selectedWarehouse.schedule" class="text-xs text-green-500 dark:text-green-500 mt-1">
+                        {{ selectedWarehouse.schedule }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
@@ -643,6 +736,7 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
             <div v-if="!canPlaceOrder && !isProcessing" class="mt-4 text-sm text-amber-600 dark:text-amber-400">
               <p v-if="!isAddressValid">• Please fill in all required address fields</p>
               <p v-if="!isShippingSelected">• Please select a shipping method</p>
+              <p v-if="isWarehouseMethod && !selectedWarehouse">• Please select a pickup location</p>
               <p v-if="!isPaymentSelected">• Please select a payment method</p>
             </div>
           </div>
