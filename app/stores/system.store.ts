@@ -4,7 +4,7 @@
  */
 
 import { defineStore } from 'pinia'
-import type { Locale, Currency, LanguagesResponse, CurrenciesResponse, SiteContacts, SiteContactsResponse } from '~/types'
+import type { Locale, Currency, LanguagesResponse, CurrenciesResponse, SiteContacts, SiteContactsResponse, SiteLocation, SiteLocationsResponse } from '~/types'
 import { applySeoMetadata, fetchSeoMetadata } from '~/composables/useSeoMetadata'
 import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
 import { getCurrencySymbol } from '~/utils/price'
@@ -15,6 +15,8 @@ interface SystemState {
   currentLocale: string
   currentCurrency: string
   contacts: SiteContacts | null
+  locations: SiteLocation[]
+  locationsLoading: boolean
   loading: boolean
   error: string | null
   initialized: boolean
@@ -27,6 +29,8 @@ export const useSystemStore = defineStore('system', {
     currentLocale: 'ru', // Must match nuxt.config.ts i18n.defaultLocale
     currentCurrency: 'USD',
     contacts: null,
+    locations: [],
+    locationsLoading: false,
     loading: false,
     error: null,
     initialized: false,
@@ -193,6 +197,29 @@ export const useSystemStore = defineStore('system', {
     },
 
     /**
+     * Fetch site locations from API
+     * GET /api/v1/site/locations
+     */
+    async fetchLocations(): Promise<SiteLocation[]> {
+      const api = useApi()
+      this.locationsLoading = true
+
+      try {
+        const response = await api.get<SiteLocationsResponse | SiteLocation[]>('/site/locations')
+        // Handle both wrapped and unwrapped response
+        this.locations = Array.isArray(response) ? response : (response?.data ?? [])
+        return this.locations
+      } catch (error) {
+        console.error('Locations fetch error:', error)
+        // Don't set error - locations are optional
+        this.locations = []
+        return []
+      } finally {
+        this.locationsLoading = false
+      }
+    },
+
+    /**
      * Set current locale (state and cookie only)
      * Note: Locale is managed via cookie, which is automatically sent as Accept-Language header
      * No API call needed - backend reads locale from Accept-Language header
@@ -287,6 +314,8 @@ export const useSystemStore = defineStore('system', {
       this.currencies = []
       this.currentLocale = 'ru' // Must match nuxt.config.ts i18n.defaultLocale
       this.currentCurrency = 'USD'
+      this.locations = []
+      this.locationsLoading = false
       this.loading = false
       this.error = null
       this.initialized = false

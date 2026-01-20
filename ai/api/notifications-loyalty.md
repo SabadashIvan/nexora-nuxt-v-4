@@ -135,37 +135,79 @@ Marks all unread notifications as read for the current user.
 ### 6. Archive Notification
 `PUT /api/v1/notifications/{id}/archive`
 
-Archives the specified notification. Archived notifications are removed from the default list.
+Archives the specified notification. Archived notifications are removed from the default list and can be viewed by filtering with `filter=archived`.
 
 **Authentication:** Required (cookie-based)
 
 **Path parameters:**
-- `id` (string): Notification ID
+- `id` (string): Notification ID (ULID format)
 
 **Response:**
 - Status: 204 No Content
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/notifications.store.ts`
+```typescript
+async archiveNotification(notificationId: string): Promise<boolean> {
+  const api = useApi()
+  await api.put(`/notifications/${notificationId}/archive`)
+  // Remove from current notifications list
+  this.notifications = this.notifications.filter(n => n.id !== notificationId)
+  return true
+}
+```
+
+**Component:** `/app/components/profile/NotificationItem.vue`
+- Archive button shown for non-archived notifications
+- Emits `archive` event with notification ID
+- Updates UI immediately after successful archive
+
+**Usage:**
+Archived notifications can be viewed by calling `fetchNotifications()` with `filter=archived` parameter.
 
 ---
 
 ### 7. Restore Notification
 `PUT /api/v1/notifications/{id}/restore`
 
-Restores a previously archived notification.
+Restores a previously archived notification, moving it back to the main notification list.
 
 **Authentication:** Required (cookie-based)
 
 **Path parameters:**
-- `id` (string): Notification ID
+- `id` (string): Notification ID (ULID format)
 
 **Response:**
 - Status: 204 No Content
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/notifications.store.ts`
+```typescript
+async restoreNotification(notificationId: string): Promise<boolean> {
+  const api = useApi()
+  await api.put(`/notifications/${notificationId}/restore`)
+  // Refetch notifications to get updated list
+  await this.fetchNotifications(1, this.pagination.perPage, this.currentFilter)
+  return true
+}
+```
+
+**Component:** `/app/components/profile/NotificationItem.vue`
+- Restore button shown only for archived notifications
+- Emits `restore` event with notification ID
+- Refetches list after successful restore
+
+**Usage:**
+Restored notifications appear in the main list (filter=all or filter=unread if unread).
 
 ---
 
 ### 8. Get Unread Notifications Count
 `GET /api/v1/notifications/count`
 
-Returns the number of unread notifications for the current user.
+Returns the number of unread notifications for the current user. Lightweight endpoint optimized for polling notification badges.
 
 **Authentication:** Required (cookie-based)
 
@@ -177,6 +219,57 @@ Returns the number of unread notifications for the current user.
   }
 }
 ```
+
+**Response fields:**
+- `data.unread_count` (number): Number of unread notifications
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/notifications.store.ts`
+```typescript
+async fetchUnreadCount(): Promise<void> {
+  const api = useApi()
+  const response = await api.get<{data: {unread_count: number}}>('/notifications/count')
+  this.unreadCount = response.data.unread_count
+}
+```
+
+**Component:** `/app/components/layout/NotificationBadge.vue`
+- Displays unread count in header badge
+- Fetches count on mount for authenticated users
+- Shows "99+" for counts over 99
+- Links to `/profile/notifications` page
+
+**Usage Example:**
+```vue
+<script setup>
+const notificationsStore = useNotificationsStore()
+
+onMounted(async () => {
+  if (isAuthenticated.value) {
+    await notificationsStore.fetchUnreadCount()
+  }
+})
+
+// Optional: Poll for updates
+setInterval(() => {
+  if (isAuthenticated.value) {
+    notificationsStore.fetchUnreadCount()
+  }
+}, 60000) // Every 60 seconds
+</script>
+
+<template>
+  <NotificationBadge />
+</template>
+```
+
+**Notes:**
+- **Efficient polling endpoint** - Use for real-time badge updates
+- Returns only the count, not full notification data
+- Recommended polling interval: 30-60 seconds
+- Should be called only for authenticated users
+- Badge component handles display formatting (99+ for large numbers)
 
 ---
 

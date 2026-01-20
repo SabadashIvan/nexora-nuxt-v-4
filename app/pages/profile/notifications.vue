@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
  * User notifications page with filtering
+ * Supports archive/restore functionality
  */
 import { Bell, Check, Settings } from 'lucide-vue-next'
-import { formatDate } from '~/utils/format'
 import type { NotificationFilter } from '~/types'
 
 definePageMeta({
@@ -57,6 +57,20 @@ async function handleMarkAllAsRead() {
   await store.markAllAsRead()
 }
 
+async function handleArchive(notificationId: string) {
+  const store = notificationsStore.value
+  if (!store) return
+
+  await store.archiveNotification(notificationId)
+}
+
+async function handleRestore(notificationId: string) {
+  const store = notificationsStore.value
+  if (!store) return
+
+  await store.restoreNotification(notificationId)
+}
+
 async function handleLoadMore() {
   const store = notificationsStore.value
   if (!store) return
@@ -64,9 +78,22 @@ async function handleLoadMore() {
   await store.loadMore()
 }
 
-function isUnread(notification: { read_at: string | null }): boolean {
-  return notification.read_at === null
-}
+// Empty state messages based on filter
+const emptyTitle = computed(() => {
+  switch (currentFilter.value) {
+    case 'unread': return 'No unread notifications'
+    case 'archived': return 'No archived notifications'
+    default: return 'No notifications'
+  }
+})
+
+const emptyDescription = computed(() => {
+  switch (currentFilter.value) {
+    case 'unread': return 'You have read all your notifications'
+    case 'archived': return 'You have not archived any notifications'
+    default: return 'You have no notifications yet'
+  }
+})
 </script>
 
 <template>
@@ -124,44 +151,15 @@ function isUnread(notification: { read_at: string | null }): boolean {
 
     <!-- Notifications list -->
     <div v-else-if="notifications.length" class="space-y-3">
-      <div
+      <ProfileNotificationItem
         v-for="notification in notifications"
         :key="notification.id"
-        class="bg-white dark:bg-gray-900 rounded-lg p-4 flex items-start gap-4"
-        :class="{ 'ring-2 ring-indigo-500/20': isUnread(notification) }"
-      >
-        <!-- Unread indicator -->
-        <div class="flex-shrink-0 mt-1">
-          <div
-            class="w-2.5 h-2.5 rounded-full"
-            :class="isUnread(notification) ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-700'"
-          />
-        </div>
-
-        <!-- Content -->
-        <div class="flex-1 min-w-0">
-          <h3 class="font-medium text-gray-900 dark:text-gray-100">
-            {{ notification.title }}
-          </h3>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ notification.message }}
-          </p>
-          <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">
-            {{ formatDate(notification.created_at) }}
-          </p>
-        </div>
-
-        <!-- Mark as read button -->
-        <button
-          v-if="isUnread(notification)"
-          type="button"
-          class="flex-shrink-0 p-2 text-gray-400 hover:text-indigo-500 transition-colors"
-          title="Mark as read"
-          @click="handleMarkAsRead(notification.id)"
-        >
-          <Check class="h-5 w-5" />
-        </button>
-      </div>
+        :notification="notification"
+        :filter="currentFilter"
+        @mark-read="handleMarkAsRead"
+        @archive="handleArchive"
+        @restore="handleRestore"
+      />
 
       <!-- Load more button -->
       <button
@@ -178,8 +176,8 @@ function isUnread(notification: { read_at: string | null }): boolean {
     <!-- Empty state -->
     <UiEmptyState
       v-else
-      title="No notifications"
-      :description="currentFilter === 'unread' ? 'You have no unread notifications' : 'You have no notifications yet'"
+      :title="emptyTitle"
+      :description="emptyDescription"
       :icon="Bell"
     />
   </div>

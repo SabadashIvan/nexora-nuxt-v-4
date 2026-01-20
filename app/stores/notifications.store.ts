@@ -199,10 +199,55 @@ export const useNotificationsStore = defineStore('notifications', {
       const api = useApi()
 
       try {
-        const response = await api.get<NotificationCountResponse>('/notifications/count')
-        this.unreadCount = response.count
+        const response = await api.get<NotificationCountResponse | { data: { unread_count: number } }>('/notifications/count')
+        // Handle both response formats: { count } or { data: { unread_count } }
+        if ('data' in response && response.data && 'unread_count' in response.data) {
+          this.unreadCount = response.data.unread_count
+        } else if ('count' in response) {
+          this.unreadCount = (response as NotificationCountResponse).count
+        }
       } catch (error) {
         console.error('Fetch unread count error:', error)
+      }
+    },
+
+    /**
+     * Archive a notification
+     * PUT /api/v1/notifications/{id}/archive
+     */
+    async archiveNotification(notificationId: string): Promise<boolean> {
+      const api = useApi()
+
+      try {
+        await api.put(`/notifications/${notificationId}/archive`)
+
+        // Remove from current notifications list
+        this.notifications = this.notifications.filter(n => n.id !== notificationId)
+
+        return true
+      } catch (error) {
+        console.error('Archive notification error:', error)
+        return false
+      }
+    },
+
+    /**
+     * Restore an archived notification
+     * PUT /api/v1/notifications/{id}/restore
+     */
+    async restoreNotification(notificationId: string): Promise<boolean> {
+      const api = useApi()
+
+      try {
+        await api.put(`/notifications/${notificationId}/restore`)
+
+        // Refetch notifications to get updated list
+        await this.fetchNotifications(1, this.pagination.perPage, this.currentFilter)
+
+        return true
+      } catch (error) {
+        console.error('Restore notification error:', error)
+        return false
       }
     },
 

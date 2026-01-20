@@ -102,3 +102,38 @@ export interface SiteContactsResponse {
   data: SiteContacts
 }
 
+/**
+ * Site location schedule by day
+ */
+export interface LocationSchedule {
+  monday?: string
+  tuesday?: string
+  wednesday?: string
+  thursday?: string
+  friday?: string
+  saturday?: string
+  sunday?: string
+}
+
+/**
+ * Physical store/office location
+ */
+export interface SiteLocation {
+  id: number
+  title: string
+  address: string
+  address_link: string | null
+  schedule: LocationSchedule
+  phones: string[]
+  map_iframe: string | null
+  website_link: string | null
+  image: string | null
+}
+
+/**
+ * Site locations response from /api/v1/site/locations
+ */
+export interface SiteLocationsResponse {
+  data: SiteLocation[]
+}
+

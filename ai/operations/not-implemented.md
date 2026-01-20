@@ -1,24 +1,24 @@
 # Frontend Integration Status
 
 **Last Updated:** 2026-01-20  
-**Status:** 10/10 features complete • 0 needs integration • Frontend at 100%
+**Status:** 12/12 features complete • 0 needs integration • Frontend at 100%
 
 ---
 
 ## 📊 Overall Progress: 100% Complete ✅
 
 **Backend API:** ✅ 100% Complete (All endpoints available)  
-**Frontend Integration:** 🎉 100% Complete (10/10 features)
+**Frontend Integration:** 🎉 100% Complete (12/12 features)
 
 | Status | Count | Features |
 |--------|-------|----------|
-| ✅ Completed | 10 | Password/Email, Loyalty, Reviews, Notifications, Payments, Orders, Audience, Contacts, Support, Warehouse Shipping |
+| ✅ Completed | 12 | Password/Email, Loyalty, Reviews, Notifications, Payments, Orders, Audience, Contacts, Support, Warehouse Shipping, Leads API, Site Locations |
 | ⚠️ Needs Integration | 0 | - |
-| 🎯 Optional Polish | 2 | Minor UI enhancements |
+| 🎯 Optional Polish | 3 | Minor UI enhancements |
 
 ---
 
-## ✅ COMPLETED FEATURES (10/10)
+## ✅ COMPLETED FEATURES (12/12)
 
 ### 1. Password & Email Management ✅
 **Status:** COMPLETED  
@@ -126,11 +126,77 @@ Complete warehouse-based shipping integration for providers like Nova Post, incl
 
 ---
 
+### 11. Leads API (Quick Buy / Callback Requests) ✅
+**Status:** COMPLETED  
+**Implemented in:** `leads.store.ts`, `QuickBuyModal.vue`, `client-info.ts`  
+**Backend:** 1 endpoint available  
+**Priority:** 🟠 High
+
+Complete quick buy/callback request system for product inquiries:
+- Full-featured modal component (`QuickBuyModal.vue`)
+- Store with rate limiting handling (`leads.store.ts`)
+- Form fields: customer name, phone (required), email (optional), comment
+- Real-time validation (name min 2 chars, phone min 10 digits)
+- Rate limiting with retry countdown (3 attempts per 60 min)
+- Field-level validation error display
+- Success/error states with auto-close
+- Client metadata capture (`client-info.ts`)
+- Integration with product pages
+
+**API Endpoint:** `POST /api/v1/leads`
+
+---
+
+### 12. Site Locations (Physical Stores) ✅
+**Status:** COMPLETED  
+**Implemented in:** `system.store.ts`, `/pages/stores.vue`  
+**Backend:** 1 endpoint available  
+**Priority:** 🟡 Medium
+
+Complete physical store locations page with:
+- SSR-enabled page for SEO (`/pages/stores.vue`)
+- System store action (`fetchLocations()`)
+- Responsive grid layout with location cards
+- Display: address with map link, phones (click-to-call), schedule
+- Current day highlighting in schedule
+- Embedded Google Maps iframe (lazy loading)
+- Website links for each location
+- Location images
+- Loading states and empty state
+- SEO-optimized with proper meta tags
+
+**API Endpoint:** `GET /api/v1/site/locations`
+
+**Remaining:** Add navigation menu link to `/stores` page
+
+---
+
 ## 🎯 OPTIONAL POLISH TASKS
 
 These are minor enhancements that could improve UX but are not blocking:
 
-### 1. Loyalty Balance Widget in Profile Dashboard
+### 1. Notification Badge Integration in Header
+**Status:** Component ready, needs integration  
+**Current:** `NotificationBadge.vue` component exists and works  
+**Enhancement:** Import and add to `AppHeader.vue` navigation
+
+**What's Done:**
+- ✅ Component created with unread count display
+- ✅ Fetches count on mount
+- ✅ 99+ badge formatting
+- ✅ Links to notifications page
+
+**Remaining:**
+- Import `NotificationBadge.vue` in `AppHeader.vue`
+- Add to header navigation (near cart/user menu)
+- Optional: Setup periodic polling for count updates (30-60s)
+
+**Benefit:** Users see unread notification count in header without navigating  
+**Priority:** Medium (quick win, ~5 min)
+
+---
+
+### 2. Loyalty Balance Widget in Profile Dashboard
 **Status:** Optional enhancement  
 **Current:** `/profile/loyalty` page exists and works  
 **Enhancement:** Add loyalty balance summary widget to `/profile/index` dashboard
@@ -140,7 +206,7 @@ These are minor enhancements that could improve UX but are not blocking:
 
 ---
 
-### 2. Loyalty Points in Order Details
+### 3. Loyalty Points in Order Details
 **Status:** Optional enhancement  
 **Current:** Orders display correctly without loyalty info  
 **Enhancement:** Show loyalty points earned/spent in `/profile/order/[id]` page
@@ -194,6 +260,17 @@ These are minor enhancements that could improve UX but are not blocking:
 - ✅ `GET /api/v1/shipping/{provider_code}/settlements/search` → `useShippingSearch.ts` (integrated in `checkout.vue`)
 - ✅ `GET /api/v1/shipping/{provider_code}/warehouses/search` → `useShippingSearch.ts` (integrated in `checkout.vue`)
 
+#### Leads Endpoints
+- ✅ `POST /api/v1/leads` → `leads.store.ts` (quick buy/callback requests)
+
+#### Site Endpoints (Additional)
+- ✅ `GET /api/v1/site/locations` → `system.store.ts` (physical stores)
+
+#### Notifications Endpoints (Additional)
+- ✅ `PUT /api/v1/notifications/{id}/archive` → `notifications.store.ts`
+- ✅ `PUT /api/v1/notifications/{id}/restore` → `notifications.store.ts`
+- ✅ `GET /api/v1/notifications/count` → `notifications.store.ts` (for badge)
+
 ---
 
 ## 📝 Implementation Reference
@@ -234,20 +311,26 @@ const isWarehouseMethod = computed(() => {
 ## 🎉 Summary
 
 **What's Working:**
-- ✅ All 10 core features fully integrated and production-ready
+- ✅ All 12 core features fully integrated and production-ready
 - ✅ All backend APIs connected and functional
 - ✅ User authentication, loyalty, notifications, orders, payments all complete
 - ✅ Profile management, password/email changes working
 - ✅ Content features (review replies, comments) operational
-- ✅ Site configuration (contacts, support types) integrated
+- ✅ Site configuration (contacts, support types, locations) integrated
 - ✅ Warehouse-based shipping (settlements, warehouses) fully integrated in checkout
+- ✅ Leads API (quick buy/callback requests) with modal component
+- ✅ Site locations page with physical store information
 
 **Optional Enhancements Available:**
-- 🎯 2 optional polish tasks for enhanced UX (non-blocking)
+- 🎯 3 optional polish tasks for enhanced UX (non-blocking)
+  - Notification badge integration (quick win, ~5 min)
+  - Loyalty balance widget in dashboard
+  - Loyalty points display in order details
 
 **Next Actions:**
 - All planned features complete
-- Optional: Implement loyalty widgets in profile dashboard and order details (low priority)
+- Quick win: Integrate NotificationBadge in AppHeader (~5 min)
+- Optional: Implement loyalty widgets in profile (low priority)
 - Ready for production deployment
 
 ---
@@ -255,6 +338,10 @@ const isWarehouseMethod = computed(() => {
 ## 📚 Related Documentation
 
 - **API Endpoints**: See `ai/api/README.md` for domain-specific API files
+  - `ai/api/audience-support.md` - Updated with Leads API documentation
+  - `ai/api/system-seo.md` - Updated with Site Locations documentation
+  - `ai/api/authentication.md` - Updated with CSRF and Contact Channels
+  - `ai/api/notifications-loyalty.md` - Updated with implementation details
 - **Store Patterns**: See `ai/stores/stores.md` for state management patterns
 - **Architecture**: See `ai/core/architecture.md` for component structure
 - **Rendering Rules**: See `ai/constitution/rendering.md` for SSR/CSR guidelines
@@ -263,4 +350,4 @@ const isWarehouseMethod = computed(() => {
 ---
 
 **Project Status:** 🎉 Production-ready - All planned features complete  
-**Overall Completion:** 100% (10/10 features complete)
+**Overall Completion:** 100% (12/12 features complete)
