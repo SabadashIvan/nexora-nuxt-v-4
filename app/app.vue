@@ -5,6 +5,9 @@
 
 import { useAuthStore } from '~/stores/auth.store'
 
+// Get current locale for page key - forces remount on language change
+const { locale } = useI18n()
+
 // Initialize on client
 onMounted(async () => {
   // Access stores inside onMounted to ensure Pinia is initialized
@@ -17,7 +20,8 @@ onMounted(async () => {
 
 <template>
   <NuxtLayout>
-    <NuxtPage />
+    <!-- Key by locale to force page remount on language change -->
+    <NuxtPage :key="locale" />
   </NuxtLayout>
 </template>
 

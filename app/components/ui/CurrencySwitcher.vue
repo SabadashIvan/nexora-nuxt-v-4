@@ -62,11 +62,14 @@ async function switchCurrency(currencyCode: string) {
   }
 
   try {
-    // Update store (updates state and cookie)
-    // Cookie will be automatically sent as Accept-Currency header in all API requests
+    // Update store (updates state and cookie synchronously)
+    // Cookie will be immediately available for Accept-Currency header in API requests
     await systemStore.setCurrency(currencyCode)
 
-    // Currency change will trigger onCurrencyChange() which reloads cart totals
+    // Refresh all page data with new currency
+    // This triggers useAsyncData to refetch with new Accept-Currency header
+    await refreshNuxtData()
+
     isOpen.value = false
   } catch (error) {
     console.error('Failed to switch currency:', error)

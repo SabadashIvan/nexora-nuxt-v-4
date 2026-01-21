@@ -4,18 +4,21 @@
  */
 import { Truck, Award, Shirt } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog.store'
+import { useSystemStore } from '~/stores/system.store'
 import { getImageUrl } from '~/utils'
 import type { BannersResponse } from '~/types'
 
 // Locale-aware navigation
 const localePath = useLocalePath()
 
-// Get locale for cache key
+// Get locale and currency for cache keys
 const i18n = useI18n()
 const { t } = useI18n()
 const locale = computed(() => i18n.locale.value)
+const systemStore = useSystemStore()
+const currency = computed(() => systemStore.currentCurrency)
 
-// Fetch banners on SSR
+// Fetch banners on SSR (locale-dependent only, no prices)
 const { data: bannersResponse } = await useAsyncData(
   () => `home-banners-${locale.value}`,
   async () => {
@@ -38,19 +41,21 @@ const banners = computed(() => bannersResponse.value?.data || [])
 
 // Fetch featured products and categories on SSR
 // Access store inside callbacks to ensure Pinia is initialized
+// Products have prices, so include currency in key and watch array
 const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
-  () => `home-featured-products-${locale.value}`,
+  () => `home-featured-products-${locale.value}-${currency.value}`,
   async () => {
     const catalogStore = useCatalogStore()
     await catalogStore.fetchProducts({ per_page: 8, sort: 'newest' })
     return catalogStore.products
   },
   {
-    watch: [locale],
+    watch: [locale, currency],
   }
 )
 
-const { data: categories } = await useAsyncData(
+// Categories don't have prices, but names are locale-dependent
+const { data: categories, refresh: refreshCategories } = await useAsyncData(
   () => `home-categories-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
@@ -61,6 +66,15 @@ const { data: categories } = await useAsyncData(
     watch: [locale],
   }
 )
+
+// Watch for locale/currency changes to refetch data with new language/prices
+// This is a backup to ensure data refreshes even if useAsyncData watch doesn't trigger
+watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurrency]) => {
+  if (import.meta.client && (newLocale !== oldLocale || newCurrency !== oldCurrency)) {
+    // Refresh all data when locale or currency changes
+    await refreshNuxtData()
+  }
+}, { immediate: false })
 
 const features = computed(() => [
   { icon: Truck, title: t('home.features.freeShipping.title'), description: t('home.features.freeShipping.description') },
