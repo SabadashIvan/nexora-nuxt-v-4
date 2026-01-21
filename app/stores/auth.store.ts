@@ -7,16 +7,21 @@
 
 import { defineStore } from 'pinia'
 import { useNuxtApp } from '#app'
-import type { 
-  User, 
-  LoginPayload, 
-  RegisterPayload, 
+import type {
+  User,
+  LoginPayload,
+  RegisterPayload,
   ForgotPasswordPayload,
   ResetPasswordPayload,
   IdentityAddress,
+  BackendAddress,
   CreateAddressPayload,
   UpdateAddressPayload,
+  ChangePasswordRequestPayload,
+  ChangePasswordConfirmPayload,
+  ChangeEmailRequestPayload,
 } from '~/types'
+import { adaptBackendAddress } from '~/types/auth'
 import { 
   EmailVerificationStatus,
   PasswordResetStatus,
@@ -449,6 +454,8 @@ export const useAuthStore = defineStore('auth', {
     /**
      * Fetch user addresses
      * GET /api/v1/identity/addresses
+     * Note: Backend may return addresses with is_default_shipping/is_default_billing
+     * instead of type + is_default. Use adapter to handle both formats.
      */
     async fetchAddresses(): Promise<void> {
       const api = useApi()
@@ -456,8 +463,16 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
 
       try {
-        const addresses = await api.get<IdentityAddress[]>('/identity/addresses')
-        this.addresses = addresses
+        const addresses = await api.get<(IdentityAddress | BackendAddress)[]>('/identity/addresses')
+        // Adapt backend addresses to frontend format if needed
+        this.addresses = addresses.map(addr => {
+          // Check if it's already in frontend format (has 'type' field)
+          if ('type' in addr) {
+            return addr as IdentityAddress
+          }
+          // Otherwise, adapt from backend format
+          return adaptBackendAddress(addr as BackendAddress)
+        })
       } catch (error) {
         this.error = getErrorMessage(error)
         console.error('Fetch addresses error:', error)
@@ -540,6 +555,196 @@ export const useAuthStore = defineStore('auth', {
         return false
       } finally {
         this.addressLoading = false
+      }
+    },
+
+    // ==========================================
+    // Password & Email Change
+    // ==========================================
+
+    /**
+     * Request password change (sends confirmation email)
+     * POST /api/v1/change-password/request
+     * Requires authentication
+     */
+    async requestPasswordChange(payload: ChangePasswordRequestPayload): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post('/change-password/request', payload)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Request password change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Confirm password change with token
+     * POST /api/v1/change-password/confirm/{token}
+     */
+    async confirmPasswordChange(token: string, payload: ChangePasswordConfirmPayload): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post(`/change-password/confirm/${token}`, payload)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Confirm password change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Request email change (sends confirmation email to new address)
+     * POST /api/v1/change-email/request
+     * Requires authentication
+     */
+    async requestEmailChange(payload: ChangeEmailRequestPayload): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post('/change-email/request', payload)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error('Request email change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Confirm email change with verification link
+     * POST /api/v1/change-email/confirm/{token}
+     */
+    async confirmEmailChange(token: string, email: string): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.post(`/change-email/confirm/${token}`, { email })
+        )
+        // Refresh user to get updated email
+        await this.fetchUser()
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        console.error('Confirm email change error:', error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // ==========================================
+    // Contact Channels (Telegram/Phone)
+    // ==========================================
+
+    /**
+     * Link a contact channel (Telegram or Phone)
+     * POST /api/v1/identity/contacts/{channel}
+     * @param channel - 'telegram' (channel=2) or 'phone' (channel=3)
+     * @param phone - Required for phone channel
+     * @returns Deeplink URL for Telegram, or null for phone (204 No Content)
+     */
+    async linkContactChannel(
+      channel: 'telegram' | 'phone',
+      phone?: string
+    ): Promise<{ deeplink: string } | null> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      // Map channel name to channel ID
+      const channelId = channel === 'telegram' ? 2 : 3
+
+      try {
+        const body = channel === 'phone' && phone ? { phone } : {}
+
+        const response = await nuxtApp.runWithContext(async () =>
+          await api.post<{ data: string; meta: { type: string } } | void>(
+            `/identity/contacts/${channelId}`,
+            body
+          )
+        )
+
+        // Telegram returns deeplink, phone returns 204 No Content
+        if (response && 'data' in response && response.meta?.type === 'deeplink') {
+          return { deeplink: response.data }
+        }
+
+        return null
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        this.fieldErrors = getFieldErrors(apiError)
+        console.error(`Link ${channel} channel error:`, error)
+        return null
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Unlink a contact channel (Telegram or Phone)
+     * DELETE /api/v1/identity/contacts/{channel}
+     * @param channel - 'telegram' (channel=2) or 'phone' (channel=3)
+     */
+    async unlinkContactChannel(channel: 'telegram' | 'phone'): Promise<boolean> {
+      const nuxtApp = useNuxtApp()
+      const api = useApi()
+      this.loading = true
+      this.clearErrors()
+
+      // Map channel name to channel ID
+      const channelId = channel === 'telegram' ? 2 : 3
+
+      try {
+        await nuxtApp.runWithContext(async () =>
+          await api.delete(`/identity/contacts/${channelId}`)
+        )
+        return true
+      } catch (error) {
+        const apiError = parseApiError(error)
+        this.error = apiError.message
+        console.error(`Unlink ${channel} channel error:`, error)
+        return false
+      } finally {
+        this.loading = false
       }
     },
 

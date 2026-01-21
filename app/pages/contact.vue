@@ -17,6 +17,13 @@ useHead({
 // Store access (safe for CSR)
 const supportStore = useSupportStore()
 
+// Fetch request types on mount
+onMounted(async () => {
+  if (supportStore.requestTypes.length === 0) {
+    await supportStore.fetchRequestTypes()
+  }
+})
+
 // Form state (only user-input fields)
 const form = reactive({
   name: '',
@@ -24,7 +31,7 @@ const form = reactive({
   phone: '',
   subject: '',
   message: '',
-  type: 'general' as 'general' | 'technical' | 'billing' | 'other',
+  type_id: null as number | null,
 })
 
 // Form validation
@@ -87,6 +94,22 @@ const storeRetryAfter = computed(() => {
   }
 })
 
+const storeRequestTypes = computed(() => {
+  try {
+    return supportStore.requestTypes
+  } catch {
+    return []
+  }
+})
+
+const storeRequestTypesLoading = computed(() => {
+  try {
+    return supportStore.requestTypesLoading
+  } catch {
+    return false
+  }
+})
+
 // Rate limit countdown
 const retryCountdown = ref<number | null>(null)
 
@@ -127,7 +150,6 @@ async function handleSubmit() {
     email: form.email.trim(),
     subject: form.subject.trim(),
     message: form.message.trim(),
-    type: form.type || '1',
     ip_address: ipAddress,
     user_agent: userAgent,
     source: 'contact_page',
@@ -136,6 +158,11 @@ async function handleSubmit() {
   // Add phone if provided
   if (form.phone && form.phone.trim()) {
     payload.phone = form.phone.trim()
+  }
+
+  // Add type_id if selected
+  if (form.type_id !== null) {
+    payload.type = String(form.type_id)
   }
 
   const success = await supportStore.submitRequest(payload)
@@ -147,7 +174,7 @@ async function handleSubmit() {
     form.phone = ''
     form.subject = ''
     form.message = ''
-    form.type = 'general'
+    form.type_id = null
   }
 }
 </script>
@@ -280,13 +307,18 @@ async function handleSubmit() {
             <div class="relative">
               <FileText class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
               <select
-                v-model="form.type"
-                class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer"
+                v-model="form.type_id"
+                :disabled="storeRequestTypesLoading"
+                class="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-800 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="general">{{ $t('contact.form.types.general') }}</option>
-                <option value="technical">{{ $t('contact.form.types.technical') }}</option>
-                <option value="billing">{{ $t('contact.form.types.billing') }}</option>
-                <option value="other">{{ $t('contact.form.types.other') }}</option>
+                <option :value="null">{{ $t('contact.form.selectType') }}</option>
+                <option
+                  v-for="requestType in storeRequestTypes"
+                  :key="requestType.id"
+                  :value="requestType.id"
+                >
+                  {{ requestType.title }}
+                </option>
               </select>
             </div>
           </div>

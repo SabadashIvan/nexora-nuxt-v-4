@@ -34,7 +34,7 @@ export function generateUUID(): string {
 /**
  * Get token from cookie (SSR-safe)
  * During SSR, uses getCookie() to avoid triggering cookie writes
- * During client, uses useCookie() for reactivity
+ * During client, reads directly from document.cookie for fresh values
  */
 export function getTokenFromCookie(key: string): string | null {
   if (import.meta.server) {
@@ -53,12 +53,13 @@ export function getTokenFromCookie(key: string): string | null {
       return null
     }
   }
-  // On client, use useCookie() for reactivity
+  // On client, read directly from document.cookie to get fresh values
+  // This ensures we get the latest value even after setTokenSync() writes
   try {
-    const cookie = useCookie(key)
-    return cookie.value || null
+    const match = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`))
+    return match && match[1] ? decodeURIComponent(match[1]) : null
   } catch {
-    // Fallback if useCookie() fails
+    // Fallback if document.cookie fails
     return null
   }
 }
@@ -153,6 +154,29 @@ export function getToken(key: string): string | null {
  */
 export function setToken(key: string, value: string): void {
   setTokenInCookie(key, value)
+  setTokenInStorage(key, value)
+}
+
+/**
+ * Set token synchronously - writes directly to document.cookie
+ * Use this when the cookie value needs to be available immediately
+ * (e.g., for subsequent API calls before Vue reactivity cycles)
+ */
+export function setTokenSync(key: string, value: string): void {
+  if (import.meta.client) {
+    const maxAge = 60 * 60 * 24 * 365 // 1 year
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+    document.cookie = `${key}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`
+
+    // Also set via useCookie for reactivity (will sync eventually)
+    try {
+      const cookie = useCookie(key, COOKIE_OPTIONS)
+      cookie.value = value
+    } catch {
+      // Silently fail if useCookie doesn't work
+    }
+  }
+  // Also set in localStorage for fallback
   setTokenInStorage(key, value)
 }
 

@@ -407,6 +407,119 @@ Retrieves all visible Hero type banners for the homepage.
 
 ---
 
+### 9. Get Site Locations
+`GET /api/v1/site/locations`
+
+Returns a list of active physical store/office locations with details.
+
+**Authentication:** None required (public endpoint)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Main Office",
+      "address": "123 Demo Street, Springfield",
+      "address_link": "https://maps.google.com/?q=123+Demo+Street+Springfield",
+      "schedule": {
+        "monday": "09:00-18:00",
+        "tuesday": "09:00-18:00",
+        "wednesday": "09:00-18:00",
+        "thursday": "09:00-18:00",
+        "friday": "09:00-18:00",
+        "saturday": "10:00-16:00",
+        "sunday": "Closed"
+      },
+      "phones": [
+        "+1 (555) 010-2000",
+        "+1 (555) 010-2001"
+      ],
+      "map_iframe": "<iframe src=\"https://maps.google.com/maps?q=...\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe>",
+      "website_link": "https://example.com",
+      "image": "https://example.com/storage/locations/main-office.jpg"
+    },
+    {
+      "id": 2,
+      "title": "Downtown Store",
+      "address": "456 Market Street, City Center",
+      "address_link": "https://maps.google.com/?q=456+Market+Street+City+Center",
+      "schedule": {
+        "monday": "10:00-20:00",
+        "tuesday": "10:00-20:00",
+        "wednesday": "10:00-20:00",
+        "thursday": "10:00-20:00",
+        "friday": "10:00-21:00",
+        "saturday": "10:00-21:00",
+        "sunday": "11:00-18:00"
+      },
+      "phones": [
+        "+1 (555) 020-3000"
+      ],
+      "map_iframe": "<iframe src=\"https://maps.google.com/maps?q=...\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe>",
+      "website_link": null,
+      "image": null
+    }
+  ]
+}
+```
+
+**Response fields:**
+- `data` (array): Array of location objects
+- `data[].id` (number): Location identifier
+- `data[].title` (string): Location name/title
+- `data[].address` (string): Full physical address
+- `data[].address_link` (string | null): Google Maps link for the address
+- `data[].schedule` (object): Weekly schedule with day names as keys
+  - Keys: `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, `sunday`
+  - Values: Time ranges (e.g., "09:00-18:00") or "Closed"
+- `data[].phones` (array): Array of phone numbers
+- `data[].map_iframe` (string | null): Embeddable Google Maps iframe HTML
+- `data[].website_link` (string | null): Location-specific website URL
+- `data[].image` (string | null): Location image URL
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/system.store.ts`
+```typescript
+async fetchLocations(): Promise<SiteLocation[]> {
+  const api = useApi()
+  const response = await api.get<{data: SiteLocation[]}>('/site/locations')
+  return response.data
+}
+```
+
+**Page:** `/app/pages/stores.vue`
+- SSR-enabled page for SEO
+- Displays locations in a responsive grid
+- Shows address, phones, schedule, map iframe, website link
+- Highlights current day in schedule
+- Click-to-call phone numbers
+- Map iframe with lazy loading
+- Loading and empty states
+
+**Usage Example:**
+```vue
+<script setup>
+const systemStore = useSystemStore()
+const { data: locations, pending } = await useAsyncData(
+  'site-locations',
+  () => systemStore.fetchLocations(),
+  { server: true }
+)
+</script>
+```
+
+**Notes:**
+- Returns only active locations
+- Schedule fields are translatable (respects `Accept-Language` header)
+- Map iframes should have `loading="lazy"` attribute
+- Phone numbers should use `tel:` protocol for mobile click-to-call
+- Address links typically use Google Maps format
+
+---
+
 ## SSR/CSR Behavior
 
 **SSR Pages** (Must be fetched on SSR):
@@ -415,6 +528,7 @@ Retrieves all visible Hero type banners for the homepage.
 - SEO metadata (`/api/v1/site?url={path}`)
 - Menu tree (`/api/v1/site/menus/tree`)
 - Site contacts (`/api/v1/site/contacts`)
+- Site locations (`/api/v1/site/locations`)
 - Static pages (`/api/v1/site/pages/{slug}`)
 - Homepage banners (`/api/v1/banners/homepage`)
 

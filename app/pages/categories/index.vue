@@ -3,33 +3,37 @@
  * Categories page - SSR for SEO
  */
 import { useCatalogStore } from '~/stores/catalog.store'
+import { useSystemStore } from '~/stores/system.store'
 import type { ProductFilter } from '~/types'
 
 const route = useRoute()
 
-// Get locale for cache key
+// Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
+const systemStore = useSystemStore()
+const currency = computed(() => systemStore.currentCurrency)
 
 // Create a computed for route query to use in watch
 const routeQuery = computed(() => route.query)
 
-// Build cache key from route query and locale for SWR-like caching
-const buildCacheKey = (query: Record<string, any>, currentLocale: string) => {
+// Build cache key from route query, locale, and currency for SWR-like caching
+// Products have prices, so include currency in the key
+const buildCacheKey = (query: Record<string, unknown>, currentLocale: string, currentCurrency: string) => {
   const sortedQuery = Object.keys(query)
     .sort()
     .reduce((acc, key) => {
       acc[key] = query[key]
       return acc
-    }, {} as Record<string, any>)
-  return `catalog-products-${currentLocale}-${JSON.stringify(sortedQuery)}`
+    }, {} as Record<string, unknown>)
+  return `catalog-products-${currentLocale}-${currentCurrency}-${JSON.stringify(sortedQuery)}`
 }
 
 // Fetch products with lazy loading + SWR caching
 // useLazyAsyncData allows instant navigation with skeleton loading
-// Key includes all query params (including page) and locale so cache will be correct per page and language
-const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
-  () => buildCacheKey(route.query, locale.value),
+// Key includes all query params (including page), locale, and currency so cache will be correct per page/language/currency
+const { data: productsData, pending, refresh, error: _error } = await useLazyAsyncData(
+  () => buildCacheKey(route.query, locale.value, currency.value),
   async () => {
     const catalogStore = useCatalogStore()
     
@@ -48,7 +52,19 @@ const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
     
     // Build filters object from URL params only
     // On /categories page, we don't add categories filter unless explicitly in URL
-    const filters: any = {
+    interface CatalogFiltersPayload {
+      page: number
+      filters?: {
+        q?: string
+        categories?: string
+        brands?: string
+        price_min?: number
+        price_max?: number
+        attributes?: string[]
+      }
+    }
+    
+    const filters: CatalogFiltersPayload = {
       page: initialFilters.page,
       // Explicitly set filters to empty object to prevent old category filters from being merged
       // This ensures that when navigating from /categories/[category] to /categories/, 
@@ -58,27 +74,27 @@ const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
     
     // Only add filter values if they exist in URL
     if (initialFilters.q) {
-      filters.filters.q = initialFilters.q
+      filters.filters!.q = initialFilters.q
     }
     // Only add categories if explicitly in URL - don't add by default on /categories
     if (initialFilters.categories) {
-      filters.filters.categories = initialFilters.categories
+      filters.filters!.categories = initialFilters.categories
     }
     if (initialFilters.brands) {
-      filters.filters.brands = initialFilters.brands
+      filters.filters!.brands = initialFilters.brands
     }
     if (initialFilters.price_min !== undefined) {
-      filters.filters.price_min = initialFilters.price_min
+      filters.filters!.price_min = initialFilters.price_min
     }
     if (initialFilters.price_max !== undefined) {
-      filters.filters.price_max = initialFilters.price_max
+      filters.filters!.price_max = initialFilters.price_max
     }
     if (initialFilters.attributes && initialFilters.attributes.length > 0) {
-      filters.filters.attributes = initialFilters.attributes
+      filters.filters!.attributes = initialFilters.attributes
     }
     
     // If no filters in URL, remove empty filters object to avoid sending it to API
-    if (Object.keys(filters.filters).length === 0) {
+    if (filters.filters && Object.keys(filters.filters).length === 0) {
       filters.filters = undefined
     }
     
@@ -116,14 +132,14 @@ const { data: productsData, pending, refresh, error } = await useLazyAsyncData(
     }
     return catalogStore.products
   },
-  { 
-    // Watch locale to refetch when language changes
-    watch: [locale],
+  {
+    // Watch locale and currency to refetch when they change
+    watch: [locale, currency],
     // SWR-like behavior: show cached data immediately, then refresh in background
-    getCachedData: (key) => {
+    getCachedData: (_key) => {
       // Don't return cached data from store - it might be from a different page
       // Let useAsyncData handle caching through its built-in mechanism
-      // The key includes all query params (including page) and locale, so cache will be correct
+      // The key includes all query params (including page), locale, and currency, so cache will be correct
       return undefined
     },
     // Server-side: always fetch fresh data for SEO
@@ -138,9 +154,16 @@ watch(routeQuery, () => {
   refresh()
 }, { deep: true })
 
+// Watch for locale/currency changes to refetch data with new language/prices
+watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurrency]) => {
+  if (import.meta.client && (newLocale !== oldLocale || newCurrency !== oldCurrency)) {
+    await refresh()
+  }
+}, { immediate: false })
+
 // Fetch categories with lazy loading + caching
 // Categories change rarely, so we can cache them aggressively
-const { data: categoriesData } = await useLazyAsyncData(
+const { data: _categoriesData } = await useLazyAsyncData(
   () => `catalog-categories-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()
@@ -153,7 +176,7 @@ const { data: categoriesData } = await useLazyAsyncData(
     // Watch locale to refetch when language changes
     watch: [locale],
     // Cache categories for 5 minutes (they change rarely)
-    getCachedData: (key) => {
+    getCachedData: (_key) => {
       try {
         const catalogStore = useCatalogStore()
         if (catalogStore.categories && catalogStore.categories.length > 0) {

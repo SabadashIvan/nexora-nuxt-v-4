@@ -1,13 +1,44 @@
 <script setup lang="ts">
 /**
  * Main application footer
+ * Displays site contacts, social links, and navigation
  */
-import { Mail, Phone, MapPin, Facebook, Twitter, Instagram } from 'lucide-vue-next'
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, MessageCircle } from 'lucide-vue-next'
 
 // Locale-aware navigation
 const localePath = useLocalePath()
+const systemStore = shallowRef<ReturnType<typeof useSystemStore> | null>(null)
 
 const currentYear = new Date().getFullYear()
+
+// Fetch contacts on mount (client-side only)
+onMounted(async () => {
+  systemStore.value = useSystemStore()
+
+  if (!systemStore.value.contacts) {
+    await systemStore.value.fetchContacts()
+  }
+})
+
+// Computed properties for contact data with fallbacks
+const contacts = computed(() => systemStore.value?.contacts?.contacts)
+const socials = computed(() => systemStore.value?.contacts?.socials ?? [])
+const messengers = computed(() => systemStore.value?.contacts?.messengers ?? [])
+
+const email = computed(() => contacts.value?.email ?? 'support@nexora.shop')
+const phones = computed(() => contacts.value?.phones ?? ['+1 (234) 567-890'])
+const address = computed(() => contacts.value?.address ?? '123 Commerce Street, New York, NY 10001')
+const addressLink = computed(() => contacts.value?.address_link ?? '#')
+
+// Get icon component for social/messenger link
+function getSocialIcon(title: string) {
+  const iconMap: Record<string, typeof Facebook> = {
+    facebook: Facebook,
+    twitter: Twitter,
+    instagram: Instagram,
+  }
+  return iconMap[title.toLowerCase()] ?? MessageCircle
+}
 </script>
 
 <template>
@@ -21,14 +52,45 @@ const currentYear = new Date().getFullYear()
             Your trusted e-commerce destination. Quality products, fast delivery, excellent service.
           </p>
           <div class="flex space-x-4">
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">
-              <Facebook class="h-5 w-5" />
-            </a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">
-              <Twitter class="h-5 w-5" />
-            </a>
-            <a href="#" class="text-gray-400 hover:text-white transition-colors">
-              <Instagram class="h-5 w-5" />
+            <!-- Dynamic social links from API -->
+            <template v-if="socials.length > 0">
+              <a
+                v-for="social in socials"
+                :key="social.url"
+                :href="social.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-gray-400 hover:text-white transition-colors"
+                :title="social.title"
+              >
+                <component :is="getSocialIcon(social.title)" class="h-5 w-5" />
+              </a>
+            </template>
+            <!-- Fallback static links -->
+            <template v-else>
+              <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                <Facebook class="h-5 w-5" />
+              </a>
+              <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                <Twitter class="h-5 w-5" />
+              </a>
+              <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                <Instagram class="h-5 w-5" />
+              </a>
+            </template>
+          </div>
+          <!-- Messenger links -->
+          <div v-if="messengers.length > 0" class="flex space-x-4 mt-3">
+            <a
+              v-for="messenger in messengers"
+              :key="messenger.url"
+              :href="messenger.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-gray-400 hover:text-white transition-colors"
+              :title="messenger.title"
+            >
+              <MessageCircle class="h-5 w-5" />
             </a>
           </div>
         </div>
@@ -104,21 +166,29 @@ const currentYear = new Date().getFullYear()
           <ul class="space-y-3">
             <li class="flex items-center gap-3">
               <Mail class="h-5 w-5 text-gray-400" />
-              <a href="mailto:support@nexora.shop" class="text-sm hover:text-white transition-colors">
-                support@nexora.shop
+              <a :href="`mailto:${email}`" class="text-sm hover:text-white transition-colors">
+                {{ email }}
               </a>
             </li>
-            <li class="flex items-center gap-3">
+            <li v-for="phone in phones" :key="phone" class="flex items-center gap-3">
               <Phone class="h-5 w-5 text-gray-400" />
-              <a href="tel:+1234567890" class="text-sm hover:text-white transition-colors">
-                +1 (234) 567-890
+              <a :href="`tel:${phone.replace(/\s/g, '')}`" class="text-sm hover:text-white transition-colors">
+                {{ phone }}
               </a>
             </li>
             <li class="flex items-start gap-3">
               <MapPin class="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
-              <span class="text-sm">
-                123 Commerce Street<br>
-                New York, NY 10001
+              <a
+                v-if="addressLink && addressLink !== '#'"
+                :href="addressLink"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm hover:text-white transition-colors"
+              >
+                {{ address }}
+              </a>
+              <span v-else class="text-sm">
+                {{ address }}
               </span>
             </li>
           </ul>
@@ -144,4 +214,3 @@ const currentYear = new Date().getFullYear()
     </div>
   </footer>
 </template>
-

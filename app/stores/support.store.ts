@@ -10,6 +10,7 @@ import type {
   SupportState,
   SupportRequestPayload,
   SupportRequestResponse,
+  SupportRequestTypeOption,
 } from '~/types'
 import { getErrorMessage, getFieldErrors, isRateLimitError, extractRetryTime, parseApiError } from '~/utils/errors'
 
@@ -21,6 +22,8 @@ export const useSupportStore = defineStore('support', {
     success: false,
     retryAfter: null,
     fieldErrors: {},
+    requestTypes: [],
+    requestTypesLoading: false,
   }),
 
   getters: {
@@ -44,6 +47,13 @@ export const useSupportStore = defineStore('support', {
     isRateLimited: (state): boolean => {
       return state.retryAfter !== null && state.retryAfter > 0
     },
+
+    /**
+     * Check if request types are available
+     */
+    hasRequestTypes: (state): boolean => {
+      return state.requestTypes.length > 0
+    },
   },
 
   actions: {
@@ -55,6 +65,29 @@ export const useSupportStore = defineStore('support', {
       this.message = null
       this.fieldErrors = {}
       this.retryAfter = null
+    },
+
+    /**
+     * Fetch support request types
+     * GET /api/v1/customer-support/requests/types
+     */
+    async fetchRequestTypes(): Promise<void> {
+      const api = useApi()
+      this.requestTypesLoading = true
+
+      try {
+        const response = await api.get<SupportRequestTypeOption[] | { data: SupportRequestTypeOption[] }>(
+          '/customer-support/requests/types'
+        )
+        // Handle both wrapped and unwrapped response
+        this.requestTypes = Array.isArray(response) ? response : (response?.data ?? [])
+      } catch (error) {
+        console.error('Fetch request types error:', error)
+        // Don't set error - request types are optional, form can still work with fallback
+        this.requestTypes = []
+      } finally {
+        this.requestTypesLoading = false
+      }
     },
 
     /**
@@ -117,6 +150,8 @@ export const useSupportStore = defineStore('support', {
       this.success = false
       this.retryAfter = null
       this.fieldErrors = {}
+      this.requestTypes = []
+      this.requestTypesLoading = false
     },
   },
 })

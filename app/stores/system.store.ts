@@ -4,9 +4,9 @@
  */
 
 import { defineStore } from 'pinia'
-import type { Locale, Currency, LanguagesResponse, CurrenciesResponse } from '~/types'
+import type { Locale, Currency, LanguagesResponse, CurrenciesResponse, SiteContacts, SiteContactsResponse, SiteLocation, SiteLocationsResponse } from '~/types'
 import { applySeoMetadata, fetchSeoMetadata } from '~/composables/useSeoMetadata'
-import { setToken, TOKEN_KEYS, getToken } from '~/utils/tokens'
+import { setToken, setTokenSync, TOKEN_KEYS, getToken } from '~/utils/tokens'
 import { getCurrencySymbol } from '~/utils/price'
 
 interface SystemState {
@@ -14,6 +14,9 @@ interface SystemState {
   currencies: Currency[]
   currentLocale: string
   currentCurrency: string
+  contacts: SiteContacts | null
+  locations: SiteLocation[]
+  locationsLoading: boolean
   loading: boolean
   error: string | null
   initialized: boolean
@@ -25,6 +28,9 @@ export const useSystemStore = defineStore('system', {
     currencies: [],
     currentLocale: 'ru', // Must match nuxt.config.ts i18n.defaultLocale
     currentCurrency: 'USD',
+    contacts: null,
+    locations: [],
+    locationsLoading: false,
     loading: false,
     error: null,
     initialized: false,
@@ -74,11 +80,16 @@ export const useSystemStore = defineStore('system', {
         
         this.locales = response.data
 
-        // Don't set default locale from API - use config defaultLocale instead
-        // Only set currentLocale if not already stored (use config default 'ru')
+        // Sync current locale with cookie value
+        // If cookie exists, use it; otherwise set default
         const storedLocale = getToken(TOKEN_KEYS.LOCALE)
-        if (!storedLocale) {
-          // Use default locale from config (nuxt.config.ts i18n.defaultLocale)
+        if (storedLocale) {
+          // Sync store with cookie value
+          if (this.currentLocale !== storedLocale) {
+            this.currentLocale = storedLocale
+          }
+        } else {
+          // No cookie - use default locale from config
           this.currentLocale = 'ru'
           setToken(TOKEN_KEYS.LOCALE, 'ru')
         }
@@ -107,9 +118,16 @@ export const useSystemStore = defineStore('system', {
             return
           }
           
-          // Update i18n locale if current locale is set
-          // Type assertion needed because i18n expects specific locale union type
-          await i18n.setLocale(this.currentLocale as 'ru' | 'en' | 'uk' | 'awa')
+          // Only update i18n locale if it's in the configured locales
+          // i18n may have fewer locales than the API returns
+          const configuredLocales = (i18n.locales?.value || []).map((l: string | {code: string}) => 
+            typeof l === 'string' ? l : l.code
+          )
+          
+          if (configuredLocales.includes(this.currentLocale)) {
+            // Type assertion is safe here because we verified the locale is in configured locales
+            await i18n.setLocale(this.currentLocale as typeof i18n.locale.value)
+          }
         } catch (error) {
           // i18n might not be available yet, that's okay
           console.warn('Could not sync with i18n:', error)
@@ -155,16 +173,19 @@ export const useSystemStore = defineStore('system', {
           is_default: currency.is_default,
         }))
 
-        // Sync current currency - similar to how fetchLanguages() handles locale
-        // Don't set default currency from API if already stored
-        // Only set currentCurrency if not already stored (use API default)
+        // Sync current currency with cookie value
+        // If cookie exists, use it; otherwise set default from API
         const storedCurrency = getToken(TOKEN_KEYS.CURRENCY)
-        if (!storedCurrency && response.meta.default) {
-          // Set default currency from API if not stored
+        if (storedCurrency) {
+          // Sync store with cookie value
+          if (this.currentCurrency !== storedCurrency) {
+            this.currentCurrency = storedCurrency
+          }
+        } else if (response.meta.default) {
+          // No cookie - use default currency from API
           this.currentCurrency = response.meta.default
           setToken(TOKEN_KEYS.CURRENCY, response.meta.default)
         }
-        // If storedCurrency exists, it's already set in middleware or store initialization
       } catch (error) {
         this.error = 'Failed to load currencies'
         console.error('Currencies fetch error:', error)
@@ -173,6 +194,45 @@ export const useSystemStore = defineStore('system', {
       }
     },
 
+    /**
+     * Fetch site contacts from API
+     * GET /api/v1/site/contacts
+     */
+    async fetchContacts() {
+      const api = useApi()
+
+      try {
+        const response = await api.get<SiteContactsResponse | SiteContacts>('/site/contacts')
+        // Handle both wrapped and unwrapped response
+        this.contacts = 'data' in response ? response.data : response
+      } catch (error) {
+        console.error('Contacts fetch error:', error)
+        // Don't set error - contacts are optional
+      }
+    },
+
+    /**
+     * Fetch site locations from API
+     * GET /api/v1/site/locations
+     */
+    async fetchLocations(): Promise<SiteLocation[]> {
+      const api = useApi()
+      this.locationsLoading = true
+
+      try {
+        const response = await api.get<SiteLocationsResponse | SiteLocation[]>('/site/locations')
+        // Handle both wrapped and unwrapped response
+        this.locations = Array.isArray(response) ? response : (response?.data ?? [])
+        return this.locations
+      } catch (error) {
+        console.error('Locations fetch error:', error)
+        // Don't set error - locations are optional
+        this.locations = []
+        return []
+      } finally {
+        this.locationsLoading = false
+      }
+    },
 
     /**
      * Set current locale (state and cookie only)
@@ -189,10 +249,11 @@ export const useSystemStore = defineStore('system', {
         return
       }
 
-      // Update store and cookie
+      // Update store and cookie synchronously
+      // setTokenSync writes directly to document.cookie for immediate availability
       // Cookie will be automatically sent as Accept-Language header in all API requests
       this.currentLocale = locale
-      setToken(TOKEN_KEYS.LOCALE, locale)
+      setTokenSync(TOKEN_KEYS.LOCALE, locale)
 
       // Trigger reactive updates across stores
       // Note: onLocaleChange is async but we don't await it here to keep method synchronous
@@ -216,10 +277,11 @@ export const useSystemStore = defineStore('system', {
           return
         }
 
-        // Update store and cookie
+        // Update store and cookie synchronously
+        // setTokenSync writes directly to document.cookie for immediate availability
         // Cookie will be automatically sent as Accept-Currency header in all API requests
         this.currentCurrency = currency
-        setToken(TOKEN_KEYS.CURRENCY, currency)
+        setTokenSync(TOKEN_KEYS.CURRENCY, currency)
 
         // Trigger reactive updates across stores
         // Currency change will be reflected in Accept-Currency header on next API request
@@ -227,7 +289,7 @@ export const useSystemStore = defineStore('system', {
       } catch (error) {
         // Rollback on failure
         this.currentCurrency = previousCurrency
-        setToken(TOKEN_KEYS.CURRENCY, previousCurrency)
+        setTokenSync(TOKEN_KEYS.CURRENCY, previousCurrency)
         console.error('Failed to set currency:', error)
         throw error
       }
@@ -269,6 +331,8 @@ export const useSystemStore = defineStore('system', {
       this.currencies = []
       this.currentLocale = 'ru' // Must match nuxt.config.ts i18n.defaultLocale
       this.currentCurrency = 'USD'
+      this.locations = []
+      this.locationsLoading = false
       this.loading = false
       this.error = null
       this.initialized = false

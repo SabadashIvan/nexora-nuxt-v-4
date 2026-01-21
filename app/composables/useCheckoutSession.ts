@@ -4,6 +4,7 @@ export function useCheckoutSession() {
   const getStore = () => useCheckoutStore()
 
   const hasSession = computed(() => getStore().hasSession)
+  const checkoutId = computed(() => getStore().checkoutId)
   const items = computed(() => getStore().items)
   const pricing = computed(() => getStore().pricing)
   const addresses = computed(() => getStore().addresses)
@@ -28,8 +29,12 @@ export function useCheckoutSession() {
     return getStore().updateAddress(shippingAddress, billingAddress, billingSameAsShipping)
   }
 
-  const applyShippingMethod = async (methodCode: string, quoteId?: string) => {
-    return getStore().applyShippingMethod(methodCode, quoteId)
+  const applyShippingMethod = async (
+    methodCode: string,
+    quoteId?: string,
+    providerMetadata?: { warehouse_external_id?: string; settlement_external_id?: string }
+  ) => {
+    return getStore().applyShippingMethod(methodCode, quoteId, providerMetadata)
   }
 
   const applyPaymentProvider = async (providerCode: string) => {
@@ -50,6 +55,7 @@ export function useCheckoutSession() {
 
   return {
     hasSession,
+    checkoutId,
     items,
     pricing,
     addresses,

@@ -3,23 +3,27 @@
  * Category page - SSR for SEO
  */
 import { useCatalogStore } from '~/stores/catalog.store'
+import { useSystemStore } from '~/stores/system.store'
 import type { Category, ProductFilter } from '~/types'
 
 // Call composables at top level of setup - this is safe in Nuxt 3
 const route = useRoute()
 const catalogStore = useCatalogStore()
+const systemStore = useSystemStore()
 // Create API instance at top level where context is guaranteed
 const api = useApi()
 
-// Get locale for cache key
+// Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
+const currency = computed(() => systemStore.currentCurrency)
 
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
 
-// Build cache key for category page with filters and locale
-const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string) => {
+// Build cache key for category page with filters, locale, and currency
+// Products have prices, so include currency in the key
+const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string, currentCurrency: string) => {
   const sortedQuery = Object.keys(query)
     .sort()
     .reduce((acc, key) => {
@@ -28,12 +32,12 @@ const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, cur
       acc[key] = value === null ? undefined : value
       return acc
     }, {} as Record<string, unknown>)
-  return `category-${slug}-${currentLocale}-${JSON.stringify(sortedQuery)}`
+  return `category-${slug}-${currentLocale}-${currentCurrency}-${JSON.stringify(sortedQuery)}`
 }
 
 // Fetch category and products with lazy loading + SWR caching
 const { data: category, pending, error, refresh } = await useLazyAsyncData(
-  () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value),
+  () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, currency.value),
   async () => {
     const slug = categorySlug.value
     const query = route.query
@@ -117,21 +121,10 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
   {
     server: true,
     default: () => null,
-    // Watch locale to refetch when language changes
-    watch: [locale],
-    // SWR-like caching: return cached category if available (category doesn't change with pagination)
-    getCachedData: (_key) => {
-      try {
-        // Category data doesn't change with pagination, so we can cache it
-        // But products will be refetched because the key includes query params
-        if (catalogStore.currentCategory && catalogStore.currentCategory.slug === categorySlug.value) {
-          return catalogStore.currentCategory
-        }
-      } catch {
-        // Store not available
-      }
-      return undefined
-    },
+    // Watch locale and currency to refetch when they change
+    watch: [locale, currency],
+    // Don't use getCachedData - it can return stale data with wrong locale/currency
+    // Let Nuxt handle caching based on the key which includes locale and currency
   }
 )
 
@@ -139,6 +132,13 @@ const { data: category, pending, error, refresh } = await useLazyAsyncData(
 watch(() => route.fullPath, () => {
   refresh()
 })
+
+// Watch for locale/currency changes to refetch data with new language/prices
+watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurrency]) => {
+  if (import.meta.client && (newLocale !== oldLocale || newCurrency !== oldCurrency)) {
+    await refresh()
+  }
+}, { immediate: false })
 
 // Handle 404 - check after data loads
 watch([pending, category, error], ([isPending, cat, err]) => {

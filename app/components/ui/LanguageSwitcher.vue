@@ -64,8 +64,8 @@ async function switchLanguage(localeCode: string) {
     const newPath = switchLocalePath(localeCode as 'ru' | 'en' | 'uk' | 'awa')
     const currentPath = route.path
 
-    // Update store first (updates state and cookie)
-    // Cookie will be automatically sent as Accept-Language header in all API requests
+    // Update store first (updates state and cookie synchronously)
+    // Cookie will be immediately available for Accept-Language header in API requests
     systemStore.setLocale(localeCode)
 
     // Update i18n locale
@@ -78,6 +78,10 @@ async function switchLanguage(localeCode: string) {
     if (newPath && newPath !== currentPath) {
       await navigateTo(newPath)
     }
+
+    // Refresh all page data with new locale
+    // This ensures useAsyncData refetches with new Accept-Language header
+    await refreshNuxtData()
 
     // Wait for locale change updates (SEO, etc.)
     await systemStore.onLocaleChange()

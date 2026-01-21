@@ -12,7 +12,7 @@ const DEFAULT_LOCALE = 'ru'
 const DEFAULT_CURRENCY = 'USD'
 
 export default defineNuxtRouteMiddleware(async () => {
-  // Get stored preferences
+  // Get stored preferences from cookies
   const storedLocale = getToken(TOKEN_KEYS.LOCALE)
   const storedCurrency = getToken(TOKEN_KEYS.CURRENCY)
 
@@ -38,8 +38,8 @@ export default defineNuxtRouteMiddleware(async () => {
   try {
     const { useSystemStore } = await import('~/stores/system.store')
     const systemStore = useSystemStore()
-    
-    // Only run initialization once
+
+    // First-time initialization
     if (!systemStore.initialized) {
       // Initialize system store with stored values or defaults
       systemStore.currentLocale = storedLocale || DEFAULT_LOCALE
@@ -67,8 +67,19 @@ export default defineNuxtRouteMiddleware(async () => {
       // i18n sync will happen in plugin or component after mount
 
       systemStore.initialized = true
+    } else if (import.meta.client) {
+      // On client-side navigation, sync store with cookie values
+      // This ensures the store reflects the latest cookie state
+      const currentLocale = storedLocale || DEFAULT_LOCALE
+      const currentCurrency = storedCurrency || DEFAULT_CURRENCY
+
+      if (systemStore.currentLocale !== currentLocale) {
+        systemStore.currentLocale = currentLocale
+      }
+      if (systemStore.currentCurrency !== currentCurrency) {
+        systemStore.currentCurrency = currentCurrency
+      }
     }
-    // Don't sync i18n in middleware - it runs too early in the lifecycle
   } catch (error) {
     // Store access failed - plugin will handle initialization
     console.warn('Could not initialize system store in middleware:', error)

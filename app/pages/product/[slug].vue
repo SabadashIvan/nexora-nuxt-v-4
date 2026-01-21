@@ -3,11 +3,12 @@
 /**
  * Product detail page - SSR for SEO
  */
-import { Heart, ShoppingCart, Share2, GitCompare } from 'lucide-vue-next'
+import { Heart, ShoppingCart, Share2, GitCompare, Phone } from 'lucide-vue-next'
 import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
+import { useSystemStore } from '~/stores/system.store'
 import type { Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
@@ -16,44 +17,29 @@ const route = useRoute()
 // Locale-aware navigation
 const localePath = useLocalePath()
 
-// Get locale for cache key
+// Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
+const systemStore = useSystemStore()
+const currency = computed(() => systemStore.currentCurrency)
 
 const slug = computed(() => route.params.slug as string)
 
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
+// Include currency in key and watch array since products have prices
 const { data: product, pending, error, refresh } = await useAsyncData(
-  () => `product-${slug.value}-${locale.value}`,
+  () => `product-${slug.value}-${locale.value}-${currency.value}`,
   async () => {
     const productStore = useProductStore()
     return await productStore.fetch(slug.value)
   },
   {
-    watch: [() => route.params.slug, locale],
+    watch: [() => route.params.slug, locale, currency],
     server: true,
-    // SWR-like behavior: show cached data immediately, then refresh in background
-    // On client: try store cache first (from previous navigation)
-    getCachedData: (_key) => {
-      if (import.meta.client) {
-        try {
-          const productStore = useProductStore()
-          const currentSlug = slug.value
-          // If store has product with matching slug, return cached data
-          if (productStore.product && productStore.product.slug === currentSlug) {
-            console.log('[Cache] Returning cached product from store:', productStore.product.slug)
-            return productStore.product
-          }
-        } catch (err) {
-          console.log('[Cache] Store not available on client:', err)
-        }
-      }
-      // For SSR: routeRules with swr handles caching
-      // Nuxt's built-in cache will be checked automatically
-      return undefined
-    },
+    // Don't use getCachedData - it can return stale data with wrong locale/currency
+    // Let Nuxt handle caching based on the key which includes locale and currency
     default: () => null,
   }
 )
@@ -63,6 +49,15 @@ const { data: product, pending, error, refresh } = await useAsyncData(
 watch(() => route.params.slug, async (newSlug, oldSlug) => {
   if (newSlug && newSlug !== oldSlug && import.meta.client) {
     console.log('[Route] Slug changed on client, refreshing data:', { oldSlug, newSlug })
+    await refresh()
+  }
+}, { immediate: false })
+
+// Watch for locale/currency changes to refetch product with new language/prices
+// This is a backup to ensure data refreshes even if useAsyncData watch doesn't trigger
+watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurrency]) => {
+  if (import.meta.client && (newLocale !== oldLocale || newCurrency !== oldCurrency)) {
+    console.log('[Locale/Currency] Changed, refreshing product:', { newLocale, newCurrency })
     await refresh()
   }
 }, { immediate: false })
@@ -138,6 +133,7 @@ const quantity = ref(1)
 const selectedImageIndex = ref(0)
 const isAddingToCart = ref(false)
 const isMounted = ref(false)
+const showQuickBuyModal = ref(false)
 
 // Computed - use product.value directly (from useAsyncData)
 const currentVariant = computed(() => product.value)
@@ -183,6 +179,17 @@ const isInComparison = computed(() => {
   }
   return false
 })
+
+// Computed for QuickBuyModal product info
+const quickBuyProductInfo = computed(() => {
+  if (!product.value) return null
+  return {
+    variantId: product.value.id,
+    title: product.value.title,
+    price: product.value.price?.formatted?.effective || undefined,
+  }
+})
+
 // Helper to compute selected options from product data (for SSR/initial render consistency)
 const computeSelectedOptionsFromProduct = (): Record<string, string> => {
   const options: Record<string, string> = {}
@@ -713,6 +720,14 @@ const gridImages = computed(() => {
                   <Share2 class="h-5 w-5" />
                   <span class="text-sm">{{ $t('product.page.share') }}</span>
                 </button>
+                <button
+                  type="button"
+                  class="flex items-center gap-2 text-gray-600 hover:text-green-600 transition-colors"
+                  @click="showQuickBuyModal = true"
+                >
+                  <Phone class="h-5 w-5" />
+                  <span class="text-sm">{{ $t('product.page.quickBuy') }}</span>
+                </button>
               </div>
             </form>
           </div>
@@ -802,5 +817,12 @@ const gridImages = computed(() => {
         </div>
       </div>
     </div>
+
+    <!-- Quick Buy Modal -->
+    <ProductQuickBuyModal
+      v-if="quickBuyProductInfo"
+      v-model:is-open="showQuickBuyModal"
+      :product="quickBuyProductInfo"
+    />
   </div>
 </template>
