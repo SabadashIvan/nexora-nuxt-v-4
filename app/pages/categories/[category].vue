@@ -5,6 +5,7 @@
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
 import { getToken, TOKEN_KEYS } from '~/utils/tokens'
+import { ERROR_CODES } from '~/utils/errors'
 import type { Category, ProductFilter } from '~/types'
 
 // Call composables at top level of setup
@@ -34,6 +35,14 @@ const getCurrencyForCacheKey = (): string => {
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
 
+const categoryErrorStatus = computed(() => {
+  try {
+    return useCatalogStore().errorStatus
+  } catch {
+    return null
+  }
+})
+
 // Build cache key for category page with filters, locale, and currency
 // Products have prices, so include currency in the key
 const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string, currentCurrency: string) => {
@@ -61,7 +70,7 @@ interface CategoryPageData {
 // Fetch category and products with lazy loading + SWR caching
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 // Access store and api INSIDE the callback to preserve SSR context
-const { data: categoryData, pending, error, refresh } = await useLazyAsyncData<CategoryPageData>(
+const { data: categoryData, pending, error, status, refresh } = await useLazyAsyncData<CategoryPageData>(
   () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey()),
   async () => {
     // Access store and api inside callback to preserve SSR context
@@ -204,8 +213,8 @@ const availableFilters = computed(() => categoryData.value?.availableFilters || 
 const activeFilters = computed(() => categoryData.value?.filters || { page: 1 })
 
 // Handle 404 - check after data loads
-watch([pending, category, error], ([isPending, cat, err]) => {
-  if (!isPending && !cat && !err) {
+watch([status, category, error, categoryErrorStatus], ([currentStatus, cat, err, errorStatus]) => {
+  if (currentStatus === 'success' && !cat && !err && errorStatus === ERROR_CODES.NOT_FOUND) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Category Not Found',
@@ -684,4 +693,3 @@ function updateUrl() {
     </main>
   </div>
 </template>
-
