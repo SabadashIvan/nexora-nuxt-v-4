@@ -4,9 +4,10 @@
  */
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
-import { getToken, TOKEN_KEYS } from '~/utils/tokens'
+import { getToken, getTokenFromCookie, TOKEN_KEYS } from '~/utils/tokens'
 import { ERROR_CODES } from '~/utils/errors'
 import type { Category, ProductFilter, ProductListItem } from '~/types'
+import { toRaw } from 'vue'
 
 // Call composables at top level of setup
 const route = useRoute()
@@ -29,7 +30,7 @@ const currency = computed(() => {
 // Get currency directly from cookie for cache key consistency between SSR and client
 // This ensures the cache key is always the same regardless of store initialization timing
 const getCurrencyForCacheKey = (): string => {
-  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+  return getTokenFromCookie(TOKEN_KEYS.CURRENCY) || 'USD'
 }
 
 // Helpers for reactive route access
@@ -59,6 +60,11 @@ const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, cur
   return `category-${slug}-${currentLocale}-${currentCurrency}-${JSON.stringify(sortedQuery)}`
 }
 
+const serialize = <T,>(value: T): T => {
+  if (value === undefined) return value
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 // Define return type for category data
 interface CategoryPageData {
   category: Category | null
@@ -69,10 +75,10 @@ interface CategoryPageData {
   filters: ReturnType<typeof useCatalogStore>['filters']
 }
 
-// Fetch category and products with lazy loading + SWR caching
+// Fetch category and products with SSR data hydration
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 // Access store and api INSIDE the callback to preserve SSR context
-const { data: asyncCategoryData, pending, error, status, refresh } = await useLazyAsyncData<CategoryPageData>(
+const { data: asyncCategoryData, pending, error, status, refresh } = await useAsyncData<CategoryPageData>(
   () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey()),
   async () => {
     // Access store and api inside callback to preserve SSR context
@@ -165,12 +171,12 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useLa
 
     // Return all data needed for rendering (not just category)
     return {
-      category: cat,
-      products: catalogStore.products,
-      pagination: catalogStore.pagination,
-      availableFilters: catalogStore.availableFilters,
+      category: cat ? serialize(toRaw(cat)) : null,
+      products: serialize(toRaw(catalogStore.products)) ?? [],
+      pagination: serialize(toRaw(catalogStore.pagination)),
+      availableFilters: serialize(toRaw(catalogStore.availableFilters)),
       sorting: sorting,
-      filters: appliedFilters,
+      filters: serialize(toRaw(appliedFilters)),
     }
   },
   {
