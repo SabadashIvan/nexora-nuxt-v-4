@@ -75,11 +75,17 @@ interface CategoryPageData {
   filters: ReturnType<typeof useCatalogStore>['filters']
 }
 
+const cacheKey = computed(() =>
+  buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey())
+)
+
+const payloadCategoryData = computed(() => useNuxtData<CategoryPageData>(cacheKey.value).data.value)
+
 // Fetch category and products with SSR data hydration
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 // Access store and api INSIDE the callback to preserve SSR context
 const { data: asyncCategoryData, pending, error, status, refresh } = await useAsyncData<CategoryPageData>(
-  () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey()),
+  cacheKey,
   async () => {
     // Access store and api inside callback to preserve SSR context
     const api = useApi()
@@ -266,28 +272,28 @@ onMounted(() => {
   }
 })
 
-// Computed values - use data returned from useLazyAsyncData
-const category = computed(() => asyncCategoryData.value?.category || storeCategory.value || null)
+// Computed values - use data returned from useAsyncData
+const category = computed(() => asyncCategoryData.value?.category || payloadCategoryData.value?.category || storeCategory.value || null)
 const products = computed(() => {
-  const productsList = asyncCategoryData.value?.products ?? storeProducts.value
+  const productsList = asyncCategoryData.value?.products ?? payloadCategoryData.value?.products ?? storeProducts.value
   console.log('Products computed - count:', productsList.length, 'data:', productsList)
   return productsList.length > 0 ? productsList : lastProducts.value
 })
 const pagination = computed(() => {
-  const paginationData = asyncCategoryData.value?.pagination ?? storePagination.value
+  const paginationData = asyncCategoryData.value?.pagination ?? payloadCategoryData.value?.pagination ?? storePagination.value
   return paginationData.total > 0 ? paginationData : lastPagination.value
 })
-const sorting = computed(() => asyncCategoryData.value?.sorting ?? storeSorting.value)
-const availableFilters = computed(() => asyncCategoryData.value?.availableFilters ?? storeAvailableFilters.value)
-const activeFilters = computed(() => asyncCategoryData.value?.filters ?? storeFilters.value)
+const sorting = computed(() => asyncCategoryData.value?.sorting ?? payloadCategoryData.value?.sorting ?? storeSorting.value)
+const availableFilters = computed(() => asyncCategoryData.value?.availableFilters ?? payloadCategoryData.value?.availableFilters ?? storeAvailableFilters.value)
+const activeFilters = computed(() => asyncCategoryData.value?.filters ?? payloadCategoryData.value?.filters ?? storeFilters.value)
 
 watchEffect(() => {
-  const productsList = asyncCategoryData.value?.products ?? storeProducts.value
+  const productsList = asyncCategoryData.value?.products ?? payloadCategoryData.value?.products ?? storeProducts.value
   if (productsList.length > 0) {
     lastProducts.value = productsList
   }
 
-  const paginationData = asyncCategoryData.value?.pagination ?? storePagination.value
+  const paginationData = asyncCategoryData.value?.pagination ?? payloadCategoryData.value?.pagination ?? storePagination.value
   if (paginationData.total > 0) {
     lastPagination.value = paginationData
   }
