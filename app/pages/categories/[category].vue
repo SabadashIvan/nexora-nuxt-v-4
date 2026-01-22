@@ -5,7 +5,8 @@
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
 import { getToken, TOKEN_KEYS } from '~/utils/tokens'
-import type { Category, ProductFilter } from '~/types'
+import { ERROR_CODES } from '~/utils/errors'
+import type { Category, ProductFilter, ProductListItem } from '~/types'
 
 // Call composables at top level of setup
 const route = useRoute()
@@ -34,6 +35,16 @@ const getCurrencyForCacheKey = (): string => {
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
 
+const categoryErrorStatus = computed(() => {
+  try {
+    return useCatalogStore().errorStatus
+  } catch {
+    return null
+  }
+})
+
+const didClientRefetch = ref(false)
+
 // Build cache key for category page with filters, locale, and currency
 // Products have prices, so include currency in the key
 const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string, currentCurrency: string) => {
@@ -61,7 +72,7 @@ interface CategoryPageData {
 // Fetch category and products with lazy loading + SWR caching
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 // Access store and api INSIDE the callback to preserve SSR context
-const { data: categoryData, pending, error, refresh } = await useLazyAsyncData<CategoryPageData>(
+const { data: asyncCategoryData, pending, error, status, refresh } = await useLazyAsyncData<CategoryPageData>(
   () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey()),
   async () => {
     // Access store and api inside callback to preserve SSR context
@@ -179,6 +190,57 @@ const { data: categoryData, pending, error, refresh } = await useLazyAsyncData<C
   }
 )
 
+const storeCategory = computed(() => {
+  try {
+    return useCatalogStore().currentCategory
+  } catch {
+    return null
+  }
+})
+
+const storeProducts = computed(() => {
+  try {
+    return useCatalogStore().products
+  } catch {
+    return []
+  }
+})
+
+const storePagination = computed(() => {
+  try {
+    return useCatalogStore().pagination
+  } catch {
+    return { page: 1, perPage: 20, total: 0, lastPage: 1 }
+  }
+})
+
+const storeAvailableFilters = computed(() => {
+  try {
+    return useCatalogStore().availableFilters
+  } catch {
+    return {}
+  }
+})
+
+const storeSorting = computed(() => {
+  try {
+    return useCatalogStore().sorting
+  } catch {
+    return 'newest'
+  }
+})
+
+const storeFilters = computed(() => {
+  try {
+    return useCatalogStore().filters
+  } catch {
+    return { page: 1 }
+  }
+})
+
+const lastProducts = ref<ProductListItem[]>([])
+const lastPagination = ref(storePagination.value)
+
 // Watch route changes and refresh data (Nuxt 4 compatible)
 watch(() => route.fullPath, () => {
   refresh()
@@ -191,21 +253,43 @@ watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurren
   }
 }, { immediate: false })
 
-// Computed values - use data returned from useLazyAsyncData
-const category = computed(() => categoryData.value?.category || null)
-const products = computed(() => {
-  const productsList = categoryData.value?.products || []
-  console.log('Products computed - count:', productsList.length, 'data:', productsList)
-  return productsList
+onMounted(() => {
+  if (!didClientRefetch.value && !category.value && (error.value || status.value === 'error')) {
+    didClientRefetch.value = true
+    refresh()
+  }
 })
-const pagination = computed(() => categoryData.value?.pagination || { page: 1, perPage: 20, total: 0, lastPage: 1 })
-const sorting = computed(() => categoryData.value?.sorting || 'newest')
-const availableFilters = computed(() => categoryData.value?.availableFilters || {})
-const activeFilters = computed(() => categoryData.value?.filters || { page: 1 })
+
+// Computed values - use data returned from useLazyAsyncData
+const category = computed(() => asyncCategoryData.value?.category || storeCategory.value || null)
+const products = computed(() => {
+  const productsList = asyncCategoryData.value?.products ?? storeProducts.value
+  console.log('Products computed - count:', productsList.length, 'data:', productsList)
+  return productsList.length > 0 ? productsList : lastProducts.value
+})
+const pagination = computed(() => {
+  const paginationData = asyncCategoryData.value?.pagination ?? storePagination.value
+  return paginationData.total > 0 ? paginationData : lastPagination.value
+})
+const sorting = computed(() => asyncCategoryData.value?.sorting ?? storeSorting.value)
+const availableFilters = computed(() => asyncCategoryData.value?.availableFilters ?? storeAvailableFilters.value)
+const activeFilters = computed(() => asyncCategoryData.value?.filters ?? storeFilters.value)
+
+watchEffect(() => {
+  const productsList = asyncCategoryData.value?.products ?? storeProducts.value
+  if (productsList.length > 0) {
+    lastProducts.value = productsList
+  }
+
+  const paginationData = asyncCategoryData.value?.pagination ?? storePagination.value
+  if (paginationData.total > 0) {
+    lastPagination.value = paginationData
+  }
+})
 
 // Handle 404 - check after data loads
-watch([pending, category, error], ([isPending, cat, err]) => {
-  if (!isPending && !cat && !err) {
+watch([status, category, error, categoryErrorStatus], ([currentStatus, cat, err, errorStatus]) => {
+  if (currentStatus === 'success' && !cat && !err && errorStatus === ERROR_CODES.NOT_FOUND) {
     throw createError({
       statusCode: 404,
       statusMessage: 'Category Not Found',
@@ -684,4 +768,3 @@ function updateUrl() {
     </main>
   </div>
 </template>
-

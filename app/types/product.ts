@@ -131,6 +131,7 @@ export interface ProductState {
   selectedOptions: Record<string, string>
   loading: boolean
   error: string | null
+  errorStatus: number | null
 }
 
 export interface ComparisonResponse {

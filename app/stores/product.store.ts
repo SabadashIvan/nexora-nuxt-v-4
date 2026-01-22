@@ -11,7 +11,7 @@ import type {
   ApiResponse,
 } from '~/types'
 import type { ProductDTO } from '~/types/api/dto/product.dto'
-import { getErrorMessage } from '~/utils/errors'
+import { ERROR_CODES, getErrorMessage, parseApiError } from '~/utils/errors'
 import { mapProductDTOToModel } from '~/utils/mappers/product.mapper'
 
 export const useProductStore = defineStore('product', {
@@ -22,6 +22,7 @@ export const useProductStore = defineStore('product', {
     selectedOptions: {},
     loading: false,
     error: null,
+    errorStatus: null,
   }),
 
   getters: {
@@ -159,6 +160,7 @@ export const useProductStore = defineStore('product', {
       const api = providedApi || useApi()
       this.loading = true
       this.error = null
+      this.errorStatus = null
 
       try {
         const response = await api.get<ApiResponse<ProductDTO> | ProductDTO>(`/catalog/variants/${slugOrId}`)
@@ -209,13 +211,18 @@ export const useProductStore = defineStore('product', {
         }
 
         return product
-      } catch (error) {
-        this.error = getErrorMessage(error)
-        console.error('Fetch product error:', error)
-        return null
-      } finally {
-        this.loading = false
-      }
+    } catch (error) {
+        const parsedError = parseApiError(error)
+        this.error = getErrorMessage(parsedError)
+        this.errorStatus = parsedError.status
+        console.error('Fetch product error:', parsedError)
+        if (parsedError.status === ERROR_CODES.NOT_FOUND) {
+          return null
+        }
+        throw parsedError
+    } finally {
+      this.loading = false
+    }
     },
 
     /**
@@ -339,6 +346,7 @@ export const useProductStore = defineStore('product', {
       this.selectedOptions = {}
       this.loading = false
       this.error = null
+      this.errorStatus = null
     },
   },
 })
