@@ -9,6 +9,7 @@ import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
 import { useSystemStore } from '~/stores/system.store'
+import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import type { Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
@@ -20,20 +21,37 @@ const localePath = useLocalePath()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
-const systemStore = useSystemStore()
-const currency = computed(() => systemStore.currentCurrency)
+// Use deferred store access for currency (SSR-safe)
+const currency = computed(() => {
+  if (import.meta.server) {
+    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+  }
+  try {
+    return useSystemStore().currentCurrency
+  } catch {
+    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+  }
+})
+
+// Get currency directly from cookie for cache key consistency between SSR and client
+// This ensures the cache key is always the same regardless of store initialization timing
+const getCurrencyForCacheKey = (): string => {
+  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+}
 
 const slug = computed(() => route.params.slug as string)
 
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
-// Include currency in key and watch array since products have prices
+// Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 const { data: product, pending, error, refresh } = await useAsyncData(
-  () => `product-${slug.value}-${locale.value}-${currency.value}`,
+  () => `product-${slug.value}-${locale.value}-${getCurrencyForCacheKey()}`,
   async () => {
+    // Access store and api inside callback to preserve SSR context
+    const api = useApi()
     const productStore = useProductStore()
-    return await productStore.fetch(slug.value)
+    return await productStore.fetch(slug.value, api)
   },
   {
     watch: [() => route.params.slug, locale, currency],

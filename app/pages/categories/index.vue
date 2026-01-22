@@ -4,6 +4,7 @@
  */
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
+import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import type { ProductFilter } from '~/types'
 
 const route = useRoute()
@@ -11,8 +12,22 @@ const route = useRoute()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
-const systemStore = useSystemStore()
-const currency = computed(() => systemStore.currentCurrency)
+// Use deferred store access for currency (SSR-safe)
+const currency = computed(() => {
+  if (import.meta.server) {
+    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+  }
+  try {
+    return useSystemStore().currentCurrency
+  } catch {
+    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+  }
+})
+
+// Get currency directly from cookie for cache key consistency between SSR and client
+const getCurrencyForCacheKey = (): string => {
+  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+}
 
 // Create a computed for route query to use in watch
 const routeQuery = computed(() => route.query)
@@ -31,9 +46,9 @@ const buildCacheKey = (query: Record<string, unknown>, currentLocale: string, cu
 
 // Fetch products with lazy loading + SWR caching
 // useLazyAsyncData allows instant navigation with skeleton loading
-// Key includes all query params (including page), locale, and currency so cache will be correct per page/language/currency
+// Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 const { data: productsData, pending, refresh, error: _error } = await useLazyAsyncData(
-  () => buildCacheKey(route.query, locale.value, currency.value),
+  () => buildCacheKey(route.query, locale.value, getCurrencyForCacheKey()),
   async () => {
     const catalogStore = useCatalogStore()
     
@@ -114,23 +129,33 @@ const { data: productsData, pending, refresh, error: _error } = await useLazyAsy
     }
     
     await catalogStore.fetchProducts(filters)
-    
+
     // Apply filters to store so they're available for ActiveFilters component
     // Only set filters if they exist - don't preserve old filters from store
     catalogStore.filters = filters
-    
+
+    let sorting: 'newest' | 'price_asc' | 'price_desc' = 'newest'
     if (initialFilters.sort) {
       // Validate sort value before setting
       const validSorts = ['newest', 'price_asc', 'price_desc']
       const sortValue = initialFilters.sort
       if (validSorts.includes(sortValue)) {
-        catalogStore.sorting = sortValue as 'newest' | 'price_asc' | 'price_desc'
+        sorting = sortValue as 'newest' | 'price_asc' | 'price_desc'
+        catalogStore.sorting = sorting
       }
     } else {
       // Reset to default if no sort in URL
       catalogStore.sorting = 'newest'
     }
-    return catalogStore.products
+
+    // Return all data needed for rendering
+    return {
+      products: catalogStore.products,
+      pagination: catalogStore.pagination,
+      availableFilters: catalogStore.availableFilters,
+      sorting: sorting,
+      filters: filters,
+    }
   },
   {
     // Watch locale and currency to refetch when they change
@@ -145,7 +170,13 @@ const { data: productsData, pending, refresh, error: _error } = await useLazyAsy
     // Server-side: always fetch fresh data for SEO
     server: true,
     // Client-side: use cached data if available, then refresh
-    default: () => [],
+    default: () => ({
+      products: [],
+      pagination: { page: 1, perPage: 20, total: 0, lastPage: 1 },
+      availableFilters: {},
+      sorting: 'newest' as const,
+      filters: { page: 1 },
+    }),
   }
 )
 
@@ -192,47 +223,12 @@ const { data: _categoriesData } = await useLazyAsyncData(
   }
 )
 
-// Computed values - use cached data from useLazyAsyncData or fallback to store
-const products = computed(() => {
-  // Prefer data from useLazyAsyncData (cached)
-  if (productsData.value && productsData.value.length > 0) {
-    return productsData.value
-  }
-  // Fallback to store
-  try {
-    return useCatalogStore().products
-  } catch {
-    return []
-  }
-})
-const pagination = computed(() => {
-  try {
-    return useCatalogStore().pagination
-  } catch {
-    return { page: 1, perPage: 20, total: 0, lastPage: 1 }
-  }
-})
-const sorting = computed(() => {
-  try {
-    return useCatalogStore().sorting
-  } catch {
-    return 'newest'
-  }
-})
-const availableFilters = computed(() => {
-  try {
-    return useCatalogStore().availableFilters
-  } catch {
-    return {}
-  }
-})
-const activeFilters = computed(() => {
-  try {
-    return useCatalogStore().filters
-  } catch {
-    return {}
-  }
-})
+// Computed values - use data returned from useLazyAsyncData
+const products = computed(() => productsData.value?.products || [])
+const pagination = computed(() => productsData.value?.pagination || { page: 1, perPage: 20, total: 0, lastPage: 1 })
+const sorting = computed(() => productsData.value?.sorting || 'newest')
+const availableFilters = computed(() => productsData.value?.availableFilters as ReturnType<typeof useCatalogStore>['availableFilters'] || {})
+const activeFilters = computed(() => productsData.value?.filters || { page: 1 })
 
 // Handle filter changes
 async function handleFilterChange(filters: ProductFilter) {

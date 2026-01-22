@@ -5,6 +5,7 @@
 import { Truck, Award, Shirt } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
+import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import { getImageUrl } from '~/utils'
 import type { BannersResponse } from '~/types'
 
@@ -16,7 +17,13 @@ const i18n = useI18n()
 const { t } = useI18n()
 const locale = computed(() => i18n.locale.value)
 const systemStore = useSystemStore()
+// Use cookie-based currency for reactivity (store updates from cookies)
 const currency = computed(() => systemStore.currentCurrency)
+
+// Get currency directly from cookie for cache key consistency between SSR and client
+const getCurrencyForCacheKey = (): string => {
+  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+}
 
 // Fetch banners on SSR (locale-dependent only, no prices)
 const { data: bannersResponse } = await useAsyncData(
@@ -41,9 +48,9 @@ const banners = computed(() => bannersResponse.value?.data || [])
 
 // Fetch featured products and categories on SSR
 // Access store inside callbacks to ensure Pinia is initialized
-// Products have prices, so include currency in key and watch array
+// Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
-  () => `home-featured-products-${locale.value}-${currency.value}`,
+  () => `home-featured-products-${locale.value}-${getCurrencyForCacheKey()}`,
   async () => {
     const catalogStore = useCatalogStore()
     await catalogStore.fetchProducts({ per_page: 8, sort: 'newest' })

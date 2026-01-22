@@ -257,15 +257,14 @@ export function useApi() {
       headers['X-XSRF-TOKEN'] = xsrfToken
     }
 
-    // Add cart token - use lazy cookie access to avoid context issues
+    // Add cart token - only if it already exists
+    // Don't auto-generate: API creates new cart if no token provided
+    // If-Match header is required when X-Cart-Token is provided
     if (options.cart) {
-      let cartToken = getCookieValue('cart_token')
-      if (!cartToken) {
-        // Generate new token if doesn't exist
-        cartToken = generateUUID()
-        setCookieValue('cart_token', cartToken)
+      const cartToken = getCookieValue('cart_token')
+      if (cartToken) {
+        headers['X-Cart-Token'] = cartToken
       }
-      headers['X-Cart-Token'] = cartToken
     }
 
     // Add guest token - use lazy cookie access to avoid context issues
@@ -343,16 +342,17 @@ export function useApi() {
     return path
   }
 
-  function getApiClient() {
+  function getApiClient(): ApiClient {
     const baseUrl = getBaseUrl()
 
-    const createClient = () => $fetch.create({
+    const createClient = (): ApiClient => $fetch.create({
       baseURL: baseUrl,
       credentials: 'include',
       async onRequest({ request, options }) {
         const method = (options.method || 'GET').toString().toUpperCase()
         const requestPath = normalizeRequestPath(request)
         const headers = new Headers(options.headers ?? {})
+        const apiOptions = options as ApiFetchOptions
 
         if (import.meta.server) {
           const forwarded = useRequestHeaders(['cookie', 'accept-language'])
@@ -364,47 +364,59 @@ export function useApi() {
         }
 
         const isCartRequest = isCartMutation(requestPath, method)
-        if (isCartRequest && options.idempotent === undefined) {
-          options.idempotent = true
+        if (isCartRequest && apiOptions.idempotent === undefined) {
+          apiOptions.idempotent = true
         }
 
-        if (options.idempotent) {
+        if (apiOptions.idempotent) {
           const existingKey = headers.get('Idempotency-Key')
-          const idempotencyKey = options._idempotencyKey || existingKey || generateUUID()
-          options._idempotencyKey = idempotencyKey
+          const idempotencyKey = apiOptions._idempotencyKey || existingKey || generateUUID()
+          apiOptions._idempotencyKey = idempotencyKey
           if (!existingKey) {
             headers.set('Idempotency-Key', idempotencyKey)
           }
         }
 
+        // For cart mutations: coordinate X-Cart-Token and If-Match headers
+        // API requires If-Match when X-Cart-Token is provided
         if (isCartRequest && import.meta.client && nuxtApp.$pinia) {
           const cartStore = useCartStore(nuxtApp.$pinia)
           const cartVersion = cartStore.getCurrentVersion()
-          if (cartVersion !== null && !headers.has('If-Match')) {
-            headers.set('If-Match', String(cartVersion))
+          const hasCartToken = headers.has('X-Cart-Token')
+
+          if (cartVersion !== null) {
+            // We have a version - add If-Match header
+            if (!headers.has('If-Match')) {
+              headers.set('If-Match', String(cartVersion))
+            }
+          } else if (hasCartToken) {
+            // Token exists but no version - remove token to create new cart
+            // This handles stale tokens from expired carts
+            headers.delete('X-Cart-Token')
           }
         }
 
         options.headers = headers
       },
-      async onResponseError({ request, response, options, error }) {
+      async onResponseError({ request, response, options, error }): Promise<void> {
         const requestPath = normalizeRequestPath(request)
         const method = (options.method || 'GET').toString().toUpperCase()
         const isCartRequest = isCartMutation(requestPath, method)
         const canRetryBody = isRetryableBody(options.body)
-        const canRetryRequest = method === 'GET' || options.idempotent === true
+        const apiOptions = options as ApiFetchOptions
+        const canRetryRequest = method === 'GET' || apiOptions.idempotent === true
         const isAuthEndpoint = ['/login', '/register', '/logout', '/forgot-password', '/reset-password'].some(
           authPath => requestPath.startsWith(authPath) || requestPath.includes(authPath)
         )
         const headers = new Headers(options.headers ?? {})
 
         if (response?.status === 409 && isCartRequest) {
-          const idempotencyKey = headers.get('Idempotency-Key') || options._idempotencyKey
+          const idempotencyKey = headers.get('Idempotency-Key') || apiOptions._idempotencyKey
           if (!idempotencyKey || !canRetryBody) {
             throw parseApiError(error)
           }
 
-          const retryCount = options._retry409Count ?? 0
+          const retryCount = apiOptions._retry409Count ?? 0
           if (retryCount < 3) {
             logger.debug('Retrying cart mutation after 409 conflict', {
               category: 'api.retry',
@@ -420,14 +432,16 @@ export function useApi() {
               await cartStore.loadCart()
             }
 
-            const nextOptions = cloneFetchOptions(options)
+            const nextOptions = cloneFetchOptions(apiOptions)
             nextOptions._retry409Count = retryCount + 1
-            return getApiClient()(request, nextOptions)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await getApiClient()(request, nextOptions as any)
+            return
           }
         }
 
         if (response?.status === 419 && canRetryBody && (canRetryRequest || isAuthEndpoint)) {
-          const retryCount = options._retry419Count ?? 0
+          const retryCount = apiOptions._retry419Count ?? 0
           if (retryCount < 1) {
             logger.debug('Retrying request after 419 CSRF response', {
               category: 'api.retry',
@@ -439,9 +453,11 @@ export function useApi() {
               },
             })
             await fetchCsrfCookie()
-            const nextOptions = cloneFetchOptions(options)
+            const nextOptions = cloneFetchOptions(apiOptions)
             nextOptions._retry419Count = retryCount + 1
-            return getApiClient()(request, nextOptions)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await getApiClient()(request, nextOptions as any)
+            return
           }
         }
 
@@ -452,7 +468,7 @@ export function useApi() {
             if (nuxtApp.$pinia) {
               const authStore = useAuthStore(nuxtApp.$pinia)
               await authStore.logout()
-              router.push('/auth/login' as any)
+              router.push('/auth/login')
             }
           } catch (storeError) {
             logger.warn('Could not access auth store for auto-logout', {
@@ -509,13 +525,18 @@ export function useApi() {
     }
 
     return nuxtApp.runWithContext(async () => {
-      const fetcher = () => getApiClient()<T>(path, {
-        method,
-        headers,
-        body: body ? body : undefined,
-        credentials: credentials ? 'include' : 'omit',
-        idempotent: headerOptions.idempotent,
-      })
+      const client = getApiClient()
+      const fetcher = (): Promise<T> => {
+        const fetchOptions: ApiFetchOptions = {
+          method,
+          headers,
+          body: body ? body : undefined,
+          credentials: credentials ? 'include' : 'omit',
+          idempotent: headerOptions.idempotent,
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return client<T>(path, fetchOptions as any) as Promise<T>
+      }
 
       if (import.meta.server && shouldCoalesceRequest(path, method)) {
         const key = buildCoalesceKey(path, headers)

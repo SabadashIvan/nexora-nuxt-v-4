@@ -152,9 +152,11 @@ export const useProductStore = defineStore('product', {
   actions: {
     /**
      * Fetch product by slug or ID
+     * @param slugOrId - Product slug or ID
+     * @param providedApi - Optional API instance to use (for SSR context preservation)
      */
-    async fetch(slugOrId: string): Promise<Product | null> {
-      const api = useApi()
+    async fetch(slugOrId: string, providedApi?: ReturnType<typeof useApi>): Promise<Product | null> {
+      const api = providedApi || useApi()
       this.loading = true
       this.error = null
 

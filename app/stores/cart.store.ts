@@ -576,11 +576,17 @@ export const useCartStore = defineStore('cart', {
         }
 
         const payload: UpdateCartItemPayload = { qty: quantity }
-        const response = await api.patch<Cart | CartApiResponse>(`/cart/items/${itemId}`, payload, { 
+        const response = await api.patch<Cart | CartApiResponse>(`/cart/items/${itemId}`, payload, {
           cart: true,
         })
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(optimisticOpId, cart)
+
+        // Save token from response (ensures token is stored after cart creation)
+        if (cart.token) {
+          this.cartToken = cart.token
+          setToken(TOKEN_KEYS.CART, cart.token)
+        }
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -633,15 +639,21 @@ export const useCartStore = defineStore('cart', {
           }
         }
 
-        const response = await api.delete<Cart | CartApiResponse>(`/cart/items/${itemId}`, { 
+        const response = await api.delete<Cart | CartApiResponse>(`/cart/items/${itemId}`, {
           cart: true,
         })
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(optimisticOpId, cart)
+
+        // Save token from response
+        if (cart.token) {
+          this.cartToken = cart.token
+          setToken(TOKEN_KEYS.CART, cart.token)
+        }
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        
+
         // Handle 404 - cart doesn't exist, clear token
         if (apiError.status === 404) {
           this.cartToken = null
@@ -655,7 +667,7 @@ export const useCartStore = defineStore('cart', {
             this.markOptimisticFailed(optimisticOpId)
           }
         }
-        
+
         this.error = getErrorMessage(error)
         console.error('Remove cart item error:', error)
         return false
@@ -674,11 +686,17 @@ export const useCartStore = defineStore('cart', {
 
       try {
         const payload: CartItemOptionsPayload = { options }
-        const response = await api.put<Cart | CartApiResponse>(`/cart/items/${itemId}/options`, payload, { 
+        const response = await api.put<Cart | CartApiResponse>(`/cart/items/${itemId}/options`, payload, {
           cart: true,
         })
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(null, cart)
+
+        // Save token from response
+        if (cart.token) {
+          this.cartToken = cart.token
+          setToken(TOKEN_KEYS.CART, cart.token)
+        }
         return true
       } catch (error) {
         const apiError = parseApiError(error)
@@ -707,18 +725,29 @@ export const useCartStore = defineStore('cart', {
 
       try {
         const payload: CouponPayload = { code }
-        const response = await api.post<{ data: Cart } | { cart: Cart; coupon: AppliedCoupon }>('/cart/coupons', payload, { 
+        const response = await api.post<{ data: Cart } | { cart: Cart; coupon: AppliedCoupon }>('/cart/coupons', payload, {
           cart: true,
         })
-        
-        // Handle both response formats
+
+        // Handle both response formats and extract cart
+        let cart: Cart
         if ('data' in response) {
-          this.finalizeOptimisticOperation(null, response.data)
+          cart = response.data
+          this.finalizeOptimisticOperation(null, cart)
         } else if ('cart' in response) {
-          this.finalizeOptimisticOperation(null, response.cart)
+          cart = response.cart
+          this.finalizeOptimisticOperation(null, cart)
           if (response.coupon) {
             this.appliedCoupons.push(response.coupon)
           }
+        } else {
+          return true
+        }
+
+        // Save token from response
+        if (cart.token) {
+          this.cartToken = cart.token
+          setToken(TOKEN_KEYS.CART, cart.token)
         }
         return true
       } catch (error) {
@@ -747,22 +776,28 @@ export const useCartStore = defineStore('cart', {
       this.error = null
 
       try {
-        const response = await api.delete<Cart | CartApiResponse>(`/cart/coupons/${code}`, { 
+        const response = await api.delete<Cart | CartApiResponse>(`/cart/coupons/${code}`, {
           cart: true,
         })
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(null, cart)
         this.appliedCoupons = this.appliedCoupons.filter(c => c.code !== code)
+
+        // Save token from response
+        if (cart.token) {
+          this.cartToken = cart.token
+          setToken(TOKEN_KEYS.CART, cart.token)
+        }
         return true
       } catch (error) {
         const apiError = parseApiError(error)
-        
+
         // Handle 404 - cart doesn't exist, clear token
         if (apiError.status === 404) {
           this.cartToken = null
           removeToken(TOKEN_KEYS.CART)
         }
-        
+
         this.error = getErrorMessage(error)
         console.error('Remove coupon error:', error)
         return false
