@@ -6,7 +6,7 @@ import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
 import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import { ERROR_CODES } from '~/utils/errors'
-import type { Category, ProductFilter } from '~/types'
+import type { Category, ProductFilter, ProductListItem } from '~/types'
 
 // Call composables at top level of setup
 const route = useRoute()
@@ -238,6 +238,9 @@ const storeFilters = computed(() => {
   }
 })
 
+const lastProducts = ref<ProductListItem[]>([])
+const lastPagination = ref(storePagination.value)
+
 // Watch route changes and refresh data (Nuxt 4 compatible)
 watch(() => route.fullPath, () => {
   refresh()
@@ -262,12 +265,27 @@ const category = computed(() => asyncCategoryData.value?.category || storeCatego
 const products = computed(() => {
   const productsList = asyncCategoryData.value?.products ?? storeProducts.value
   console.log('Products computed - count:', productsList.length, 'data:', productsList)
-  return productsList
+  return productsList.length > 0 ? productsList : lastProducts.value
 })
-const pagination = computed(() => asyncCategoryData.value?.pagination ?? storePagination.value)
+const pagination = computed(() => {
+  const paginationData = asyncCategoryData.value?.pagination ?? storePagination.value
+  return paginationData.total > 0 ? paginationData : lastPagination.value
+})
 const sorting = computed(() => asyncCategoryData.value?.sorting ?? storeSorting.value)
 const availableFilters = computed(() => asyncCategoryData.value?.availableFilters ?? storeAvailableFilters.value)
 const activeFilters = computed(() => asyncCategoryData.value?.filters ?? storeFilters.value)
+
+watchEffect(() => {
+  const productsList = asyncCategoryData.value?.products ?? storeProducts.value
+  if (productsList.length > 0) {
+    lastProducts.value = productsList
+  }
+
+  const paginationData = asyncCategoryData.value?.pagination ?? storePagination.value
+  if (paginationData.total > 0) {
+    lastPagination.value = paginationData
+  }
+})
 
 // Handle 404 - check after data loads
 watch([status, category, error, categoryErrorStatus], ([currentStatus, cat, err, errorStatus]) => {
