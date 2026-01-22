@@ -56,7 +56,7 @@ const didClientRefetch = ref(false)
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
-const { data: product, pending, error, status, refresh } = await useAsyncData(
+const { data: asyncProduct, pending, error, status, refresh } = await useAsyncData(
   () => `product-${slug.value}-${locale.value}-${getCurrencyForCacheKey()}`,
   async () => {
     // Access store and api inside callback to preserve SSR context
@@ -72,6 +72,16 @@ const { data: product, pending, error, status, refresh } = await useAsyncData(
     default: () => null,
   }
 )
+
+const storeProduct = computed(() => {
+  try {
+    return useProductStore().product
+  } catch {
+    return null
+  }
+})
+
+const product = computed(() => asyncProduct.value ?? storeProduct.value)
 
 // Watch for route changes to ensure we refetch on client-side navigation
 // This is a backup to ensure data loads even if watch in useAsyncData doesn't trigger
@@ -95,21 +105,21 @@ watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurren
 onMounted(() => {
   isMounted.value = true
   if (import.meta.client) {
-    if (!didClientRefetch.value && !product.value && (error.value || status.value === 'error')) {
+    if (!didClientRefetch.value && !asyncProduct.value && (error.value || status.value === 'error')) {
       didClientRefetch.value = true
       refresh()
     }
-    console.log('[Client] Product value on mount:', product.value)
-    console.log('[Client] Product value type:', typeof product.value)
-    console.log('[Client] Product value keys:', product.value ? Object.keys(product.value) : 'null')
+    console.log('[Client] Product value on mount:', asyncProduct.value)
+    console.log('[Client] Product value type:', typeof asyncProduct.value)
+    console.log('[Client] Product value keys:', asyncProduct.value ? Object.keys(asyncProduct.value) : 'null')
     
     // Check if product.value is wrapped in { data: ... }
-    if (product.value && typeof product.value === 'object' && 'data' in product.value) {
+    if (asyncProduct.value && typeof asyncProduct.value === 'object' && 'data' in asyncProduct.value) {
       console.warn('[Client] Product value is wrapped in data object! Unwrapping...')
       // This shouldn't happen, but if it does, we need to handle it
     }
     
-    watch(() => product.value, (newProduct) => {
+    watch(() => asyncProduct.value, (newProduct) => {
       console.log('[Client] Product value changed:', newProduct)
       if (newProduct) {
         // Check if it's wrapped in { data: ... }
