@@ -7,6 +7,7 @@ import { useSystemStore } from '~/stores/system.store'
 import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import { ERROR_CODES } from '~/utils/errors'
 import type { Category, ProductFilter, ProductListItem } from '~/types'
+import { toRaw } from 'vue'
 
 // Call composables at top level of setup
 const route = useRoute()
@@ -57,6 +58,11 @@ const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, cur
       return acc
     }, {} as Record<string, unknown>)
   return `category-${slug}-${currentLocale}-${currentCurrency}-${JSON.stringify(sortedQuery)}`
+}
+
+const serialize = <T,>(value: T): T => {
+  if (value === undefined) return value
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
 // Define return type for category data
@@ -165,12 +171,12 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useLa
 
     // Return all data needed for rendering (not just category)
     return {
-      category: cat,
-      products: catalogStore.products,
-      pagination: catalogStore.pagination,
-      availableFilters: catalogStore.availableFilters,
+      category: cat ? serialize(toRaw(cat)) : null,
+      products: serialize(toRaw(catalogStore.products)) ?? [],
+      pagination: serialize(toRaw(catalogStore.pagination)),
+      availableFilters: serialize(toRaw(catalogStore.availableFilters)),
       sorting: sorting,
-      filters: appliedFilters,
+      filters: serialize(toRaw(appliedFilters)),
     }
   },
   {
