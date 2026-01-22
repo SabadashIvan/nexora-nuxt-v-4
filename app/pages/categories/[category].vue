@@ -4,7 +4,7 @@
  */
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
-import { getToken, TOKEN_KEYS } from '~/utils/tokens'
+import { getToken, getTokenFromCookie, TOKEN_KEYS } from '~/utils/tokens'
 import { ERROR_CODES } from '~/utils/errors'
 import type { Category, ProductFilter, ProductListItem } from '~/types'
 import { toRaw } from 'vue'
@@ -30,7 +30,7 @@ const currency = computed(() => {
 // Get currency directly from cookie for cache key consistency between SSR and client
 // This ensures the cache key is always the same regardless of store initialization timing
 const getCurrencyForCacheKey = (): string => {
-  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
+  return getTokenFromCookie(TOKEN_KEYS.CURRENCY) || 'USD'
 }
 
 // Helpers for reactive route access
@@ -75,10 +75,10 @@ interface CategoryPageData {
   filters: ReturnType<typeof useCatalogStore>['filters']
 }
 
-// Fetch category and products with lazy loading + SWR caching
+// Fetch category and products with SSR data hydration
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
 // Access store and api INSIDE the callback to preserve SSR context
-const { data: asyncCategoryData, pending, error, status, refresh } = await useLazyAsyncData<CategoryPageData>(
+const { data: asyncCategoryData, pending, error, status, refresh } = await useAsyncData<CategoryPageData>(
   () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey()),
   async () => {
     // Access store and api inside callback to preserve SSR context
