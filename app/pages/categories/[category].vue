@@ -43,6 +43,8 @@ const categoryErrorStatus = computed(() => {
   }
 })
 
+const didClientRefetch = ref(false)
+
 // Build cache key for category page with filters, locale, and currency
 // Products have prices, so include currency in the key
 const buildCategoryCacheKey = (slug: string, query: Record<string, unknown>, currentLocale: string, currentCurrency: string) => {
@@ -199,6 +201,13 @@ watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurren
     await refresh()
   }
 }, { immediate: false })
+
+onMounted(() => {
+  if (!didClientRefetch.value && !category.value && (error.value || status.value === 'error')) {
+    didClientRefetch.value = true
+    refresh()
+  }
+})
 
 // Computed values - use data returned from useLazyAsyncData
 const category = computed(() => categoryData.value?.category || null)

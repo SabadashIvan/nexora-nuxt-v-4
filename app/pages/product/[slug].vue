@@ -50,6 +50,8 @@ const productErrorStatus = computed(() => {
   }
 })
 
+const didClientRefetch = ref(false)
+
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
@@ -93,6 +95,10 @@ watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurren
 onMounted(() => {
   isMounted.value = true
   if (import.meta.client) {
+    if (!didClientRefetch.value && !product.value && (error.value || status.value === 'error')) {
+      didClientRefetch.value = true
+      refresh()
+    }
     console.log('[Client] Product value on mount:', product.value)
     console.log('[Client] Product value type:', typeof product.value)
     console.log('[Client] Product value keys:', product.value ? Object.keys(product.value) : 'null')
