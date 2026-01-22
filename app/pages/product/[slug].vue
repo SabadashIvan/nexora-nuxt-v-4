@@ -9,6 +9,7 @@ import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
 import { useSystemStore } from '~/stores/system.store'
+import { ERROR_CODES } from '~/utils/errors'
 import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import type { Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
@@ -41,11 +42,21 @@ const getCurrencyForCacheKey = (): string => {
 
 const slug = computed(() => route.params.slug as string)
 
+const productErrorStatus = computed(() => {
+  try {
+    return useProductStore().errorStatus
+  } catch {
+    return null
+  }
+})
+
+const didClientRefetch = ref(false)
+
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
 // Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
-const { data: product, pending, error, refresh } = await useAsyncData(
+const { data: product, pending, error, status, refresh } = await useAsyncData(
   () => `product-${slug.value}-${locale.value}-${getCurrencyForCacheKey()}`,
   async () => {
     // Access store and api inside callback to preserve SSR context
@@ -84,6 +95,10 @@ watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurren
 onMounted(() => {
   isMounted.value = true
   if (import.meta.client) {
+    if (!didClientRefetch.value && !product.value && (error.value || status.value === 'error')) {
+      didClientRefetch.value = true
+      refresh()
+    }
     console.log('[Client] Product value on mount:', product.value)
     console.log('[Client] Product value type:', typeof product.value)
     console.log('[Client] Product value keys:', product.value ? Object.keys(product.value) : 'null')
@@ -136,8 +151,8 @@ onMounted(() => {
 
 // Handle 404 - but only after we're sure data is loaded
 // Use watch to handle 404 after data loads (both SSR and CSR)
-watch([product, pending, error], ([prod, isPending, err]) => {
-  if (!isPending && !prod && !err) {
+watch([status, product, error, productErrorStatus], ([currentStatus, prod, err, errorStatus]) => {
+  if (currentStatus === 'success' && !prod && !err && errorStatus === ERROR_CODES.NOT_FOUND) {
     console.warn('[SSR/CSR] Product not found, throwing 404')
     throw createError({
       statusCode: 404,
