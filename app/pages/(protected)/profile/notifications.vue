@@ -12,12 +12,13 @@ definePageMeta({
 })
 
 const localePath = useLocalePath()
+const { t } = useI18n()
 const notificationsStore = shallowRef<ReturnType<typeof useNotificationsStore> | null>(null)
 
-const filters: { value: NotificationFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'unread', label: 'Unread' },
-  { value: 'archived', label: 'Archived' },
+const filters: { value: NotificationFilter; labelKey: string }[] = [
+  { value: 'all', labelKey: 'profile.notifications.all' },
+  { value: 'unread', labelKey: 'profile.notifications.unread' },
+  { value: 'archived', labelKey: 'profile.notifications.archived' },
 ]
 
 onMounted(async () => {
@@ -81,17 +82,17 @@ async function handleLoadMore() {
 // Empty state messages based on filter
 const emptyTitle = computed(() => {
   switch (currentFilter.value) {
-    case 'unread': return 'No unread notifications'
-    case 'archived': return 'No archived notifications'
-    default: return 'No notifications'
+    case 'unread': return t('profile.notifications.noUnread')
+    case 'archived': return t('profile.notifications.noArchived')
+    default: return t('profile.notifications.noNotifications')
   }
 })
 
 const emptyDescription = computed(() => {
   switch (currentFilter.value) {
-    case 'unread': return 'You have read all your notifications'
-    case 'archived': return 'You have not archived any notifications'
-    default: return 'You have no notifications yet'
+    case 'unread': return t('profile.notifications.emptyUnreadDesc')
+    case 'archived': return t('profile.notifications.emptyArchivedDesc')
+    default: return t('profile.notifications.emptyAllDesc')
   }
 })
 </script>
@@ -99,13 +100,13 @@ const emptyDescription = computed(() => {
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Notifications</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $t('profile.notifications.title') }}</h1>
       <NuxtLink
         :to="localePath('/profile/notifications-preferences')"
         class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
       >
         <Settings class="h-4 w-4" />
-        Preferences
+        {{ $t('profile.notifications.preferences') }}
       </NuxtLink>
     </div>
 
@@ -123,7 +124,7 @@ const emptyDescription = computed(() => {
         ]"
         @click="handleFilterChange(filter.value)"
       >
-        {{ filter.label }}
+        {{ $t(filter.labelKey) }}
         <span
           v-if="filter.value === 'unread' && unreadCount > 0"
           class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
@@ -140,7 +141,7 @@ const emptyDescription = computed(() => {
         @click="handleMarkAllAsRead"
       >
         <Check class="h-4 w-4" />
-        Mark all as read
+        {{ $t('profile.notifications.markAllAsRead') }}
       </button>
     </div>
 
@@ -169,7 +170,7 @@ const emptyDescription = computed(() => {
         :disabled="loading"
         @click="handleLoadMore"
       >
-        {{ loading ? 'Loading...' : 'Load more' }}
+        {{ loading ? $t('common.messages.loading') : $t('common.buttons.loadMore') }}
       </button>
     </div>
 

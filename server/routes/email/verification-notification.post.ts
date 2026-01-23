@@ -33,8 +33,8 @@ export default defineEventHandler(async (event): Promise<unknown> => {
   } catch (error: unknown) {
     const err = error as { status?: number; data?: unknown; statusMessage?: string }
     throw createError({
-      statusCode: err.status || 500,
-      statusMessage: err.statusMessage || 'Failed to resend verification email',
+      status: err.status || 500,
+      statusText: err.statusMessage || 'Failed to resend verification email',
       data: err.data,
     })
   }

@@ -35,8 +35,8 @@ watch(() => route.params.slug, async (newSlug) => {
 // Handle 404
 if (!category.value && !pending.value) {
   throw createError({
-    statusCode: 404,
-    statusMessage: 'Category Not Found',
+    status: 404,
+    statusText: 'Category Not Found',
   })
 }
 

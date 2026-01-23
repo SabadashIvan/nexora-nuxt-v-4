@@ -158,8 +158,8 @@ watch([status, product, error, productErrorStatus], ([currentStatus, prod, err, 
   if (currentStatus === 'success' && !prod && !err && errorStatus === ERROR_CODES.NOT_FOUND) {
     console.warn('[SSR/CSR] Product not found, throwing 404')
     throw createError({
-      statusCode: 404,
-      statusMessage: 'Product Not Found',
+      status: 404,
+      statusText: 'Product Not Found',
     })
   }
 }, { immediate: true })

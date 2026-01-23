@@ -1,6 +1,7 @@
 {
   "common": {
     "buttons": {
+      "loadMore": "Load more",
       "addToCart": "Add to Cart",
       "remove": "Remove",
       "submit": "Submit",
@@ -57,6 +58,7 @@
     "itemsInCart": "items in cart, view bag",
     "viewWishlist": "favorites, view wishlist",
     "viewComparison": "comparison, view comparison",
+    "viewNotifications": "View notifications",
     "search": "Search",
     "closeSearch": "Close search",
     "quickSearch": "Quick search",
@@ -307,6 +309,142 @@
       "daysAgo": "{count}d ago",
       "cancel": "Cancel",
       "reply": "Reply"
+    }
+  },
+  "profile": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "myOrders": "My Orders",
+      "loyaltyPoints": "Loyalty Points",
+      "notifications": "Notifications",
+      "addresses": "Addresses",
+      "settings": "Settings"
+    },
+    "index": {
+      "welcomeBack": "Welcome back, {name}!",
+      "manageAccount": "Manage your account, orders, and preferences.",
+      "myOrders": "My Orders",
+      "viewOrderHistory": "View order history",
+      "viewAll": "View all",
+      "orderNumber": "Order #{number}",
+      "items": "{count} items",
+      "noOrdersYet": "No orders yet",
+      "startShoppingHere": "Start shopping to see your orders here",
+      "browseProducts": "Browse Products",
+      "manageAddresses": "Manage addresses",
+      "savedItems": "Saved items",
+      "accountSettings": "Account settings",
+      "recentOrders": "Recent Orders"
+    },
+    "addresses": {
+      "title": "My Addresses",
+      "addAddress": "Add Address",
+      "noAddressesSaved": "No addresses saved",
+      "addAddressForCheckout": "Add an address for faster checkout"
+    },
+    "loyalty": {
+      "title": "Loyalty Points",
+      "howItWorks": "How it works",
+      "step1": "Earn points with every purchase",
+      "step2": "Points become available after order delivery",
+      "step3": "Use points to get discounts on future orders"
+    },
+    "loyaltyBalance": {
+      "availableBalance": "Available Balance",
+      "pending": "pending",
+      "expiringSoon": "{count} transaction(s) expiring soon",
+      "noLoyaltyAccount": "No loyalty account found"
+    },
+    "loyaltyHistory": {
+      "title": "Transaction History",
+      "noTransactionsYet": "No transactions yet",
+      "expired": "Expired",
+      "expires": "Expires {date}"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "preferences": "Preferences",
+      "all": "All",
+      "unread": "Unread",
+      "archived": "Archived",
+      "markAllAsRead": "Mark all as read",
+      "noUnread": "No unread notifications",
+      "noArchived": "No archived notifications",
+      "noNotifications": "No notifications",
+      "emptyUnreadDesc": "You have read all your notifications",
+      "emptyArchivedDesc": "You have not archived any notifications",
+      "emptyAllDesc": "You have no notifications yet",
+      "markAsRead": "Mark as read",
+      "archive": "Archive",
+      "restore": "Restore"
+    },
+    "notificationsPreferences": {
+      "title": "Notification Preferences",
+      "description": "Choose how you want to receive notifications for different types of updates.",
+      "noPreferencesAvailable": "No preferences available",
+      "notAvailable": "Notification preferences are not available at this time",
+      "notLinked": "Not linked"
+    },
+    "orders": {
+      "title": "My Orders",
+      "filter": "Filter:",
+      "clear": "Clear",
+      "placedOn": "Placed on {date}",
+      "viewDetails": "View Details",
+      "items": "{count} items",
+      "more": "+{count} more",
+      "noOrdersYet": "No orders yet",
+      "emptyDescription": "When you place an order, it will appear here",
+      "startShopping": "Start Shopping"
+    },
+    "order": {
+      "backToOrders": "Back to Orders",
+      "orderItems": "Order Items",
+      "sku": "SKU: {sku}",
+      "qty": "Qty: {count}",
+      "shippingAddress": "Shipping Address",
+      "shippingMethod": "Shipping Method",
+      "paymentMethod": "Payment Method",
+      "orderSummary": "Order Summary",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "discounts": "Discounts",
+      "total": "Total",
+      "free": "Free",
+      "onlinePayment": "Online payment",
+      "payOnDelivery": "Pay on delivery",
+      "estDaysDelivery": "Est. {days} days delivery",
+      "orderNotFound": "Order not found",
+      "orderNotFoundDesc": "The order you're looking for doesn't exist"
+    },
+    "settings": {
+      "contactChannels": "Contact channels",
+      "contactChannelsDescription": "Connect your Telegram and phone for order updates and notifications.",
+      "telegramDescription": "Receive order updates and notifications via Telegram.",
+      "linkTelegram": "Link Telegram",
+      "telegramDeeplinkInfo": "Open our bot in Telegram to link your account.",
+      "openTelegram": "Open Telegram",
+      "telegramUnlinkSuccess": "Telegram unlinked successfully",
+      "phoneChannel": "Phone",
+      "phoneDescription": "Add your phone number for SMS notifications.",
+      "phonePlaceholder": "+380501234567",
+      "linkPhone": "Link phone",
+      "phoneLinkSuccess": "Phone linked successfully",
+      "phoneUnlinkSuccess": "Phone unlinked successfully",
+      "changePassword": "Change password",
+      "changePasswordDescription": "Choose a strong password to keep your account secure.",
+      "passwordChangeEmailSent": "If the email exists, we've sent a link to change the password.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "passwordMinLength": "At least 8 characters",
+      "confirmNewPassword": "Confirm new password",
+      "changePasswordButton": "Change password",
+      "changeEmail": "Change email",
+      "changeEmailDescription": "Update the email address for your account.",
+      "currentEmail": "Current email",
+      "emailChangeEmailSent": "We've sent a verification link to your new email.",
+      "newEmail": "New email",
+      "changeEmailButton": "Change email"
     }
   },
   "favorites": {

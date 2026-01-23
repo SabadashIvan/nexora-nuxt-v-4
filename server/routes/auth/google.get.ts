@@ -1,19 +1,5 @@
 import { sendRedirect } from 'h3'
-
-const getNameParts = (name?: string) => {
-  const trimmed = (name || '').trim()
-  if (!trimmed) {
-    return { firstName: 'OAuth', lastName: 'User', fullName: 'OAuth User' }
-  }
-  const parts = trimmed.split(' ')
-  const firstName = parts[0] || trimmed
-  const lastName = parts.slice(1).join(' ') || 'User'
-  return {
-    firstName,
-    lastName,
-    fullName: `${firstName} ${lastName}`.trim(),
-  }
-}
+import { getNameParts } from '#server/utils/oauth'
 
 export default defineOAuthGoogleEventHandler({
   async onSuccess(event, { user }) {
@@ -25,7 +11,7 @@ export default defineOAuthGoogleEventHandler({
         ...existingSession,
         user: {
           ...existingSession.user,
-          googleId: user.id,
+          googleId: String(user.id),
         },
       })
       return sendRedirect(event, '/profile/settings?linked=google')
@@ -37,8 +23,8 @@ export default defineOAuthGoogleEventHandler({
         first_name: nameParts.firstName,
         last_name: nameParts.lastName,
         full_name: nameParts.fullName,
-        email: user.email,
-        googleId: user.id,
+        email: user.email ?? undefined,
+        googleId: String(user.id),
       },
       loggedInAt: new Date(),
       secure: {

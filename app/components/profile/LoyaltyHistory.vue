@@ -38,7 +38,7 @@ function isExpired(expiresAt: string | null): boolean {
 <template>
   <div class="bg-white dark:bg-gray-900 rounded-lg overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-      <h2 class="font-semibold text-gray-900 dark:text-gray-100">Transaction History</h2>
+      <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ $t('profile.loyaltyHistory.title') }}</h2>
     </div>
 
     <!-- Loading -->
@@ -95,8 +95,8 @@ function isExpired(expiresAt: string | null): boolean {
             >
               <AlertTriangle v-if="isExpiringSoon(transaction.expires_at) || isExpired(transaction.expires_at)" class="h-3.5 w-3.5" />
               <Clock v-else class="h-3.5 w-3.5" />
-              <span v-if="isExpired(transaction.expires_at)">Expired</span>
-              <span v-else>Expires {{ formatDate(transaction.expires_at) }}</span>
+              <span v-if="isExpired(transaction.expires_at)">{{ $t('profile.loyaltyHistory.expired') }}</span>
+              <span v-else>{{ $t('profile.loyaltyHistory.expires', { date: formatDate(transaction.expires_at) }) }}</span>
             </span>
           </div>
         </div>
@@ -122,14 +122,14 @@ function isExpired(expiresAt: string | null): boolean {
         :disabled="loading"
         @click="emit('loadMore')"
       >
-        {{ loading ? 'Loading...' : 'Load more' }}
+        {{ loading ? $t('common.messages.loading') : $t('common.buttons.loadMore') }}
       </button>
     </div>
 
     <!-- Empty state -->
     <div v-else class="px-6 py-12 text-center">
       <Clock class="h-12 w-12 mx-auto text-gray-400 mb-3" />
-      <p class="text-gray-500 dark:text-gray-400">No transactions yet</p>
+      <p class="text-gray-500 dark:text-gray-400">{{ $t('profile.loyaltyHistory.noTransactionsYet') }}</p>
     </div>
   </div>
 </template>
