@@ -6,6 +6,10 @@
 import { useAudienceStore } from '~/stores/audience.store'
 import type { AudienceSubscribePayload } from '~/types'
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
 interface Props {
   /** Source identifier for tracking (e.g., "home_form", "footer_form") */
   source?: string
@@ -88,6 +92,20 @@ async function handleSubmit() {
     console.error('Newsletter subscription error:', error)
   }
 }
+
+// Watch for success messages and show toast
+watch(storeMessage, (message) => {
+  if (message && !storeError.value) {
+    $toast.success(message)
+  }
+})
+
+// Watch for error messages and show toast
+watch(storeError, (error) => {
+  if (error) {
+    $toast.error(error)
+  }
+})
 </script>
 
 <template>
@@ -227,27 +245,5 @@ async function handleSubmit() {
       class="sr-only"
       style="position: absolute; left: -9999px;"
     >
-
-    <!-- Error message -->
-    <div
-      v-if="storeError"
-      class="rounded-md bg-red-500/10 border border-red-500/20 px-3 py-2"
-      role="alert"
-    >
-      <p class="text-sm text-red-400">
-        {{ storeError }}
-      </p>
-    </div>
-
-    <!-- Success message -->
-    <div
-      v-if="storeMessage && !storeError"
-      class="rounded-md bg-green-500/10 border border-green-500/20 px-3 py-2"
-      role="alert"
-    >
-      <p class="text-sm text-green-400">
-        {{ storeMessage }}
-      </p>
-    </div>
   </form>
 </template>

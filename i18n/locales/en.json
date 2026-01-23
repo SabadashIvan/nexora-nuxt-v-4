@@ -79,6 +79,9 @@
     },
     "item": "item",
     "items": "items",
+    "itemAdded": "Item added to cart",
+    "itemRemoved": "Item removed from cart",
+    "quantityUpdated": "Quantity updated",
     "summary": {
       "title": "Order Summary",
       "promoCode": "Promo Code",
@@ -118,6 +121,7 @@
       "email": "Email Address",
       "phone": "Phone Number",
       "requestType": "Request Type",
+      "selectType": "Select type",
       "subject": "Subject",
       "message": "Message",
       "placeholders": {

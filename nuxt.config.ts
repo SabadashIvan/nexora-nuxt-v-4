@@ -40,6 +40,7 @@ export default defineNuxtConfig({
     '@nuxt/test-utils/module',
     '@nuxtjs/google-fonts',
     'nuxt-auth-utils',
+    'vue-sonner/nuxt',
   ],
 
   css: ['./app/assets/css/main.css'],

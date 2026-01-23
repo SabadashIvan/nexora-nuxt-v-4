@@ -8,6 +8,13 @@ import { getImageUrl } from '~/utils'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
+
 interface Props {
   product: ProductListItem
 }
@@ -42,8 +49,14 @@ const isFavorite = computed(() => {
 async function addToCart() {
   isAddingToCart.value = true
   const cartStore = useCartStore()
-  await cartStore.addItem(props.product.id, 1)
+  const success = await cartStore.addItem(props.product.id, 1)
   isAddingToCart.value = false
+  
+  if (success) {
+    $toast.success(t('cart.itemAdded') || 'Item added to cart')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 async function toggleFavorite() {

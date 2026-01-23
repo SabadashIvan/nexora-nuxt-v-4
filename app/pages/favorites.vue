@@ -13,6 +13,13 @@ definePageMeta({
 // Locale-aware navigation
 const localePath = useLocalePath()
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
+
 // Load favorites on mount - access store inside onMounted
 onMounted(async () => {
   const favoritesStore = useFavoritesStore()
@@ -47,8 +54,14 @@ const addingToCart = ref<number | null>(null)
 async function addToCart(variantId: number) {
   addingToCart.value = variantId
   const cartStore = useCartStore()
-  await cartStore.addItem(variantId, 1)
+  const success = await cartStore.addItem(variantId, 1)
   addingToCart.value = null
+  
+  if (success) {
+    $toast.success(t('cart.itemAdded') || 'Item added to cart')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 async function removeFromFavorites(variantId: number) {

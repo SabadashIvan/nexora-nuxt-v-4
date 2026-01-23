@@ -80,6 +80,9 @@
     "item": "товар",
     "items": "товаров",
     "itemsFew": "товара",
+    "itemAdded": "Товар добавлен в корзину",
+    "itemRemoved": "Товар удалён из корзины",
+    "quantityUpdated": "Количество обновлено",
     "summary": {
       "title": "Итоги заказа",
       "promoCode": "Промокод",
@@ -119,6 +122,7 @@
       "email": "Адрес электронной почты",
       "phone": "Номер телефона",
       "requestType": "Тип запроса",
+      "selectType": "Выберите тип",
       "subject": "Тема",
       "message": "Сообщение",
       "placeholders": {

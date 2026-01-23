@@ -11,6 +11,10 @@ definePageMeta({
 const route = useRoute()
 const authStore = useAuthStore()
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
 // Locale-aware navigation
 const localePath = useLocalePath()
 
@@ -38,6 +42,26 @@ async function resendEmail() {
   await authStore.resendVerificationEmail()
   isResending.value = false
 }
+
+// Watch for success messages and show toast
+watch(status, (newStatus) => {
+  if (newStatus === 'verified') {
+    $toast.success('Email Verified!', {
+      description: 'Your email has been successfully verified.',
+    })
+  } else if (newStatus === 'sent') {
+    $toast.success('Verification email sent', {
+      description: 'A new verification email has been sent.',
+    })
+  }
+})
+
+// Watch for error messages and show toast
+watch(error, (newError) => {
+  if (newError && status.value === 'error') {
+    $toast.error(newError || 'The verification link is invalid or has expired.')
+  }
+})
 </script>
 
 <template>
@@ -115,12 +139,6 @@ async function resendEmail() {
           <p class="mt-2 text-gray-600 dark:text-gray-400">
             We've sent a verification link to your email address. Click the link to verify your account.
           </p>
-
-          <div v-if="status === 'sent'" class="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <p class="text-sm text-green-700 dark:text-green-300">
-              A new verification email has been sent.
-            </p>
-          </div>
 
           <button
             :disabled="isResending"
