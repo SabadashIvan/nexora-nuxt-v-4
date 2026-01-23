@@ -40,6 +40,9 @@
       "saving": "Saving...",
       "submitting": "Submitting...",
       "processing": "Processing..."
+    },
+    "actions": {
+      "close": "Close"
     }
   },
   "navigation": {
@@ -54,6 +57,7 @@
     "itemsInCart": "items in cart, view bag",
     "viewWishlist": "favorites, view wishlist",
     "viewComparison": "comparison, view comparison",
+    "search": "Search",
     "closeSearch": "Close search",
     "quickSearch": "Quick search",
     "searchProducts": "Search products..."
@@ -222,7 +226,24 @@
       "inWishlist": "In Wishlist",
       "addToComparison": "Add to Comparison",
       "inComparison": "In Comparison",
-      "share": "Share"
+      "share": "Share",
+      "quickBuy": "Quick Buy"
+    },
+    "quickBuy": {
+      "title": "Quick Buy",
+      "name": "Name",
+      "namePlaceholder": "Enter your name",
+      "phone": "Phone",
+      "phonePlaceholder": "+380501234567",
+      "email": "Email",
+      "emailPlaceholder": "your.email.example.com",
+      "comment": "Comment",
+      "commentPlaceholder": "Additional information (optional)",
+      "submit": "Submit Request",
+      "privacyNote": "By submitting this form, you agree to our privacy policy. We will contact you shortly.",
+      "success": "Request Submitted Successfully",
+      "successMessage": "We will contact you shortly to complete your order.",
+      "retryAfter": "Please try again in {seconds} seconds"
     },
     "reviews": {
       "title": "Customer Reviews",

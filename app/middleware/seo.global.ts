@@ -6,6 +6,8 @@
 import { NOINDEX_ROUTES } from '~/types/seo'
 import { getActivePinia } from 'pinia'
 import { applyNoIndexMeta, applySeoMetadata, fetchSeoMetadata } from '~/composables/useSeoMetadata'
+import { useApi } from '~/composables/useApi'
+import { useSystemStore } from '~/stores/system.store'
 
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip SEO for noindex routes
@@ -32,17 +34,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Fetch SEO metadata for public pages
   try {
+    // Create API instance at the start of middleware where context is available
+    const api = useApi()
     const config = useRuntimeConfig()
     // Build full frontend URL
     const siteUrl = config.public.siteUrl as string || 'http://localhost:3000'
     // Use fullPath to include query parameters
     const fullUrl = `${siteUrl}${to.fullPath}`
-    
-    const meta = await fetchSeoMetadata(fullUrl)
+
+    const meta = await fetchSeoMetadata(fullUrl, api)
     applySeoMetadata(meta, to.fullPath)
 
     // Add hreflang and canonical tags for multilingual SEO
     try {
+      // Access store inside try block to handle potential SSR context issues
       const systemStore = useSystemStore()
       const languages = systemStore.locales || []
       const currentLocale = systemStore.currentLocale || 'ru'

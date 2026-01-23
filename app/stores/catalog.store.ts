@@ -15,7 +15,7 @@ import type {
   Brand,
   VariantsResponse,
 } from '~/types'
-import { getErrorMessage } from '~/utils/errors'
+import { ERROR_CODES, getErrorMessage, parseApiError } from '~/utils/errors'
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc'
 
@@ -30,6 +30,7 @@ interface CatalogState {
   brands: Brand[]
   loading: boolean
   error: string | null
+  errorStatus: number | null
 }
 
 export const useCatalogStore = defineStore('catalog', {
@@ -49,6 +50,7 @@ export const useCatalogStore = defineStore('catalog', {
     brands: [],
     loading: false,
     error: null,
+    errorStatus: null,
   }),
 
   getters: {
@@ -113,6 +115,7 @@ export const useCatalogStore = defineStore('catalog', {
       const api = providedApi || useApi()
       this.loading = true
       this.error = null
+      this.errorStatus = null
 
       try {
         const response = await api.get<Category[] | { data: Category[] }>('/catalog/categories')
@@ -149,6 +152,7 @@ export const useCatalogStore = defineStore('catalog', {
       const api = providedApi || useApi()
       this.loading = true
       this.error = null
+      this.errorStatus = null
 
       try {
         console.log('Fetching category with slug:', slug)
@@ -193,13 +197,18 @@ export const useCatalogStore = defineStore('catalog', {
         console.log('Successfully parsed category:', category)
         this.currentCategory = category
         return category
-      } catch (error) {
-        this.error = getErrorMessage(error)
-        console.error('Fetch category error:', error)
-        return null
-      } finally {
-        this.loading = false
-      }
+    } catch (error) {
+        const parsedError = parseApiError(error)
+        this.error = getErrorMessage(parsedError)
+        this.errorStatus = parsedError.status
+        console.error('Fetch category error:', parsedError)
+        if (parsedError.status === ERROR_CODES.NOT_FOUND) {
+          return null
+        }
+        throw parsedError
+    } finally {
+      this.loading = false
+    }
     },
 
     /**
@@ -447,7 +456,7 @@ export const useCatalogStore = defineStore('catalog', {
       this.brands = []
       this.loading = false
       this.error = null
+      this.errorStatus = null
     },
   },
 })
-
