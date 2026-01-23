@@ -3,8 +3,7 @@
  * Category page - SSR for SEO
  */
 import { useCatalogStore } from '~/stores/catalog.store'
-import { useSystemStore } from '~/stores/system.store'
-import { getToken, TOKEN_KEYS } from '~/utils/tokens'
+import { TOKEN_KEYS } from '~/utils/tokens'
 import { ERROR_CODES } from '~/utils/errors'
 import type { Category, ProductFilter, ProductListItem } from '~/types'
 import { toRaw } from 'vue'
@@ -16,22 +15,16 @@ const route = useRoute()
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
 
-// Get currency for cache key consistency between SSR and client
-// Prefer system store (SSR-hydrated), fallback to cookie token
-const getCurrencyForCacheKey = (): string => {
-  try {
-    const systemStore = useSystemStore()
-    if (systemStore.currentCurrency) {
-      return systemStore.currentCurrency
-    }
-  } catch {
-    // Store might not be available yet in some SSR edge cases
-  }
-  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-}
-
-// Use deferred store access for currency (SSR-safe)
-const currency = computed(() => getCurrencyForCacheKey())
+// Use useCookie for SSR/client consistent currency reading
+// This is critical for cache key consistency - useCookie handles hydration correctly
+// Options must match how the cookie is set in tokens.ts for proper SSR reading
+const currencyCookie = useCookie<string>(TOKEN_KEYS.CURRENCY, {
+  default: () => 'USD',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+})
+const currency = computed(() => currencyCookie.value)
 
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
@@ -76,31 +69,20 @@ interface CategoryPageData {
 }
 
 const payloadCategoryData = computed(() => {
-  const key = buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey())
+  const key = buildCategoryCacheKey(categorySlug.value, route.query, locale.value, currency.value)
   const nuxtData = useNuxtData<CategoryPageData>(key)
-  console.log('Payload lookup:', { key, hasData: !!nuxtData.data.value, env: import.meta.server ? 'SSR' : 'CLIENT' })
   return nuxtData.data.value
 })
 
-// Debug: Log cache key components to identify SSR/client mismatch
-const debugCacheKey = () => {
-  const key = buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey())
-  console.log('Cache key debug:', {
-    env: import.meta.server ? 'SSR' : 'CLIENT',
-    key,
-    slug: categorySlug.value,
-    query: JSON.stringify(route.query),
-    locale: locale.value,
-    currency: getCurrencyForCacheKey(),
-  })
-  return key
-}
+// Build cache key for useAsyncData - must be consistent between SSR and client
+// Uses currency computed which is backed by useCookie for SSR/client consistency
+const getCacheKey = () => buildCategoryCacheKey(categorySlug.value, route.query, locale.value, currency.value)
 
 // Fetch category and products with SSR data hydration
 // Use getter function for cache key to ensure SSR/client consistency (matching product page pattern)
 // Access store and api INSIDE the callback to preserve SSR context
 const { data: asyncCategoryData, pending, error, status, refresh } = await useAsyncData<CategoryPageData>(
-  debugCacheKey,
+  getCacheKey,
   async () => {
     // Access store and api inside callback to preserve SSR context
     const api = useApi()
@@ -118,10 +100,8 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
       price_max: query.price_max ? Number(query.price_max) : undefined,
       attributes: query.attributes ? (query.attributes as string).split(',') : undefined,
     }
-    console.log('Fetching category data for slug:', slug)
     // Pass API instance to preserve context
     const cat = await catalogStore.fetchCategory(slug, false, api)
-    console.log('Fetched category:', cat)
 
     let sorting: 'newest' | 'price_asc' | 'price_desc' = 'newest'
     let appliedFilters: ProductFilter = { page: 1 }
@@ -166,12 +146,8 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
         filterParams.filters!.attributes = filters.attributes
       }
 
-      console.log('Fetching products with filters:', filterParams)
       // Pass API instance to preserve context after await
       await catalogStore.fetchProducts(filterParams, api)
-      console.log('Products fetched:', catalogStore.products.length)
-      console.log('Products data:', catalogStore.products)
-      console.log('Pagination:', catalogStore.pagination)
 
       // Apply filters to store so they're available for ActiveFilters component
       catalogStore.filters = { ...catalogStore.filters, ...filterParams }
@@ -186,8 +162,6 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
           catalogStore.sorting = sorting
         }
       }
-    } else {
-      console.warn('Category not found or missing ID:', cat)
     }
 
     // Return all data needed for rendering (not just category)
@@ -291,7 +265,6 @@ onMounted(() => {
 const category = computed(() => asyncCategoryData.value?.category || payloadCategoryData.value?.category || storeCategory.value || null)
 const products = computed(() => {
   const productsList = asyncCategoryData.value?.products ?? payloadCategoryData.value?.products ?? storeProducts.value
-  console.log('Products computed - count:', productsList.length, 'data:', productsList)
   return productsList.length > 0 ? productsList : lastProducts.value
 })
 const pagination = computed(() => {

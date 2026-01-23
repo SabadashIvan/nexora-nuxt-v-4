@@ -8,9 +8,8 @@ import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
-import { useSystemStore } from '~/stores/system.store'
 import { ERROR_CODES } from '~/utils/errors'
-import { getToken, TOKEN_KEYS } from '~/utils/tokens'
+import { TOKEN_KEYS } from '~/utils/tokens'
 import type { Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
@@ -22,23 +21,17 @@ const localePath = useLocalePath()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
-// Use deferred store access for currency (SSR-safe)
-const currency = computed(() => {
-  if (import.meta.server) {
-    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-  }
-  try {
-    return useSystemStore().currentCurrency
-  } catch {
-    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-  }
-})
 
-// Get currency directly from cookie for cache key consistency between SSR and client
-// This ensures the cache key is always the same regardless of store initialization timing
-const getCurrencyForCacheKey = (): string => {
-  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-}
+// Use useCookie for SSR/client consistent currency reading
+// This is critical for cache key consistency - useCookie handles hydration correctly
+// Options must match how the cookie is set in tokens.ts for proper SSR reading
+const currencyCookie = useCookie<string>(TOKEN_KEYS.CURRENCY, {
+  default: () => 'USD',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+})
+const currency = computed(() => currencyCookie.value)
 
 const slug = computed(() => route.params.slug as string)
 
@@ -55,9 +48,9 @@ const didClientRefetch = ref(false)
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
-// Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
+// Uses currency computed backed by useCookie for SSR/client consistency
 const { data: asyncProduct, pending, error, status, refresh } = await useAsyncData(
-  () => `product-${slug.value}-${locale.value}-${getCurrencyForCacheKey()}`,
+  () => `product-${slug.value}-${locale.value}-${currency.value}`,
   async () => {
     // Access store and api inside callback to preserve SSR context
     const api = useApi()

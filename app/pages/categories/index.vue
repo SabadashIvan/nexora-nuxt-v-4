@@ -3,8 +3,7 @@
  * Categories page - SSR for SEO
  */
 import { useCatalogStore } from '~/stores/catalog.store'
-import { useSystemStore } from '~/stores/system.store'
-import { getToken, TOKEN_KEYS } from '~/utils/tokens'
+import { TOKEN_KEYS } from '~/utils/tokens'
 import type { ProductFilter } from '~/types'
 
 const route = useRoute()
@@ -12,22 +11,17 @@ const route = useRoute()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
-// Use deferred store access for currency (SSR-safe)
-const currency = computed(() => {
-  if (import.meta.server) {
-    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-  }
-  try {
-    return useSystemStore().currentCurrency
-  } catch {
-    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-  }
-})
 
-// Get currency directly from cookie for cache key consistency between SSR and client
-const getCurrencyForCacheKey = (): string => {
-  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-}
+// Use useCookie for SSR/client consistent currency reading
+// This is critical for cache key consistency - useCookie handles hydration correctly
+// Options must match how the cookie is set in tokens.ts for proper SSR reading
+const currencyCookie = useCookie<string>(TOKEN_KEYS.CURRENCY, {
+  default: () => 'USD',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+})
+const currency = computed(() => currencyCookie.value)
 
 // Create a computed for route query to use in watch
 const routeQuery = computed(() => route.query)
@@ -46,9 +40,9 @@ const buildCacheKey = (query: Record<string, unknown>, currentLocale: string, cu
 
 // Fetch products with lazy loading + SWR caching
 // useLazyAsyncData allows instant navigation with skeleton loading
-// Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
+// Uses currency computed backed by useCookie for SSR/client consistency
 const { data: productsData, pending, refresh, error: _error } = await useLazyAsyncData(
-  () => buildCacheKey(route.query, locale.value, getCurrencyForCacheKey()),
+  () => buildCacheKey(route.query, locale.value, currency.value),
   async () => {
     const catalogStore = useCatalogStore()
     

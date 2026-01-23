@@ -168,9 +168,22 @@ export function useApi() {
   const router = useRouter()
   const logger = useLogger()
 
+  // Pre-initialize cookies at composable setup time using useCookie
+  // This ensures SSR/client consistency and avoids useRequestEvent() failures
+  const localeCookie = useCookie<string>('locale', { default: () => 'en' })
+  const currencyCookie = useCookie<string>('currency', { default: () => 'USD' })
+
   // Lazy cookie access - only access cookies when needed and only on client
   // This prevents cookie writes during SSR/SWR cache handling
   function getCookieValue(key: string): string | null {
+    // For locale and currency, use pre-initialized useCookie refs for SSR consistency
+    if (key === 'locale') {
+      return localeCookie.value || null
+    }
+    if (key === 'currency') {
+      return currencyCookie.value || null
+    }
+
     if (import.meta.server) {
       // During SSR, use getCookie() which only reads, doesn't write
       try {
