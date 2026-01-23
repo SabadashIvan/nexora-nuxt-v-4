@@ -30,10 +30,10 @@ const userName = computed(() => authStore.value?.userName ?? '')
 const recentOrders = computed(() => ordersStore.value?.orders.slice(0, 3) ?? [])
 
 const quickLinks = computed(() => [
-  { icon: Package, label: 'My Orders', to: localePath('/profile/orders'), description: 'View order history' },
-  { icon: MapPin, label: 'Addresses', to: localePath('/profile/addresses'), description: 'Manage addresses' },
-  { icon: Heart, label: 'Wishlist', to: localePath('/favorites'), description: 'Saved items' },
-  { icon: Settings, label: 'Settings', to: localePath('/profile/settings'), description: 'Account settings' },
+  { icon: Package, labelKey: 'profile.index.myOrders', to: localePath('/profile/orders'), descriptionKey: 'profile.index.viewOrderHistory' },
+  { icon: MapPin, labelKey: 'profile.nav.addresses', to: localePath('/profile/addresses'), descriptionKey: 'profile.index.manageAddresses' },
+  { icon: Heart, labelKey: 'favorites.title', to: localePath('/favorites'), descriptionKey: 'profile.index.savedItems' },
+  { icon: Settings, labelKey: 'profile.nav.settings', to: localePath('/profile/settings'), descriptionKey: 'profile.index.accountSettings' },
 ])
 </script>
 
@@ -42,10 +42,10 @@ const quickLinks = computed(() => [
     <!-- Welcome section -->
     <div class="bg-white dark:bg-gray-900 rounded-lg p-6 mb-8">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
-        Welcome back, {{ userName }}!
+        {{ $t('profile.index.welcomeBack', { name: userName }) }}
       </h1>
       <p class="mt-1 text-gray-500 dark:text-gray-400">
-        Manage your account, orders, and preferences.
+        {{ $t('profile.index.manageAccount') }}
       </p>
     </div>
 
@@ -61,8 +61,8 @@ const quickLinks = computed(() => [
           <component :is="link.icon" class="h-6 w-6 text-primary-600 dark:text-primary-400" />
         </div>
         <div>
-          <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ link.label }}</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">{{ link.description }}</p>
+          <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ $t(link.labelKey) }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t(link.descriptionKey) }}</p>
         </div>
       </NuxtLink>
     </div>
@@ -70,9 +70,9 @@ const quickLinks = computed(() => [
     <!-- Recent orders -->
     <div class="bg-white dark:bg-gray-900 rounded-lg p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Recent Orders</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $t('profile.index.recentOrders') }}</h2>
         <NuxtLink :to="localePath('/profile/orders')" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
-          View all
+          {{ $t('profile.index.viewAll') }}
         </NuxtLink>
       </div>
 
@@ -85,10 +85,10 @@ const quickLinks = computed(() => [
         >
           <div>
             <p class="font-medium text-gray-900 dark:text-gray-100">
-              Order #{{ order.order_number }}
+              {{ $t('profile.index.orderNumber', { number: order.order_number }) }}
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ order.items.length }} items
+              {{ $t('profile.index.items', { count: order.items.length }) }}
             </p>
           </div>
           <div class="text-right">
@@ -107,8 +107,8 @@ const quickLinks = computed(() => [
 
       <UiEmptyState
         v-else
-        title="No orders yet"
-        description="Start shopping to see your orders here"
+        :title="$t('profile.index.noOrdersYet')"
+        :description="$t('profile.index.startShoppingHere')"
         :icon="Package"
       >
         <template #action>
@@ -116,7 +116,7 @@ const quickLinks = computed(() => [
             :to="localePath('/categories')"
             class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
           >
-            Browse Products
+            {{ $t('profile.index.browseProducts') }}
           </NuxtLink>
         </template>
       </UiEmptyState>

@@ -49,7 +49,7 @@ function getStatusVariant(status: string) {
       class="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 mb-6"
     >
       <ArrowLeft class="h-4 w-4" />
-      Back to Orders
+      {{ $t('profile.order.backToOrders') }}
     </NuxtLink>
 
     <!-- Loading -->
@@ -67,7 +67,7 @@ function getStatusVariant(status: string) {
             Order #{{ order.order_number }}
           </h1>
           <p class="text-gray-500 dark:text-gray-400">
-            Placed on {{ formatDate(order.created_at) }}
+            {{ $t('profile.orders.placedOn', { date: formatDate(order.created_at) }) }}
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -87,7 +87,7 @@ function getStatusVariant(status: string) {
           <div class="bg-white dark:bg-gray-900 rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <Package class="h-5 w-5" />
-              Order Items
+              {{ $t('profile.order.orderItems') }}
             </h2>
             <div class="space-y-4">
               <div
@@ -110,10 +110,10 @@ function getStatusVariant(status: string) {
                     </h3>
                   </NuxtLink>
                   <p class="text-sm text-gray-500 dark:text-gray-400">
-                    SKU: {{ item.sku }}
+                    {{ $t('profile.order.sku', { sku: item.sku }) }}
                   </p>
                   <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Qty: {{ item.quantity }}
+                    {{ $t('profile.order.qty', { count: item.quantity }) }}
                   </p>
                 </div>
                 <div class="text-right">
@@ -127,7 +127,7 @@ function getStatusVariant(status: string) {
           <div class="bg-white dark:bg-gray-900 rounded-lg p-6">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
               <MapPin class="h-5 w-5" />
-              Shipping Address
+              {{ $t('profile.order.shippingAddress') }}
             </h2>
             <div class="text-gray-700 dark:text-gray-300">
               <p class="font-medium">
@@ -152,26 +152,26 @@ function getStatusVariant(status: string) {
             <div class="bg-white dark:bg-gray-900 rounded-lg p-6">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <Truck class="h-5 w-5" />
-                Shipping Method
+                {{ $t('profile.order.shippingMethod') }}
               </h2>
               <p class="font-medium text-gray-900 dark:text-gray-100">
                 {{ order.shipping_method.name }}
               </p>
               <p v-if="order.shipping_method.estimated_days" class="text-sm text-gray-500 dark:text-gray-400">
-                Est. {{ order.shipping_method.estimated_days }} days delivery
+                {{ $t('profile.order.estDaysDelivery', { days: order.shipping_method.estimated_days }) }}
               </p>
             </div>
 
             <div class="bg-white dark:bg-gray-900 rounded-lg p-6">
               <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <CreditCard class="h-5 w-5" />
-                Payment Method
+                {{ $t('profile.order.paymentMethod') }}
               </h2>
               <p class="font-medium text-gray-900 dark:text-gray-100">
                 {{ order.payment_provider.name }}
               </p>
               <p class="text-sm text-gray-500 dark:text-gray-400">
-                {{ order.payment_provider.type === 'online' ? 'Online payment' : 'Pay on delivery' }}
+                {{ order.payment_provider.type === 'online' ? $t('profile.order.onlinePayment') : $t('profile.order.payOnDelivery') }}
               </p>
             </div>
           </div>
@@ -181,28 +181,28 @@ function getStatusVariant(status: string) {
         <div class="lg:col-span-1">
           <div class="bg-white dark:bg-gray-900 rounded-lg p-6 sticky top-24">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Order Summary
+              {{ $t('profile.order.orderSummary') }}
             </h2>
             <div class="space-y-3">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Subtotal</span>
+                <span class="text-gray-600 dark:text-gray-400">{{ $t('profile.order.subtotal') }}</span>
                 <UiPrice :price="order.totals.subtotal" :currency="order.totals.currency" :show-discount="false" />
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Shipping</span>
+                <span class="text-gray-600 dark:text-gray-400">{{ $t('profile.order.shipping') }}</span>
                 <span v-if="order.totals.shipping > 0">
                   <UiPrice :price="order.totals.shipping" :currency="order.totals.currency" :show-discount="false" />
                 </span>
-                <span v-else class="text-green-600 dark:text-green-400">Free</span>
+                <span v-else class="text-green-600 dark:text-green-400">{{ $t('profile.order.free') }}</span>
               </div>
               <div v-if="order.totals.discounts > 0" class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Discounts</span>
+                <span class="text-gray-600 dark:text-gray-400">{{ $t('profile.order.discounts') }}</span>
                 <span class="text-green-600 dark:text-green-400">
                   -<UiPrice :price="order.totals.discounts" :currency="order.totals.currency" :show-discount="false" />
                 </span>
               </div>
               <div class="flex justify-between pt-3 border-t border-gray-200 dark:border-gray-800">
-                <span class="font-semibold text-gray-900 dark:text-gray-100">Total</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $t('profile.order.total') }}</span>
                 <UiPrice :price="order.totals.total" :currency="order.totals.currency" size="lg" :show-discount="false" />
               </div>
             </div>
@@ -214,8 +214,8 @@ function getStatusVariant(status: string) {
     <!-- Not found -->
     <UiEmptyState
       v-else
-      title="Order not found"
-      description="The order you're looking for doesn't exist"
+      :title="$t('profile.order.orderNotFound')"
+      :description="$t('profile.order.orderNotFoundDesc')"
     />
   </div>
 </template>

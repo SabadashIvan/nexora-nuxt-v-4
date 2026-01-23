@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
     <template v-else-if="account">
       <div class="flex items-center gap-2 mb-1">
         <Coins class="h-5 w-5 text-white/80" />
-        <span class="text-sm text-white/80">Available Balance</span>
+        <span class="text-sm text-white/80">{{ $t('profile.loyaltyBalance.availableBalance') }}</span>
       </div>
 
       <p class="text-3xl font-bold mb-4">
@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<Props>(), {
       <!-- Pending points -->
       <div v-if="account.pending && account.pending !== '$0.00'" class="flex items-center gap-2 text-sm text-white/70">
         <Clock class="h-4 w-4" />
-        <span>{{ account.pending }} pending</span>
+        <span>{{ account.pending }} {{ $t('profile.loyaltyBalance.pending') }}</span>
       </div>
 
       <!-- Expiring warning -->
@@ -50,14 +50,14 @@ const props = withDefaults(defineProps<Props>(), {
         class="mt-3 flex items-center gap-2 text-sm bg-white/10 rounded-lg px-3 py-2"
       >
         <AlertTriangle class="h-4 w-4 text-yellow-300" />
-        <span>{{ expiringCount }} transaction{{ expiringCount > 1 ? 's' : '' }} expiring soon</span>
+        <span>{{ $t('profile.loyaltyBalance.expiringSoon', { count: expiringCount }) }}</span>
       </div>
     </template>
 
     <!-- No account -->
     <div v-else class="text-center py-4">
       <Coins class="h-12 w-12 mx-auto text-white/50 mb-2" />
-      <p class="text-white/70">No loyalty account found</p>
+      <p class="text-white/70">{{ $t('profile.loyaltyBalance.noLoyaltyAccount') }}</p>
     </div>
   </div>
 </template>

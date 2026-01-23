@@ -2,7 +2,7 @@
 /**
  * Profile settings page
  */
-import { Github, Key, Mail, CheckCircle, AlertCircle, Loader2, Phone, MessageCircle, ExternalLink, Unlink } from 'lucide-vue-next'
+import { Github, Key, Mail, CheckCircle, AlertCircle, Loader2, Phone, MessageCircle, ExternalLink } from 'lucide-vue-next'
 import type { ChangePasswordRequestPayload, ChangeEmailRequestPayload } from '~/types'
 
 definePageMeta({
@@ -206,8 +206,8 @@ async function handlePhoneLink() {
   phoneLinking.value = false
 }
 
-// Handle phone unlinking
-async function handlePhoneUnlink() {
+// Handle phone unlinking (reserved for unlink UI)
+async function _handlePhoneUnlink() {
   if (!authStore.value || phoneLinking.value) return
 
   phoneLinking.value = true
@@ -247,8 +247,8 @@ async function handleTelegramLink() {
   telegramLinking.value = false
 }
 
-// Handle Telegram unlinking
-async function handleTelegramUnlink() {
+// Handle Telegram unlinking (reserved for unlink UI)
+async function _handleTelegramUnlink() {
   if (!authStore.value || telegramLinking.value) return
 
   telegramLinking.value = true
@@ -427,7 +427,7 @@ async function handleTelegramUnlink() {
                 :placeholder="$t('profile.settings.phonePlaceholder')"
                 :disabled="phoneLinking"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-              />
+              >
             </div>
             <button
               type="button"
@@ -498,7 +498,7 @@ async function handleTelegramUnlink() {
               'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             ]"
-          />
+          >
           <p v-if="passwordFieldErrors.current_password" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ passwordFieldErrors.current_password }}
           </p>
@@ -521,7 +521,7 @@ async function handleTelegramUnlink() {
               'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             ]"
-          />
+          >
           <p v-if="passwordFieldErrors.new_password" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ passwordFieldErrors.new_password }}
           </p>
@@ -546,7 +546,7 @@ async function handleTelegramUnlink() {
               'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             ]"
-          />
+          >
           <p v-if="passwordFieldErrors.new_password_confirmation" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ passwordFieldErrors.new_password_confirmation }}
           </p>
@@ -623,7 +623,7 @@ async function handleTelegramUnlink() {
               'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             ]"
-          />
+          >
           <p v-if="emailFieldErrors.new_email" class="mt-1 text-sm text-red-600 dark:text-red-400">
             {{ emailFieldErrors.new_email }}
           </p>

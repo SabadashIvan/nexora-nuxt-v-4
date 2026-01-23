@@ -64,8 +64,8 @@ export default defineEventHandler(async (event): Promise<unknown> => {
   } catch (error: unknown) {
     const err = error as { status?: number; data?: unknown; statusMessage?: string }
     throw createError({
-      statusCode: err.status || 500,
-      statusMessage: err.statusMessage || 'Support request failed',
+      status: err.status || 500,
+      statusText: err.statusMessage || 'Support request failed',
       data: err.data,
     })
   }

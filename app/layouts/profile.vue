@@ -28,12 +28,12 @@ async function handleLogout() {
 }
 
 const navigation = computed(() => [
-  { name: 'Dashboard', to: localePath('/profile'), icon: User, exact: true },
-  { name: 'My Orders', to: localePath('/profile/orders'), icon: Package },
-  { name: 'Loyalty Points', to: localePath('/profile/loyalty'), icon: Coins },
-  { name: 'Notifications', to: localePath('/profile/notifications'), icon: Bell },
-  { name: 'Addresses', to: localePath('/profile/addresses'), icon: MapPin },
-  { name: 'Settings', to: localePath('/profile/settings'), icon: Settings },
+  { nameKey: 'profile.nav.dashboard', to: localePath('/profile'), icon: User, exact: true },
+  { nameKey: 'profile.nav.myOrders', to: localePath('/profile/orders'), icon: Package },
+  { nameKey: 'profile.nav.loyaltyPoints', to: localePath('/profile/loyalty'), icon: Coins },
+  { nameKey: 'profile.nav.notifications', to: localePath('/profile/notifications'), icon: Bell },
+  { nameKey: 'profile.nav.addresses', to: localePath('/profile/addresses'), icon: MapPin },
+  { nameKey: 'profile.nav.settings', to: localePath('/profile/settings'), icon: Settings },
 ])
 
 const isActive = (item: { to: string; exact?: boolean }) => {
@@ -86,7 +86,7 @@ const isActive = (item: { to: string; exact?: boolean }) => {
                 ]"
               >
                 <component :is="item.icon" class="h-5 w-5" />
-                {{ item.name }}
+                {{ $t(item.nameKey) }}
               </NuxtLink>
             </nav>
 
@@ -99,7 +99,7 @@ const isActive = (item: { to: string; exact?: boolean }) => {
                 class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <LogOut class="h-5 w-5" />
-                <span>{{ isLoggingOut ? 'Logging out...' : 'Logout' }}</span>
+                <span>{{ isLoggingOut ? $t('navigation.loggingOut') : $t('navigation.logout') }}</span>
               </button>
             </div>
           </aside>

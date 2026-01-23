@@ -17,12 +17,12 @@ const loading = ref(false)
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">My Addresses</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $t('profile.addresses.title') }}</h1>
       <button
         class="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
       >
         <Plus class="h-5 w-5" />
-        Add Address
+        {{ $t('profile.addresses.addAddress') }}
       </button>
     </div>
 
@@ -39,8 +39,8 @@ const loading = ref(false)
     <!-- Empty state -->
     <UiEmptyState
       v-else
-      title="No addresses saved"
-      description="Add an address for faster checkout"
+      :title="$t('profile.addresses.noAddressesSaved')"
+      :description="$t('profile.addresses.addAddressForCheckout')"
       :icon="MapPin"
     >
       <template #action>
@@ -48,7 +48,7 @@ const loading = ref(false)
           class="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
         >
           <Plus class="h-5 w-5" />
-          Add Address
+          {{ $t('profile.addresses.addAddress') }}
         </button>
       </template>
     </UiEmptyState>

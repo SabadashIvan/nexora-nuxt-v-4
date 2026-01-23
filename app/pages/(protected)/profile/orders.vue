@@ -83,14 +83,14 @@ function getStatusVariant(status: string) {
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">My Orders</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">{{ $t('profile.orders.title') }}</h1>
 
     <!-- Status Filters -->
     <div v-if="statuses.length > 0" class="mb-6">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
           <Filter class="h-4 w-4" />
-          Filter:
+          {{ $t('profile.orders.filter') }}
         </span>
         <button
           v-for="status in statuses"
@@ -113,7 +113,7 @@ function getStatusVariant(status: string) {
           @click="handleClearFilters"
         >
           <X class="h-3.5 w-3.5" />
-          Clear
+          {{ $t('profile.orders.clear') }}
         </button>
       </div>
     </div>
@@ -133,10 +133,10 @@ function getStatusVariant(status: string) {
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
             <p class="font-semibold text-gray-900 dark:text-gray-100">
-              Order #{{ order.order_number }}
+              {{ $t('profile.index.orderNumber', { number: order.order_number }) }}
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-              Placed on {{ formatDate(order.created_at) }}
+              {{ $t('profile.orders.placedOn', { date: formatDate(order.created_at) }) }}
             </p>
           </div>
           <div class="flex items-center gap-4">
@@ -144,11 +144,11 @@ function getStatusVariant(status: string) {
               {{ order.status }}
             </UiBadge>
             <NuxtLink
-              :to="`/profile/order/${order.id}`"
+              :to="localePath(`/profile/order/${order.id}`)"
               class="flex items-center gap-1 text-primary-600 dark:text-primary-400 hover:underline text-sm font-medium"
             >
               <Eye class="h-4 w-4" />
-              View Details
+              {{ $t('profile.orders.viewDetails') }}
             </NuxtLink>
           </div>
         </div>
@@ -168,14 +168,14 @@ function getStatusVariant(status: string) {
             />
           </div>
           <div v-if="order.items.length > 4" class="text-sm text-gray-500 dark:text-gray-400">
-            +{{ order.items.length - 4 }} more
+            {{ $t('profile.orders.more', { count: order.items.length - 4 }) }}
           </div>
         </div>
 
         <!-- Total -->
         <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <span class="text-sm text-gray-500 dark:text-gray-400">
-            {{ order.items.length }} items
+            {{ $t('profile.orders.items', { count: order.items.length }) }}
           </span>
           <div class="font-semibold">
             <UiPrice :price="order.totals.total" :currency="order.totals.currency" :show-discount="false" />
@@ -196,8 +196,8 @@ function getStatusVariant(status: string) {
     <!-- Empty state -->
     <UiEmptyState
       v-else
-      title="No orders yet"
-      description="When you place an order, it will appear here"
+      :title="$t('profile.orders.noOrdersYet')"
+      :description="$t('profile.orders.emptyDescription')"
       :icon="Package"
     >
       <template #action>
@@ -205,7 +205,7 @@ function getStatusVariant(status: string) {
           :to="localePath('/categories')"
           class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
         >
-          Start Shopping
+          {{ $t('profile.orders.startShopping') }}
         </NuxtLink>
       </template>
     </UiEmptyState>
