@@ -44,8 +44,8 @@ watch(() => route.params.slug, async (newSlug, oldSlug) => {
 // Handle 404
 if (!page.value && !pending.value) {
   throw createError({
-    statusCode: 404,
-    statusMessage: 'Page Not Found',
+    status: 404,
+    statusText: 'Page Not Found',
   })
 }
 

@@ -291,8 +291,8 @@ watchEffect(() => {
 watch([status, category, error, categoryErrorStatus], ([currentStatus, cat, err, errorStatus]) => {
   if (currentStatus === 'success' && !cat && !err && errorStatus === ERROR_CODES.NOT_FOUND) {
     throw createError({
-      statusCode: 404,
-      statusMessage: 'Category Not Found',
+      status: 404,
+      statusText: 'Category Not Found',
     })
   }
 })

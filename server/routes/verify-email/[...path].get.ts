@@ -34,8 +34,8 @@ export default defineEventHandler(async (event) => {
   } catch (error: unknown) {
     const err = error as { status?: number; data?: unknown; statusMessage?: string }
     throw createError({
-      statusCode: err.status || 500,
-      statusMessage: err.statusMessage || 'Email verification failed',
+      status: err.status || 500,
+      statusText: err.statusMessage || 'Email verification failed',
       data: err.data,
     })
   }

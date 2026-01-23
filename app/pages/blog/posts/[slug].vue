@@ -25,8 +25,8 @@ const { data: post, pending } = await useAsyncData(
 // Handle 404
 if (!post.value && !pending.value) {
   throw createError({
-    statusCode: 404,
-    statusMessage: 'Post Not Found',
+    status: 404,
+    statusText: 'Post Not Found',
   })
 }
 
