@@ -8,7 +8,8 @@ import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
-import { useSystemStore } from '~/stores/system.store'
+import { ERROR_CODES } from '~/utils/errors'
+import { TOKEN_KEYS } from '~/utils/tokens'
 import type { Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
@@ -20,20 +21,41 @@ const localePath = useLocalePath()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
-const systemStore = useSystemStore()
-const currency = computed(() => systemStore.currentCurrency)
+
+// Use useCookie for SSR/client consistent currency reading
+// This is critical for cache key consistency - useCookie handles hydration correctly
+// Options must match how the cookie is set in tokens.ts for proper SSR reading
+const currencyCookie = useCookie<string>(TOKEN_KEYS.CURRENCY, {
+  default: () => 'USD',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+})
+const currency = computed(() => currencyCookie.value)
 
 const slug = computed(() => route.params.slug as string)
+
+const productErrorStatus = computed(() => {
+  try {
+    return useProductStore().errorStatus
+  } catch {
+    return null
+  }
+})
+
+const didClientRefetch = ref(false)
 
 // Fetch product with SSR + client-side navigation support
 // Using useAsyncData with proper watch to ensure data loads on navigation
 // routeRules with swr: 3600 handles SSR caching at the route level
-// Include currency in key and watch array since products have prices
-const { data: product, pending, error, refresh } = await useAsyncData(
+// Uses currency computed backed by useCookie for SSR/client consistency
+const { data: asyncProduct, pending, error, status, refresh } = await useAsyncData(
   () => `product-${slug.value}-${locale.value}-${currency.value}`,
   async () => {
+    // Access store and api inside callback to preserve SSR context
+    const api = useApi()
     const productStore = useProductStore()
-    return await productStore.fetch(slug.value)
+    return await productStore.fetch(slug.value, api)
   },
   {
     watch: [() => route.params.slug, locale, currency],
@@ -43,6 +65,16 @@ const { data: product, pending, error, refresh } = await useAsyncData(
     default: () => null,
   }
 )
+
+const storeProduct = computed(() => {
+  try {
+    return useProductStore().product
+  } catch {
+    return null
+  }
+})
+
+const product = computed(() => asyncProduct.value ?? storeProduct.value)
 
 // Watch for route changes to ensure we refetch on client-side navigation
 // This is a backup to ensure data loads even if watch in useAsyncData doesn't trigger
@@ -66,17 +98,21 @@ watch([locale, currency], async ([newLocale, newCurrency], [oldLocale, oldCurren
 onMounted(() => {
   isMounted.value = true
   if (import.meta.client) {
-    console.log('[Client] Product value on mount:', product.value)
-    console.log('[Client] Product value type:', typeof product.value)
-    console.log('[Client] Product value keys:', product.value ? Object.keys(product.value) : 'null')
+    if (!didClientRefetch.value && !asyncProduct.value && (error.value || status.value === 'error')) {
+      didClientRefetch.value = true
+      refresh()
+    }
+    console.log('[Client] Product value on mount:', asyncProduct.value)
+    console.log('[Client] Product value type:', typeof asyncProduct.value)
+    console.log('[Client] Product value keys:', asyncProduct.value ? Object.keys(asyncProduct.value) : 'null')
     
     // Check if product.value is wrapped in { data: ... }
-    if (product.value && typeof product.value === 'object' && 'data' in product.value) {
+    if (asyncProduct.value && typeof asyncProduct.value === 'object' && 'data' in asyncProduct.value) {
       console.warn('[Client] Product value is wrapped in data object! Unwrapping...')
       // This shouldn't happen, but if it does, we need to handle it
     }
     
-    watch(() => product.value, (newProduct) => {
+    watch(() => asyncProduct.value, (newProduct) => {
       console.log('[Client] Product value changed:', newProduct)
       if (newProduct) {
         // Check if it's wrapped in { data: ... }
@@ -118,8 +154,8 @@ onMounted(() => {
 
 // Handle 404 - but only after we're sure data is loaded
 // Use watch to handle 404 after data loads (both SSR and CSR)
-watch([product, pending, error], ([prod, isPending, err]) => {
-  if (!isPending && !prod && !err) {
+watch([status, product, error, productErrorStatus], ([currentStatus, prod, err, errorStatus]) => {
+  if (currentStatus === 'success' && !prod && !err && errorStatus === ERROR_CODES.NOT_FOUND) {
     console.warn('[SSR/CSR] Product not found, throwing 404')
     throw createError({
       statusCode: 404,

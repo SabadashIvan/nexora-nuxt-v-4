@@ -4,7 +4,7 @@
  */
 import { Truck, Award, Shirt } from 'lucide-vue-next'
 import { useCatalogStore } from '~/stores/catalog.store'
-import { useSystemStore } from '~/stores/system.store'
+import { TOKEN_KEYS } from '~/utils/tokens'
 import { getImageUrl } from '~/utils'
 import type { BannersResponse } from '~/types'
 
@@ -15,8 +15,17 @@ const localePath = useLocalePath()
 const i18n = useI18n()
 const { t } = useI18n()
 const locale = computed(() => i18n.locale.value)
-const systemStore = useSystemStore()
-const currency = computed(() => systemStore.currentCurrency)
+
+// Use useCookie for SSR/client consistent currency reading
+// This is critical for cache key consistency - useCookie handles hydration correctly
+// Options must match how the cookie is set in tokens.ts for proper SSR reading
+const currencyCookie = useCookie<string>(TOKEN_KEYS.CURRENCY, {
+  default: () => 'USD',
+  path: '/',
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+})
+const currency = computed(() => currencyCookie.value)
 
 // Fetch banners on SSR (locale-dependent only, no prices)
 const { data: bannersResponse } = await useAsyncData(
@@ -41,7 +50,7 @@ const banners = computed(() => bannersResponse.value?.data || [])
 
 // Fetch featured products and categories on SSR
 // Access store inside callbacks to ensure Pinia is initialized
-// Products have prices, so include currency in key and watch array
+// Uses currency computed backed by useCookie for SSR/client consistency
 const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
   () => `home-featured-products-${locale.value}-${currency.value}`,
   async () => {
@@ -55,7 +64,7 @@ const { data: featuredProducts, pending: productsLoading } = await useAsyncData(
 )
 
 // Categories don't have prices, but names are locale-dependent
-const { data: categories, refresh: refreshCategories } = await useAsyncData(
+const { data: categories } = await useAsyncData(
   () => `home-categories-${locale.value}`,
   async () => {
     const catalogStore = useCatalogStore()

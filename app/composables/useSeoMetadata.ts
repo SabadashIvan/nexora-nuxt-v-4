@@ -6,9 +6,9 @@ const DEFAULT_SEO: SeoMeta = {
   description: 'Your trusted e-commerce destination',
 }
 
-export async function fetchSeoMetadata(fullUrl: string): Promise<SeoMeta> {
-  const api = useApi()
+export async function fetchSeoMetadata(fullUrl: string, providedApi?: ReturnType<typeof useApi>): Promise<SeoMeta> {
   try {
+    const api = providedApi || useApi()
     const response = await api.get<{ data: SeoMeta }>('/site', { url: fullUrl })
     return response.data
   } catch (error) {
