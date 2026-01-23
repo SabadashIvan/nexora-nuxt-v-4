@@ -15,23 +15,23 @@ const route = useRoute()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
-// Use deferred store access for currency (SSR-safe)
-const currency = computed(() => {
-  if (import.meta.server) {
-    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-  }
-  try {
-    return useSystemStore().currentCurrency
-  } catch {
-    return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
-  }
-})
 
 // Get currency for cache key consistency between SSR and client
-// Use getToken for consistency with product page pattern
+// Prefer system store (SSR-hydrated), fallback to cookie token
 const getCurrencyForCacheKey = (): string => {
+  try {
+    const systemStore = useSystemStore()
+    if (systemStore.currentCurrency) {
+      return systemStore.currentCurrency
+    }
+  } catch {
+    // Store might not be available yet in some SSR edge cases
+  }
   return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
 }
+
+// Use deferred store access for currency (SSR-safe)
+const currency = computed(() => getCurrencyForCacheKey())
 
 // Helpers for reactive route access
 const categorySlug = computed(() => (route.params.category as string) || '')
