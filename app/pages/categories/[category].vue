@@ -4,7 +4,7 @@
  */
 import { useCatalogStore } from '~/stores/catalog.store'
 import { useSystemStore } from '~/stores/system.store'
-import { getToken, getTokenFromCookie, TOKEN_KEYS } from '~/utils/tokens'
+import { getToken, TOKEN_KEYS } from '~/utils/tokens'
 import { ERROR_CODES } from '~/utils/errors'
 import type { Category, ProductFilter, ProductListItem } from '~/types'
 import { toRaw } from 'vue'
@@ -27,10 +27,10 @@ const currency = computed(() => {
   }
 })
 
-// Get currency directly from cookie for cache key consistency between SSR and client
-// This ensures the cache key is always the same regardless of store initialization timing
+// Get currency for cache key consistency between SSR and client
+// Use getToken for consistency with product page pattern
 const getCurrencyForCacheKey = (): string => {
-  return getTokenFromCookie(TOKEN_KEYS.CURRENCY) || 'USD'
+  return getToken(TOKEN_KEYS.CURRENCY) || 'USD'
 }
 
 // Helpers for reactive route access
@@ -75,17 +75,32 @@ interface CategoryPageData {
   filters: ReturnType<typeof useCatalogStore>['filters']
 }
 
-const cacheKey = computed(() =>
-  buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey())
-)
+const payloadCategoryData = computed(() => {
+  const key = buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey())
+  const nuxtData = useNuxtData<CategoryPageData>(key)
+  console.log('Payload lookup:', { key, hasData: !!nuxtData.data.value, env: import.meta.server ? 'SSR' : 'CLIENT' })
+  return nuxtData.data.value
+})
 
-const payloadCategoryData = computed(() => useNuxtData<CategoryPageData>(cacheKey.value).data.value)
+// Debug: Log cache key components to identify SSR/client mismatch
+const debugCacheKey = () => {
+  const key = buildCategoryCacheKey(categorySlug.value, route.query, locale.value, getCurrencyForCacheKey())
+  console.log('Cache key debug:', {
+    env: import.meta.server ? 'SSR' : 'CLIENT',
+    key,
+    slug: categorySlug.value,
+    query: JSON.stringify(route.query),
+    locale: locale.value,
+    currency: getCurrencyForCacheKey(),
+  })
+  return key
+}
 
 // Fetch category and products with SSR data hydration
-// Use getCurrencyForCacheKey() for cache key to ensure SSR/client consistency
+// Use getter function for cache key to ensure SSR/client consistency (matching product page pattern)
 // Access store and api INSIDE the callback to preserve SSR context
 const { data: asyncCategoryData, pending, error, status, refresh } = await useAsyncData<CategoryPageData>(
-  cacheKey,
+  debugCacheKey,
   async () => {
     // Access store and api inside callback to preserve SSR context
     const api = useApi()
