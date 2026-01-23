@@ -8,18 +8,6 @@
 import { getActivePinia } from 'pinia'
 import { useAuthStore } from '~/stores/auth.store'
 
-// Routes that require authentication
-// Note: /checkout is NOT protected - guest checkout is allowed with X-Cart-Token
-const PROTECTED_ROUTES = [
-  '/profile',
-]
-
-// Routes only for guests (logged-out users)
-const GUEST_ONLY_ROUTES = [
-  '/auth/login',
-  '/auth/register',
-]
-
 export default defineNuxtRouteMiddleware(async (to) => {
   // Skip on server - session cookies are handled by browser
   if (import.meta.server) return
@@ -42,16 +30,16 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const isAuthenticated = authStore.isAuthenticated
 
-  // Check if route is protected
-  const isProtectedRoute = PROTECTED_ROUTES.some(route => to.path.startsWith(route))
-  
-  // Check if route is guest-only
-  const isGuestOnlyRoute = GUEST_ONLY_ROUTES.some(route => to.path.startsWith(route))
+  // Check route groups from (protected) and (guest) folders
+  const groups = to.meta.groups as string[] | undefined
+  const isProtectedRoute = groups?.includes('protected') ?? false
+  const isGuestOnlyRoute = groups?.includes('guest') ?? false
 
   // Redirect unauthenticated users from protected routes
   if (isProtectedRoute && !isAuthenticated) {
+    const localePath = useLocalePath()
     return navigateTo({
-      path: '/auth/login',
+      path: localePath('/auth/login'),
       query: { redirect: to.fullPath },
     })
   }

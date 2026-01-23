@@ -41,11 +41,11 @@ async function handleToggle(channelValue: number, groupValue: number) {
       >
         <ArrowLeft class="h-5 w-5" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Notification Preferences</h1>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $t('profile.notificationsPreferences.title') }}</h1>
     </div>
 
     <p class="text-gray-600 dark:text-gray-400 mb-6">
-      Choose how you want to receive notifications for different types of updates.
+      {{ $t('profile.notificationsPreferences.description') }}
     </p>
 
     <!-- Loading -->
@@ -66,8 +66,8 @@ async function handleToggle(channelValue: number, groupValue: number) {
     <!-- Empty state -->
     <UiEmptyState
       v-else-if="preferencesMatrix.length === 0"
-      title="No preferences available"
-      description="Notification preferences are not available at this time"
+      :title="$t('profile.notificationsPreferences.noPreferencesAvailable')"
+      :description="$t('profile.notificationsPreferences.notAvailable')"
       :icon="Bell"
     />
 
@@ -88,7 +88,7 @@ async function handleToggle(channelValue: number, groupValue: number) {
               v-if="!channel.contact_channel.is_linked"
               class="text-xs px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
             >
-              Not linked
+              {{ $t('profile.notificationsPreferences.notLinked') }}
             </span>
           </div>
         </div>

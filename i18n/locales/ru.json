@@ -1,6 +1,7 @@
 {
   "common": {
     "buttons": {
+      "loadMore": "Загрузить ещё",
       "addToCart": "Добавить в корзину",
       "remove": "Удалить",
       "submit": "Отправить",
@@ -57,6 +58,7 @@
     "itemsInCart": "товаров в корзине, просмотреть корзину",
     "viewWishlist": "избранное, просмотреть список желаний",
     "viewComparison": "сравнение, просмотреть сравнение",
+    "viewNotifications": "Просмотреть уведомления",
     "search": "Поиск",
     "closeSearch": "Закрыть поиск",
     "quickSearch": "Быстрый поиск",
@@ -308,6 +310,142 @@
       "daysAgo": "{count} дн назад",
       "cancel": "Отмена",
       "reply": "Ответить"
+    }
+  },
+  "profile": {
+    "nav": {
+      "dashboard": "Главная",
+      "myOrders": "Мои заказы",
+      "loyaltyPoints": "Бонусы",
+      "notifications": "Уведомления",
+      "addresses": "Адреса",
+      "settings": "Настройки"
+    },
+    "index": {
+      "welcomeBack": "С возвращением, {name}!",
+      "manageAccount": "Управляйте аккаунтом, заказами и настройками.",
+      "myOrders": "Мои заказы",
+      "viewOrderHistory": "История заказов",
+      "viewAll": "Смотреть все",
+      "orderNumber": "Заказ №{number}",
+      "items": "{count} товаров",
+      "noOrdersYet": "Заказов пока нет",
+      "startShoppingHere": "Начните покупки, чтобы здесь появились заказы",
+      "browseProducts": "Каталог товаров",
+      "manageAddresses": "Управление адресами",
+      "savedItems": "Сохранённые товары",
+      "accountSettings": "Настройки аккаунта",
+      "recentOrders": "Последние заказы"
+    },
+    "addresses": {
+      "title": "Мои адреса",
+      "addAddress": "Добавить адрес",
+      "noAddressesSaved": "Нет сохранённых адресов",
+      "addAddressForCheckout": "Добавьте адрес для быстрого оформления"
+    },
+    "loyalty": {
+      "title": "Бонусные баллы",
+      "howItWorks": "Как это работает",
+      "step1": "Получайте баллы за каждую покупку",
+      "step2": "Баллы становятся доступны после доставки заказа",
+      "step3": "Используйте баллы для скидок на следующие заказы"
+    },
+    "loyaltyBalance": {
+      "availableBalance": "Доступный баланс",
+      "pending": "ожидают",
+      "expiringSoon": "{count} операций истекает скоро",
+      "noLoyaltyAccount": "Бонусный счёт не найден"
+    },
+    "loyaltyHistory": {
+      "title": "История операций",
+      "noTransactionsYet": "Операций пока нет",
+      "expired": "Истекло",
+      "expires": "Истекает {date}"
+    },
+    "notifications": {
+      "title": "Уведомления",
+      "preferences": "Настройки",
+      "all": "Все",
+      "unread": "Непрочитанные",
+      "archived": "В архиве",
+      "markAllAsRead": "Прочитать все",
+      "noUnread": "Нет непрочитанных уведомлений",
+      "noArchived": "Нет архивных уведомлений",
+      "noNotifications": "Нет уведомлений",
+      "emptyUnreadDesc": "Вы прочитали все уведомления",
+      "emptyArchivedDesc": "Вы не архивировали ни одного уведомления",
+      "emptyAllDesc": "У вас пока нет уведомлений",
+      "markAsRead": "Прочитать",
+      "archive": "В архив",
+      "restore": "Восстановить"
+    },
+    "notificationsPreferences": {
+      "title": "Настройки уведомлений",
+      "description": "Выберите, как вы хотите получать уведомления о разных типах обновлений.",
+      "noPreferencesAvailable": "Настройки недоступны",
+      "notAvailable": "Настройки уведомлений пока недоступны",
+      "notLinked": "Не подключено"
+    },
+    "orders": {
+      "title": "Мои заказы",
+      "filter": "Фильтр:",
+      "clear": "Сбросить",
+      "placedOn": "Оформлен {date}",
+      "viewDetails": "Подробнее",
+      "items": "{count} товаров",
+      "more": "+{count} ещё",
+      "noOrdersYet": "Заказов пока нет",
+      "emptyDescription": "Когда вы оформите заказ, он появится здесь",
+      "startShopping": "Начать покупки"
+    },
+    "order": {
+      "backToOrders": "Назад к заказам",
+      "orderItems": "Товары в заказе",
+      "sku": "Артикул: {sku}",
+      "qty": "Кол-во: {count}",
+      "shippingAddress": "Адрес доставки",
+      "shippingMethod": "Способ доставки",
+      "paymentMethod": "Способ оплаты",
+      "orderSummary": "Итоги заказа",
+      "subtotal": "Промежуточный итог",
+      "shipping": "Доставка",
+      "discounts": "Скидки",
+      "total": "Итого",
+      "free": "Бесплатно",
+      "onlinePayment": "Оплата онлайн",
+      "payOnDelivery": "Оплата при получении",
+      "estDaysDelivery": "Примерно {days} дн. доставки",
+      "orderNotFound": "Заказ не найден",
+      "orderNotFoundDesc": "Запрошенный заказ не существует"
+    },
+    "settings": {
+      "contactChannels": "Каналы связи",
+      "contactChannelsDescription": "Подключите Telegram и телефон для уведомлений о заказах.",
+      "telegramDescription": "Получайте уведомления о заказах в Telegram.",
+      "linkTelegram": "Подключить Telegram",
+      "telegramDeeplinkInfo": "Откройте нашего бота в Telegram, чтобы связать аккаунт.",
+      "openTelegram": "Открыть Telegram",
+      "telegramUnlinkSuccess": "Telegram успешно отключён",
+      "phoneChannel": "Телефон",
+      "phoneDescription": "Добавьте номер телефона для SMS-уведомлений.",
+      "phonePlaceholder": "+380501234567",
+      "linkPhone": "Подключить телефон",
+      "phoneLinkSuccess": "Телефон успешно подключён",
+      "phoneUnlinkSuccess": "Телефон успешно отключён",
+      "changePassword": "Изменить пароль",
+      "changePasswordDescription": "Выберите надёжный пароль для защиты аккаунта.",
+      "passwordChangeEmailSent": "Если такой email существует, мы отправили ссылку для смены пароля.",
+      "currentPassword": "Текущий пароль",
+      "newPassword": "Новый пароль",
+      "passwordMinLength": "Минимум 8 символов",
+      "confirmNewPassword": "Подтвердите новый пароль",
+      "changePasswordButton": "Изменить пароль",
+      "changeEmail": "Изменить email",
+      "changeEmailDescription": "Обновите адрес электронной почты вашего аккаунта.",
+      "currentEmail": "Текущий email",
+      "emailChangeEmailSent": "Мы отправили ссылку для подтверждения на ваш новый email.",
+      "newEmail": "Новый email",
+      "changeEmailButton": "Изменить email"
     }
   },
   "favorites": {

@@ -55,7 +55,7 @@ const isArchiveFilter = computed(() => props.filter === 'archived')
         v-if="isUnread"
         type="button"
         class="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
-        :title="$t('notifications.markAsRead')"
+        :title="$t('profile.notifications.markAsRead')"
         @click="emit('markRead', notification.id)"
       >
         <Check class="h-5 w-5" />
@@ -66,7 +66,7 @@ const isArchiveFilter = computed(() => props.filter === 'archived')
         v-if="!isArchiveFilter"
         type="button"
         class="p-2 text-gray-400 hover:text-amber-500 transition-colors"
-        :title="$t('notifications.archive')"
+        :title="$t('profile.notifications.archive')"
         @click="emit('archive', notification.id)"
       >
         <Archive class="h-5 w-5" />
@@ -77,7 +77,7 @@ const isArchiveFilter = computed(() => props.filter === 'archived')
         v-if="isArchiveFilter"
         type="button"
         class="p-2 text-gray-400 hover:text-green-500 transition-colors"
-        :title="$t('notifications.restore')"
+        :title="$t('profile.notifications.restore')"
         @click="emit('restore', notification.id)"
       >
         <RotateCcw class="h-5 w-5" />
