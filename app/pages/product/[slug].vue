@@ -21,6 +21,11 @@ const localePath = useLocalePath()
 // Get locale and currency for cache key
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
+const { t } = i18n
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
 
 // Use useCookie for SSR/client consistent currency reading
 // This is critical for cache key consistency - useCookie handles hydration correctly
@@ -397,8 +402,14 @@ async function addToCart() {
   
   isAddingToCart.value = true
   const cartStore = useCartStore()
-  await cartStore.addItem(currentVariant.value.id, quantity.value)
+  const success = await cartStore.addItem(currentVariant.value.id, quantity.value)
   isAddingToCart.value = false
+  
+  if (success) {
+    $toast.success(t('cart.itemAdded') || 'Item added to cart')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 async function toggleFavorite() {

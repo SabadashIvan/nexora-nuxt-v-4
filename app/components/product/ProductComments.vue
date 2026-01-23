@@ -4,9 +4,16 @@
  * Main component for displaying and managing product comments
  * CSR-only: loads comments on client mount
  */
-import { MessageSquare, LogIn, ChevronDown, CheckCircle } from 'lucide-vue-next'
+import { MessageSquare, LogIn, ChevronDown } from 'lucide-vue-next'
 import { useCommentsStore } from '~/stores/comments.store'
 import { useAuthStore } from '~/stores/auth.store'
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
 
 const props = defineProps<{
   /** Product ID (NOT variant ID) to fetch comments for */
@@ -21,7 +28,6 @@ const router = useRouter()
 const localePath = useLocalePath()
 
 const isInitialized = ref(false)
-const showSuccessMessage = ref(false)
 
 // Computed
 const comments = computed(() => commentsStore.comments)
@@ -73,14 +79,12 @@ async function handleCommentSubmit(text: string, parentId?: number | null) {
   })
   
   if (comment) {
-    // Show success message (comment is on moderation)
-    showSuccessMessage.value = true
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      showSuccessMessage.value = false
-    }, 5000)
+    // Show success toast (comment is on moderation)
+    $toast.success(t('product.comments.submittedSuccess'), {
+      description: t('product.comments.moderationMessage'),
+    })
   } else if (commentsStore.error) {
-    // Error is handled by store
+    // Error is handled by toast watcher
     console.error('Failed to create comment:', commentsStore.error)
   }
 }
@@ -88,6 +92,13 @@ async function handleCommentSubmit(text: string, parentId?: number | null) {
 function goToLogin() {
   router.push(localePath('/auth/login'))
 }
+
+// Watch for error messages and show toast
+watch(error, (newError) => {
+  if (newError && isSubmitting.value === false) {
+    $toast.error(newError)
+  }
+})
 </script>
 
 <template>
@@ -122,26 +133,6 @@ function goToLogin() {
               @submit="handleCommentSubmit"
             />
           </div>
-        </div>
-
-        <!-- Success message -->
-        <div 
-          v-if="showSuccessMessage" 
-          class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2"
-        >
-          <CheckCircle class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p class="text-sm font-medium text-green-800">{{ $t('product.comments.submittedSuccess') }}</p>
-            <p class="text-xs text-green-600 mt-1">{{ $t('product.comments.moderationMessage') }}</p>
-          </div>
-        </div>
-
-        <!-- Submission error -->
-        <div 
-          v-if="error && isSubmitting === false && !showSuccessMessage" 
-          class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
-        >
-          <p class="text-sm text-red-600">{{ error }}</p>
         </div>
       </div>
 

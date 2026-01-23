@@ -8,6 +8,13 @@ import type { CartItem, CartWarning } from '~/types'
 import { useCartStore } from '~/stores/cart.store'
 import { formatPrice as formatPriceUtil } from '~/types/cart'
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
+
 interface Props {
   item: CartItem
   /** Optional warning for this item (e.g., stock issue) */
@@ -60,14 +67,26 @@ async function updateQuantity(newQty: number) {
   if (newQty === props.item.qty || newQty < 1) return
   
   isUpdating.value = true
-  await cartStore.updateItemQuantity(props.item.id, newQty)
+  const success = await cartStore.updateItemQuantity(props.item.id, newQty)
   isUpdating.value = false
+  
+  if (success) {
+    $toast.success(t('cart.quantityUpdated') || 'Quantity updated')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 async function removeItem() {
   isRemoving.value = true
-  await cartStore.removeItem(props.item.id)
+  const success = await cartStore.removeItem(props.item.id)
   isRemoving.value = false
+  
+  if (success) {
+    $toast.success(t('cart.itemRemoved') || 'Item removed from cart')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 // Debounced quantity update

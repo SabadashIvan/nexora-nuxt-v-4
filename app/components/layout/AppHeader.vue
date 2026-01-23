@@ -43,6 +43,9 @@ const isCatalogMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 const activeMenuId = ref<number | null>(null)
 const mobileSearchRef = ref<LiveSearchInstance | null>(null)
+// Defer fill-current for favorites/comparison icons until after mount to avoid hydration
+// mismatch: those counts come from CSR-only stores and can differ between server and client.
+const isMounted = ref(false)
 
 // Get search data from mobile search component
 const mobileSearchResults = computed(() => mobileSearchRef.value?.searchResults || null)
@@ -220,6 +223,7 @@ function getActiveMenuItem(): MenuItem | undefined {
 
 // Close menu on click outside
 onMounted(() => {
+  isMounted.value = true
   if (import.meta.client) {
     document.addEventListener('click', (e) => {
       const target = e.target as HTMLElement
@@ -398,7 +402,7 @@ onMounted(async () => {
               <NuxtLink :to="localePath('/favorites')" class="group -m-2 flex items-center p-2">
                 <Heart
                   class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
-                  :class="{ 'fill-current': favoritesCount > 0 }"
+                  :class="{ 'fill-current': isMounted && favoritesCount > 0 }"
                 />
                 <span class="sr-only">{{ $t('navigation.viewWishlist') }}</span>
               </NuxtLink>
@@ -407,7 +411,7 @@ onMounted(async () => {
               <NuxtLink :to="localePath('/comparison')" class="group -m-2 flex items-center p-2">
                 <GitCompare
                   class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500"
-                  :class="{ 'fill-current': comparisonCount > 0 }"
+                  :class="{ 'fill-current': isMounted && comparisonCount > 0 }"
                 />
                 <span class="sr-only">{{ $t('navigation.viewComparison') }}</span>
               </NuxtLink>
@@ -415,7 +419,7 @@ onMounted(async () => {
               <!-- Cart -->
               <NuxtLink :to="localePath('/cart')" class="group -m-2 flex items-center p-2 relative">
                 <ShoppingCart class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500" />
-                <span v-if="cartItemCount > 0" class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-medium text-white">
+                <span v-if="isMounted && cartItemCount > 0" class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-medium text-white">
                   {{ cartItemCount > 99 ? '99+' : cartItemCount }}
                 </span>
                 <span class="sr-only">{{ $t('navigation.itemsInCart') }}</span>
@@ -429,7 +433,7 @@ onMounted(async () => {
               >
                 <Bell class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500" />
                 <span
-                  v-if="unreadNotificationCount > 0"
+                  v-if="isMounted && unreadNotificationCount > 0"
                   class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs font-medium text-white"
                 >
                   {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}

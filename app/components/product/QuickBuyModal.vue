@@ -4,9 +4,16 @@
  * Modal form for quick buy/callback requests
  * Uses leads store for submission
  */
-import { X, Phone, Loader2, CheckCircle, AlertCircle } from 'lucide-vue-next'
+import { X, Phone, Loader2 } from 'lucide-vue-next'
 import { useLeadsStore } from '~/stores/leads.store'
 import { useSystemStore } from '~/stores/system.store'
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
 
 interface ProductInfo {
   variantId: number
@@ -119,6 +126,38 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   document.body.style.overflow = ''
 })
+
+// Watch for success messages and show toast
+watch(success, (newSuccess) => {
+  if (newSuccess) {
+    $toast.success(t('product.quickBuy.success'))
+  }
+})
+
+// Watch for error messages and show toast
+watch([error, retryAfter], ([newError, newRetryAfter]) => {
+  if (newError && !newRetryAfter) {
+    $toast.error(newError)
+  }
+})
+
+// Track if rate limit toast was shown
+const rateLimitToastShown = ref(false)
+
+// Watch for rate limit errors and show toast (only once)
+watch(retryAfter, (newRetryAfter) => {
+  if (newRetryAfter && newRetryAfter > 0 && !rateLimitToastShown.value) {
+    rateLimitToastShown.value = true
+    $toast.error(
+      `${t('product.quickBuy.retryAfter', { seconds: newRetryAfter })}`,
+      {
+        duration: newRetryAfter * 1000, // Show for the duration of the rate limit
+      }
+    )
+  } else if (!newRetryAfter || newRetryAfter === 0) {
+    rateLimitToastShown.value = false
+  }
+})
 </script>
 
 <template>
@@ -182,32 +221,6 @@ onUnmounted(() => {
                   </p>
                   <p v-if="product.price" class="mt-1 text-sm text-indigo-600 font-semibold">
                     {{ product.price }}
-                  </p>
-                </div>
-
-                <!-- Success Message -->
-                <div v-if="success" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div class="flex items-center gap-2">
-                    <CheckCircle class="h-5 w-5 text-green-600" />
-                    <p class="text-sm font-medium text-green-800">
-                      {{ $t('product.quickBuy.success') }}
-                    </p>
-                  </div>
-                  <p class="mt-1 text-sm text-green-700">
-                    {{ $t('product.quickBuy.successMessage') }}
-                  </p>
-                </div>
-
-                <!-- Error Message -->
-                <div v-else-if="error" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div class="flex items-center gap-2">
-                    <AlertCircle class="h-5 w-5 text-red-600" />
-                    <p class="text-sm font-medium text-red-800">
-                      {{ error }}
-                    </p>
-                  </div>
-                  <p v-if="isRateLimited && retryAfter" class="mt-1 text-sm text-red-700">
-                    {{ $t('product.quickBuy.retryAfter', { seconds: retryAfter }) }}
                   </p>
                 </div>
 

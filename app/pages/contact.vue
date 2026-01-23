@@ -17,6 +17,13 @@ useHead({
 // Store access (safe for CSR)
 const supportStore = useSupportStore()
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
+
 // Fetch request types on mount
 onMounted(async () => {
   if (supportStore.requestTypes.length === 0) {
@@ -129,6 +136,38 @@ watch(storeRetryAfter, (newVal) => {
   }
 })
 
+// Watch for success messages and show toast
+watch([storeSuccess, storeMessage], ([success, message]) => {
+  if (success && message) {
+    $toast.success(message)
+  }
+})
+
+// Watch for error messages and show toast
+watch([storeError, storeRetryAfter], ([error, retryAfter]) => {
+  if (error && !retryAfter) {
+    $toast.error(error)
+  }
+})
+
+// Track if rate limit toast was shown
+const rateLimitToastShown = ref(false)
+
+// Watch for rate limit errors and show toast (only once)
+watch(storeRetryAfter, (retryAfter) => {
+  if (retryAfter && retryAfter > 0 && !rateLimitToastShown.value) {
+    rateLimitToastShown.value = true
+    $toast.error(
+      `${t('contact.errors.rateLimit')} ${t('contact.errors.tryAgain')} ${retryAfter} ${retryAfter === 1 ? t('contact.errors.second') : t('contact.errors.seconds')}.`,
+      {
+        duration: retryAfter * 1000, // Show for the duration of the rate limit
+      }
+    )
+  } else if (!retryAfter || retryAfter === 0) {
+    rateLimitToastShown.value = false
+  }
+})
+
 // Get field error
 function getFieldError(field: keyof SupportRequestPayload): string | undefined {
   return storeFieldErrors.value[field]
@@ -199,37 +238,6 @@ async function handleSubmit() {
 
           <!-- Form -->
           <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
-        <!-- Success message -->
-        <div 
-          v-if="storeSuccess && storeMessage"
-          class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-        >
-          <p class="text-sm text-green-700 dark:text-green-400">{{ storeMessage }}</p>
-        </div>
-
-        <!-- General error message -->
-        <div 
-          v-if="storeError && !storeRetryAfter"
-          class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-        >
-          <p class="text-sm text-red-700 dark:text-red-400">{{ storeError }}</p>
-        </div>
-
-        <!-- Rate limit error with countdown -->
-        <div 
-          v-if="storeRetryAfter && retryCountdown !== null"
-          class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
-        >
-          <p class="text-sm text-yellow-700 dark:text-yellow-400 font-semibold mb-1">
-            {{ $t('contact.errors.rateLimit') }}
-          </p>
-          <p class="text-sm text-yellow-600 dark:text-yellow-500">
-            {{ $t('contact.errors.tryAgain') }} 
-            <span class="font-mono font-bold">{{ retryCountdown }}</span>
-            {{ retryCountdown === 1 ? $t('contact.errors.second') : $t('contact.errors.seconds') }}.
-          </p>
-        </div>
-
         <form class="space-y-5" @submit.prevent="handleSubmit">
           <!-- Name -->
           <div>
