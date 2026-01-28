@@ -2,7 +2,7 @@
 /**
  * Live search component with autocomplete suggestions
  */
-import { Search, X, Loader2 } from 'lucide-vue-next'
+import { Search, X, Loader2, Clock } from 'lucide-vue-next'
 import type { SearchSuggestResponse, ProductListItem } from '~/types'
 import { getImageUrl } from '~/utils'
 
@@ -69,11 +69,12 @@ onUnmounted(() => {
 function handleKeydown(event: KeyboardEvent) {
   if (!isOpen.value || !searchResults.value?.data) return
 
+  const history = searchResults.value.data.history || []
   const variants = searchResults.value.data.variants || []
   const suggestions = searchResults.value.data.suggestions || []
   const brands = searchResults.value.data.brands || []
   const categories = searchResults.value.data.categories || []
-  const totalItems = variants.length + suggestions.length + brands.length + categories.length
+  const totalItems = history.length + variants.length + suggestions.length + brands.length + categories.length
 
   if (event.key === 'ArrowDown') {
     event.preventDefault()
@@ -125,7 +126,29 @@ async function performSearch(query: string) {
       )
     )
 
-    searchResults.value = response
+    // Handle both wrapped and direct response structures
+    // API might return { data: {...} } or direct { query, history, ... }
+    if (response && 'data' in response && response.data) {
+      // Response is already wrapped: { data: { query, history, ... } }
+      searchResults.value = response as SearchSuggestResponse
+    } else if (response && 'query' in response) {
+      // Response is direct: { query, history, ... } - wrap it
+      searchResults.value = { data: response as SearchSuggestData }
+    } else {
+      // Fallback: use response as-is
+      searchResults.value = response as SearchSuggestResponse
+    }
+
+    // Debug: log history to help troubleshoot
+    if (import.meta.dev && searchResults.value?.data) {
+      console.log('Search results:', {
+        hasHistory: !!searchResults.value.data.history,
+        historyLength: searchResults.value.data.history?.length || 0,
+        history: searchResults.value.data.history,
+        hasVariants: !!searchResults.value.data.variants,
+        variantsLength: searchResults.value.data.variants?.length || 0,
+      })
+    }
   } catch (error: unknown) {
     // Silently handle API errors (422, etc.) - don't show to user
     // This can happen if API doesn't support suggest endpoint or has validation errors
@@ -143,30 +166,48 @@ async function performSearch(query: string) {
 function handleSelect(index: number) {
   if (!searchResults.value?.data) return
 
+  const history = searchResults.value.data.history || []
   const variants = searchResults.value.data.variants || []
   const suggestions = searchResults.value.data.suggestions || []
   const brands = searchResults.value.data.brands || []
   const categories = searchResults.value.data.categories || []
 
-  if (index < variants.length) {
+  if (index < history.length) {
+    // Selected a history item
+    const historyItem = history[index]
+    if (historyItem) {
+      searchQuery.value = historyItem
+      emit('select', historyItem)
+      navigateTo({
+        path: localePath('/categories'),
+        query: { q: historyItem, raw_suggest: historyItem },
+      })
+      closeSearch()
+    }
+  } else if (index < history.length + variants.length) {
     // Selected a variant
-    const variant = variants[index]
+    const variantIndex = index - history.length
+    const variant = variants[variantIndex]
     if (variant) {
       navigateTo(localePath(`/product/${variant.slug}`))
       closeSearch()
     }
-  } else if (index < variants.length + suggestions.length) {
+  } else if (index < history.length + variants.length + suggestions.length) {
     // Selected a suggestion
-    const suggestionIndex = index - variants.length
+    const suggestionIndex = index - history.length - variants.length
     const suggestion = suggestions[suggestionIndex]
     if (suggestion) {
       searchQuery.value = suggestion.text
       emit('select', suggestion.text)
+      navigateTo({
+        path: localePath('/categories'),
+        query: { q: suggestion.text, raw_suggest: suggestion.text },
+      })
       closeSearch()
     }
-  } else if (index < variants.length + suggestions.length + categories.length) {
+  } else if (index < history.length + variants.length + suggestions.length + categories.length) {
     // Selected a category
-    const categoryIndex = index - variants.length - suggestions.length
+    const categoryIndex = index - history.length - variants.length - suggestions.length
     const category = categories[categoryIndex]
     if (category) {
       navigateTo(category.slug ? localePath(`/categories/${category.slug}`) : localePath('/categories'))
@@ -174,7 +215,7 @@ function handleSelect(index: number) {
     }
   } else {
     // Selected a brand
-    const brandIndex = index - variants.length - suggestions.length - categories.length
+    const brandIndex = index - history.length - variants.length - suggestions.length - categories.length
     const brand = brands[brandIndex]
     if (brand) {
       navigateTo(brand.slug ? localePath(`/categories?brands=${brand.slug}`) : localePath('/categories'))
@@ -189,7 +230,7 @@ function handleSubmit() {
     emit('select', searchQuery.value.trim())
     navigateTo({
       path: localePath('/categories'),
-      query: { search: searchQuery.value.trim() },
+      query: { q: searchQuery.value.trim() },
     })
     closeSearch()
   }
@@ -273,8 +314,28 @@ defineExpose({
 
         <!-- Results -->
         <div v-else-if="searchResults?.data">
+          <!-- History -->
+          <div v-if="searchResults.data.history && Array.isArray(searchResults.data.history) && searchResults.data.history.length > 0" class="py-2">
+            <div class="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Recent Searches
+            </div>
+            <button
+              v-for="(historyItem, index) in searchResults.data.history"
+              :key="index"
+              type="button"
+              class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              :class="{
+                'bg-gray-100 dark:bg-gray-700': selectedIndex === index
+              }"
+              @click="handleSelect(index)"
+            >
+              <Clock class="inline-block h-4 w-4 mr-2 text-gray-400" />
+              <span class="font-medium">{{ historyItem }}</span>
+            </button>
+          </div>
+
           <!-- Variants -->
-          <div v-if="searchResults.data.variants && searchResults.data.variants.length > 0" class="py-2">
+          <div v-if="searchResults.data.variants && searchResults.data.variants.length > 0" class="py-2" :class="{ 'border-t border-gray-200 dark:border-gray-700': searchResults.data.history && searchResults.data.history.length > 0 }">
             <div class="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
               Products
             </div>
@@ -284,9 +345,9 @@ defineExpose({
               type="button"
               class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               :class="{
-                'bg-gray-100 dark:bg-gray-700': selectedIndex === index
+                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.history?.length || 0) + index
               }"
-              @click="handleSelect(index)"
+              @click="handleSelect((searchResults.data.history?.length || 0) + index)"
             >
               <!-- Product image -->
               <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
@@ -324,9 +385,9 @@ defineExpose({
               type="button"
               class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               :class="{
-                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.variants?.length || 0) + index
+                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.history?.length || 0) + (searchResults.data.variants?.length || 0) + index
               }"
-              @click="handleSelect((searchResults.data.variants?.length || 0) + index)"
+              @click="handleSelect((searchResults.data.history?.length || 0) + (searchResults.data.variants?.length || 0) + index)"
             >
               <Search class="inline-block h-4 w-4 mr-2 text-gray-400" />
               <span class="font-medium">{{ suggestion.text }}</span>
@@ -345,9 +406,9 @@ defineExpose({
               type="button"
               class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               :class="{
-                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + index
+                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.history?.length || 0) + (searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + index
               }"
-              @click="handleSelect((searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + index)"
+              @click="handleSelect((searchResults.data.history?.length || 0) + (searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + index)"
             >
               {{ category.title }} <span class="text-gray-400 dark:text-gray-500">({{ category.count }})</span>
             </button>
@@ -364,16 +425,16 @@ defineExpose({
               type="button"
               class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               :class="{
-                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + (searchResults.data.categories?.length || 0) + index
+                'bg-gray-100 dark:bg-gray-700': selectedIndex === (searchResults.data.history?.length || 0) + (searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + (searchResults.data.categories?.length || 0) + index
               }"
-              @click="handleSelect((searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + (searchResults.data.categories?.length || 0) + index)"
+              @click="handleSelect((searchResults.data.history?.length || 0) + (searchResults.data.variants?.length || 0) + (searchResults.data.suggestions?.length || 0) + (searchResults.data.categories?.length || 0) + index)"
             >
               {{ brand.title }} <span class="text-gray-400 dark:text-gray-500">({{ brand.count }})</span>
             </button>
           </div>
 
           <!-- No results -->
-          <div v-if="!searchResults.data.variants?.length && !searchResults.data.suggestions?.length && !searchResults.data.categories?.length && !searchResults.data.brands?.length" class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          <div v-if="!searchResults.data.history?.length && !searchResults.data.variants?.length && !searchResults.data.suggestions?.length && !searchResults.data.categories?.length && !searchResults.data.brands?.length" class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
             No results found
           </div>
         </div>

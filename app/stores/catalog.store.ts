@@ -287,9 +287,14 @@ export const useCatalogStore = defineStore('catalog', {
       // Build query parameters according to YAML API spec
       const queryParams: Record<string, string | number | string[] | undefined> = {
         page: mergedParams.page || this.pagination.page,
-        per_page: mergedParams.per_page || this.pagination.perPage,
+        per_page: mergedParams.per_page ?? 20, // Default to 20 if not explicitly provided
         sort: normalizedSort,
         include_facets: mergedParams.include_facets !== undefined ? mergedParams.include_facets : 1, // Default to 1
+      }
+
+      // Add raw_suggest if provided (confirmed search text from suggest/history selection)
+      if (mergedParams.raw_suggest) {
+        queryParams.raw_suggest = mergedParams.raw_suggest
       }
 
       // Add filter parameters with filters[] format
