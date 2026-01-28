@@ -99,7 +99,7 @@ watch(error, (newError) => {
 
       <!-- Form -->
       <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
-        <form v-if="status !== 'reset'" @submit.prevent="handleSubmit" class="space-y-5">
+        <form v-if="status !== 'reset'" class="space-y-5" @submit.prevent="handleSubmit">
           <!-- Password -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

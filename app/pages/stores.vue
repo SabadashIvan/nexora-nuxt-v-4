@@ -5,7 +5,7 @@
  * SSR enabled for SEO
  */
 import { MapPin, Phone, Clock, ExternalLink } from 'lucide-vue-next'
-import type { SiteLocation, LocationSchedule } from '~/types'
+import type { LocationSchedule } from '~/types'
 
 definePageMeta({
   layout: 'default',
@@ -39,7 +39,7 @@ function formatSchedule(schedule: LocationSchedule): { day: string; hours: strin
   return days
     .map(({ key, label }) => ({
       day: label,
-      hours: schedule[key as keyof LocationSchedule] || 'Closed',
+      hours: schedule[key as keyof LocationSchedule] ?? 'Closed',
     }))
     .filter(item => item.hours !== 'Closed' || true) // Show all days
 }
@@ -49,6 +49,13 @@ const today = computed(() => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
   return days[new Date().getDay()]
 })
+
+// Extract safe map URL from iframe HTML provided by backend
+function extractMapSrc(iframeHtml?: string | null): string {
+  if (!iframeHtml) return ''
+  const match = iframeHtml.match(/src="([^"]+)"/i)
+  return match?.[1] ?? ''
+}
 </script>
 
 <template>
@@ -165,11 +172,13 @@ const today = computed(() => {
               <ExternalLink class="h-3.5 w-3.5" />
             </a>
 
-            <!-- Map iframe -->
-            <div
+            <!-- Map iframe (rendered via extracted src to avoid v-html) -->
+            <iframe
               v-if="location.map_iframe"
               class="mt-6 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
-              v-html="location.map_iframe"
+              :src="extractMapSrc(location.map_iframe)"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
             />
           </div>
         </article>

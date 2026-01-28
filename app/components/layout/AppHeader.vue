@@ -309,8 +309,10 @@ onMounted(async () => {
           <!-- Language Switcher -->
           <UiLanguageSwitcher />
           
-          <!-- Currency Switcher -->
-          <UiCurrencySwitcher />
+          <!-- Currency Switcher (client-only to avoid SSR/client mismatch) -->
+          <ClientOnly>
+            <UiCurrencySwitcher />
+          </ClientOnly>
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '~/stores/auth.store'
@@ -97,7 +98,7 @@ describe('auth store', () => {
           },
         }),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       const result = await store.login({
@@ -130,8 +131,7 @@ describe('auth store', () => {
       
       const store = useAuthStore()
       const result = await store.register({
-        first_name: 'New',
-        last_name: 'User',
+        name: 'New User',
         email: 'new@example.com',
         password: 'password123',
         password_confirmation: 'password123',
@@ -147,7 +147,7 @@ describe('auth store', () => {
       const mockApi = {
         post: vi.fn().mockResolvedValue(undefined),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       store.user = {
@@ -176,7 +176,7 @@ describe('auth store', () => {
       const mockApi = {
         get: vi.fn().mockResolvedValue(mockUser),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       const result = await store.fetchUser()
@@ -192,7 +192,7 @@ describe('auth store', () => {
           message: 'Unauthorized',
         }),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       const result = await store.fetchUser()
@@ -207,7 +207,7 @@ describe('auth store', () => {
       const mockApi = {
         post: vi.fn().mockResolvedValue(undefined), // Returns 204
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       const result = await store.forgotPassword({
@@ -224,7 +224,7 @@ describe('auth store', () => {
       const mockApi = {
         post: vi.fn().mockResolvedValue(undefined), // Returns 204
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       const result = await store.resetPassword({
@@ -244,7 +244,7 @@ describe('auth store', () => {
       const mockApi = {
         get: vi.fn().mockResolvedValue(undefined),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       const result = await store.verifyEmail('user-id', 'hash')
@@ -273,7 +273,7 @@ describe('auth store', () => {
       const mockApi = {
         get: vi.fn().mockResolvedValue(mockAddresses),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       await store.fetchAddresses()
@@ -314,7 +314,7 @@ describe('auth store', () => {
       
       expect(result).toEqual(mockAddress)
       expect(store.addresses).toHaveLength(1)
-      expect(store.addresses[0].id).toBe(mockAddress.id)
+      expect(store.addresses[0]?.id).toBe(mockAddress.id)
     })
 
     it('should update address', async () => {
@@ -332,7 +332,7 @@ describe('auth store', () => {
       const mockApi = {
         put: vi.fn().mockResolvedValue(updatedAddress),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       store.addresses = [
@@ -353,14 +353,14 @@ describe('auth store', () => {
       })
       
       expect(result).toEqual(updatedAddress)
-      expect(store.addresses[0].first_name).toBe('Updated')
+      expect(store.addresses[0]?.first_name).toBe('Updated')
     })
 
     it('should delete address', async () => {
       const mockApi = {
         delete: vi.fn().mockResolvedValue(undefined),
       }
-      vi.mocked(useApi).mockReturnValue(mockApi)
+      vi.mocked(useApi).mockReturnValue(mockApi as any)
       
       const store = useAuthStore()
       store.addresses = [

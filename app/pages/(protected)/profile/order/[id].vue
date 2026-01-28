@@ -157,8 +157,8 @@ function getStatusVariant(status: string) {
               <p class="font-medium text-gray-900 dark:text-gray-100">
                 {{ order.shipping_method.name }}
               </p>
-              <p v-if="order.shipping_method.estimated_days" class="text-sm text-gray-500 dark:text-gray-400">
-                {{ $t('profile.order.estDaysDelivery', { days: order.shipping_method.estimated_days }) }}
+              <p v-if="order.shipping_method.eta" class="text-sm text-gray-500 dark:text-gray-400">
+                {{ order.shipping_method.eta }}
               </p>
             </div>
 

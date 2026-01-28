@@ -3,7 +3,7 @@
  * Loyalty points page
  * Shows balance and transaction history
  */
-import { Coins, RefreshCw } from 'lucide-vue-next'
+import { RefreshCw } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'profile',

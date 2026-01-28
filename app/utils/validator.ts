@@ -160,11 +160,11 @@ export function pattern(regex: RegExp, message = 'Invalid format'): ValidationRu
  */
 export function phone(message = 'Please enter a valid phone number'): ValidationRule {
   // Accepts various phone formats
-  const phoneRegex = /^[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$/
+  const phoneRegex = /^[+]?[(]?[0-9]{1,3}[)]?[-\s.]?[0-9]{1,4}[-\s.]?[0-9]{1,4}[-\s.]?[0-9]{1,9}$/
   return {
     validate: (value) => {
       if (!value || typeof value !== 'string') return true
-      const cleaned = value.replace(/[\s\-\(\)\.]/g, '')
+      const cleaned = value.replace(/[\s().-]/g, '')
       return phoneRegex.test(value) && cleaned.length >= 7 && cleaned.length <= 15
     },
     message,
@@ -179,7 +179,7 @@ export function postalCode(message = 'Please enter a valid postal code'): Valida
     validate: (value) => {
       if (!value || typeof value !== 'string') return true
       // Generic postal code validation (alphanumeric, 3-10 characters)
-      return /^[a-zA-Z0-9\s\-]{3,10}$/.test(value)
+      return /^[a-zA-Z0-9\s-]{3,10}$/.test(value)
     },
     message,
   }

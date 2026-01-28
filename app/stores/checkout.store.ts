@@ -11,13 +11,11 @@
 import { defineStore } from 'pinia'
 import type {
   CheckoutState,
-  CheckoutItem,
   CheckoutAddresses,
   CheckoutPricing,
   ShippingMethod,
   ShippingMethodsResponse,
   PaymentProvider,
-  CheckoutStatus,
   Address,
   StartCheckoutPayload,
   StartCheckoutResponse,
@@ -28,7 +26,7 @@ import type {
   PaymentInitPayload,
   PaymentInitResponse,
 } from '~/types'
-import { parseApiError, getErrorMessage, CHECKOUT_ERRORS } from '~/utils/errors'
+import { parseApiError, CHECKOUT_ERRORS } from '~/utils/errors'
 import { useCartStore } from '~/stores/cart.store'
 
 const initialAddresses: CheckoutAddresses = {

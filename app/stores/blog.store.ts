@@ -12,17 +12,12 @@ import type {
   BlogPostsParams,
   BlogPostsResponse,
   BlogPostResponse,
-  Pagination,
   ApiResponse,
 } from '~/types'
 import { getErrorMessage } from '~/utils/errors'
 
-interface BlogStoreState extends BlogState {
-  // Additional state if needed
-}
-
 export const useBlogStore = defineStore('blog', {
-  state: (): BlogStoreState => ({
+  state: (): BlogState => ({
     categories: [],
     posts: [],
     currentPost: null,

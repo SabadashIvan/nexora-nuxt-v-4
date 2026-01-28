@@ -2,7 +2,7 @@
  * Proxy for Laravel email verification endpoint
  * Routes: GET /verify-email/{id}/{hash}
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<unknown> => {
   const config = useRuntimeConfig()
   const backendUrl = config.apiBackendUrl || 'http://localhost:8000'
   
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     }
 
     setResponseStatus(event, response.status)
-    return response._data || {}
+    return (response as { _data?: unknown })._data || {}
   } catch (error: unknown) {
     const err = error as { status?: number; data?: unknown; statusMessage?: string }
     throw createError({

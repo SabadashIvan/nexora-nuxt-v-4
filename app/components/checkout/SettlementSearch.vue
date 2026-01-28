@@ -118,7 +118,7 @@ watch(
         class="w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
         @focus="onFocus"
         @blur="onBlur"
-      />
+      >
       <button
         v-if="modelValue"
         type="button"

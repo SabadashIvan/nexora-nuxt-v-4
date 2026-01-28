@@ -3,7 +3,7 @@
  */
 
 import type { Pagination } from './common'
-import { BlogSort } from './enums'
+import type { BlogSort } from './enums'
 
 export interface BlogCategory {
   id: number

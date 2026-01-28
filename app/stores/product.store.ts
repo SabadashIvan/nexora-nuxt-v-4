@@ -101,7 +101,7 @@ export const useProductStore = defineStore('product', {
         const currentAttributeValues = product.attribute_values || []
         
         return product.variant_options.axes.map(axis => {
-          const currentAttr = currentAttributeValues.find(av => av.attribute.code === axis.code)
+          const _currentAttr = currentAttributeValues.find(av => av.attribute.code === axis.code)
           
           return {
             code: axis.code,
@@ -205,7 +205,7 @@ export const useProductStore = defineStore('product', {
         } else if (product.attributes && product.attributes.length > 0) {
           product.attributes.forEach(attr => {
             // Legacy structure: attributes may have 'value' field
-            const attrValue = (attr as any).value || attr.code
+            const attrValue = (attr as { value?: string; code: string }).value || attr.code
             this.selectedOptions[attr.code] = attrValue
           })
         }
@@ -257,7 +257,7 @@ export const useProductStore = defineStore('product', {
         if (variant.attributes && variant.attributes.length > 0) {
           return variant.attributes.every(attr => {
             // Legacy structure may have 'value' field
-            const attrValue = (attr as any).value || attr.code
+            const attrValue = (attr as { value?: string; code: string }).value || attr.code
             return this.selectedOptions[attr.code] === attrValue
           })
         }
@@ -306,9 +306,9 @@ export const useProductStore = defineStore('product', {
 
       const optionValue = option.values.find(v => {
         // Legacy structure has 'value' field
-        return (v as any).value === value
+        return (v as { value?: string }).value === value
       })
-      return (optionValue as any)?.is_available ?? true
+      return (optionValue as { is_available?: boolean })?.is_available ?? true
     },
 
     /**
@@ -327,7 +327,7 @@ export const useProductStore = defineStore('product', {
         if (variant.attributes && variant.attributes.length > 0) {
           return variant.attributes.every(attr => {
             // Legacy structure may have 'value' field
-            const attrValue = (attr as any).value || attr.code
+            const attrValue = (attr as { value?: string; code: string }).value || attr.code
             return options[attr.code] === attrValue
           })
         }

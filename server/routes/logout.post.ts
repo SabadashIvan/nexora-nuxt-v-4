@@ -2,7 +2,7 @@
  * Proxy for Laravel Sanctum logout endpoint
  * Routes: POST /logout
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<unknown> => {
   const config = useRuntimeConfig()
   const backendUrl = config.apiBackendUrl || 'http://localhost:8000'
 
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const cookies = getHeader(event, 'cookie') || ''
 
   try {
-    const response = await $fetch.raw(`${backendUrl}/logout`, {
+    const response = await $fetch.raw<unknown>(`${backendUrl}/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
     }
 
     setResponseStatus(event, response.status)
-    return response._data || {}
+    return response._data ?? {}
   } catch (error: unknown) {
     const err = error as { status?: number; data?: unknown; statusMessage?: string }
     throw createError({

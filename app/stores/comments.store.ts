@@ -11,7 +11,6 @@ import type {
   CommentsParams,
   CommentsResponse,
   CreateCommentPayload,
-  Pagination,
 } from '~/types'
 import { parseApiError, getFieldErrors, getErrorMessage } from '~/utils/errors'
 

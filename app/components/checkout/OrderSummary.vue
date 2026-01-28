@@ -12,7 +12,7 @@ interface Props {
   payment?: PaymentProvider | null
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 </script>
 
 <template>
@@ -39,11 +39,11 @@ const props = defineProps<Props>()
             {{ item.name }}
           </h4>
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Qty: {{ item.quantity }}
+            Qty: {{ item.qty }}
           </p>
           <UiPrice 
-            :price="item.total" 
-            :currency="item.currency"
+            :price="item.line_total_minor / 100" 
+            :currency="pricing.currency"
             size="sm"
             :show-discount="false"
           />

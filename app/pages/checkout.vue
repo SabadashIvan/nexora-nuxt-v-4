@@ -54,7 +54,6 @@ const selectedSettlement = ref<Settlement | null>(null)
 const selectedWarehouse = ref<Warehouse | null>(null)
 
 // Computed
-const hasSession = computed(() => checkoutSession.hasSession.value)
 const items = computed(() => checkoutSession.items.value)
 const pricing = computed(() => checkoutSession.pricing.value)
 const shippingMethods = computed(() => checkoutDelivery.shippingMethods.value)
@@ -108,7 +107,7 @@ const canPlaceOrder = computed(() => {
 })
 
 // Debounce helper
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+function debounce<T extends (...args: unknown[]) => void>(fn: T, delay: number): T {
   let timeoutId: ReturnType<typeof setTimeout>
   return ((...args: Parameters<T>) => {
     clearTimeout(timeoutId)
@@ -595,9 +594,9 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
                   ]"
                 >
                   <input
+                    v-model="selectedShippingCode"
                     type="radio"
                     :value="method.code"
-                    v-model="selectedShippingCode"
                     class="text-indigo-600 focus:ring-indigo-500"
                     @change="selectShipping(method.code)"
                   >
@@ -686,9 +685,9 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
                   ]"
                 >
                   <input
+                    v-model="selectedPaymentCode"
                     type="radio"
                     :value="provider.code"
-                    v-model="selectedPaymentCode"
                     class="text-indigo-600 focus:ring-indigo-500"
                     @change="selectPayment(provider.code)"
                   >

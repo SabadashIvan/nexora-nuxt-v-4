@@ -61,7 +61,7 @@ async function switchLanguage(localeCode: string) {
   try {
     // Get the new path with locale prefix for current route
     // switchLocalePath(locale) automatically uses current route
-    const newPath = switchLocalePath(localeCode as 'ru' | 'en' | 'uk' | 'awa')
+    const newPath = switchLocalePath(localeCode as string)
     const currentPath = route.path
 
     // Update store first (updates state and cookie synchronously)
@@ -70,7 +70,7 @@ async function switchLanguage(localeCode: string) {
 
     // Update i18n locale
     if (i18n) {
-      await i18n.setLocale(localeCode as 'ru' | 'en' | 'uk' | 'awa')
+      await i18n.setLocale(localeCode as string)
     }
 
     // Navigate to new locale path if it changed

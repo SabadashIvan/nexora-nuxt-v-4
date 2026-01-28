@@ -59,7 +59,6 @@ const loading = computed(() => getLeadsStore().loading)
 const success = computed(() => getLeadsStore().success)
 const error = computed(() => getLeadsStore().error)
 const fieldErrors = computed(() => getLeadsStore().fieldErrors)
-const isRateLimited = computed(() => getLeadsStore().isRateLimited)
 const retryAfter = computed(() => getLeadsStore().retryAfter)
 
 // Methods

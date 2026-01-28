@@ -154,7 +154,7 @@ watch(error, (newError) => {
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               ]"
               :placeholder="$t('auth.changePassword.emailPlaceholder')"
-            />
+            >
             <p v-if="fieldErrors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">
               {{ fieldErrors.email }}
             </p>

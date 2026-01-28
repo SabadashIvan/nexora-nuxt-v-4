@@ -2,8 +2,9 @@
  * Checkout domain types
  */
 
-import type { CartItem, CartTotals } from './cart'
-import { CheckoutStatus, PaymentProviderType } from './enums'
+import type { CartItem } from './cart'
+import { CheckoutStatus } from './enums'
+import type { PaymentProviderType } from './enums'
 
 export interface Address {
   id?: number
@@ -77,9 +78,8 @@ export interface CheckoutPricing {
   currency: string
 }
 
-export interface CheckoutItem extends CartItem {
-  // Extended cart item for checkout context
-}
+// CheckoutItem is just CartItem - use CartItem directly
+export type CheckoutItem = CartItem
 
 export interface CheckoutSession {
   id: string
