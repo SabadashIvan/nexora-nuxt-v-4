@@ -832,12 +832,17 @@ export const useCartStore = defineStore('cart', {
       } catch (error) {
         const apiError = parseApiError(error)
 
-        // Handle 404 - cart doesn't exist or coupon not found, clear token
+        // Handle 404 - cart doesn't exist or coupon not found
         if (apiError.status === 404) {
-          this.cartToken = null
-          removeToken(TOKEN_KEYS.CART)
-          this.error = 'Cart not found or coupon does not exist'
-        } 
+          const existingToken = this.cartToken
+          await this.loadCart()
+
+          if (!this.cartToken && existingToken) {
+            this.error = 'Cart not found'
+          } else {
+            this.error = 'Coupon not found in cart'
+          }
+        }
         // Handle 409 - version mismatch (useApi should retry automatically, but log if it fails)
         else if (apiError.status === 409) {
           // Reload cart to get latest version and retry
