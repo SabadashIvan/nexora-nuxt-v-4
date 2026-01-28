@@ -99,6 +99,7 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
       price_min: query.price_min ? Number(query.price_min) : undefined,
       price_max: query.price_max ? Number(query.price_max) : undefined,
       attributes: query.attributes ? (query.attributes as string).split(',') : undefined,
+      raw_suggest: query.raw_suggest as string | undefined,
     }
     // Pass API instance to preserve context
     const cat = await catalogStore.fetchCategory(slug, false, api)
@@ -122,6 +123,11 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
           // Always filter by current category ID
           categories: String(cat.id),
         },
+      }
+
+      // Add raw_suggest if present (confirmed search from suggest/history)
+      if (filters.raw_suggest) {
+        filterParams.raw_suggest = filters.raw_suggest
       }
 
       // Add additional filters from URL params
@@ -371,6 +377,11 @@ function buildFilterQuery(filters: ProductFilter, currentCategoryId?: number, cu
   // Search
   if (filters.filters?.q) {
     query.q = filters.filters.q
+  }
+
+  // Preserve raw_suggest from current route if present (confirmed search from suggest/history)
+  if (filters.raw_suggest) {
+    query.raw_suggest = filters.raw_suggest
   }
 
   // Sort

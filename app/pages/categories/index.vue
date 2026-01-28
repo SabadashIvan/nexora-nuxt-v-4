@@ -57,12 +57,14 @@ const { data: productsData, pending, refresh, error: _error } = await useLazyAsy
       price_min: query.price_min ? Number(query.price_min) : undefined,
       price_max: query.price_max ? Number(query.price_max) : undefined,
       attributes: query.attributes ? (query.attributes as string).split(',') : undefined,
+      raw_suggest: query.raw_suggest as string | undefined,
     }
     
     // Build filters object from URL params only
     // On /categories page, we don't add categories filter unless explicitly in URL
     interface CatalogFiltersPayload {
       page: number
+      raw_suggest?: string
       filters?: {
         q?: string
         categories?: string
@@ -79,6 +81,11 @@ const { data: productsData, pending, refresh, error: _error } = await useLazyAsy
       // This ensures that when navigating from /categories/[category] to /categories/, 
       // old category filters are not preserved
       filters: {},
+    }
+
+    // Add raw_suggest if present (confirmed search from suggest/history)
+    if (initialFilters.raw_suggest) {
+      filters.raw_suggest = initialFilters.raw_suggest
     }
     
     // Only add filter values if they exist in URL
@@ -231,6 +238,11 @@ function buildFilterQuery(filters: ProductFilter, currentSorting?: string, curre
   // Search
   if (filters.filters?.q) {
     query.q = filters.filters.q
+  }
+
+  // Preserve raw_suggest from current route if present (confirmed search from suggest/history)
+  if (filters.raw_suggest) {
+    query.raw_suggest = filters.raw_suggest
   }
 
   // Sort

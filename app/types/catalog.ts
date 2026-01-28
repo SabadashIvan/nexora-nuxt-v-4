@@ -36,6 +36,7 @@ export interface ProductFilter {
   per_page?: number
   sort?: CatalogSort | string // Allow string for backward compatibility
   include_facets?: 0 | 1
+  raw_suggest?: string // Confirmed search text from suggest/history selection -> raw_suggest
   
   // Filter parameters (nested under filters.* prefix in query string)
   // These map to: filters.q, filters.price_min, filters.brands, etc.

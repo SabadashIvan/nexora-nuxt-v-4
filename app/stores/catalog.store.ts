@@ -292,6 +292,11 @@ export const useCatalogStore = defineStore('catalog', {
         include_facets: mergedParams.include_facets !== undefined ? mergedParams.include_facets : 1, // Default to 1
       }
 
+      // Add raw_suggest if provided (confirmed search text from suggest/history selection)
+      if (mergedParams.raw_suggest) {
+        queryParams.raw_suggest = mergedParams.raw_suggest
+      }
+
       // Add filter parameters with filters[] format
       if (mergedParams.filters) {
         if (mergedParams.filters.q) {
