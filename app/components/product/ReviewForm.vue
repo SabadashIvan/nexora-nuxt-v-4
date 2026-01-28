@@ -74,7 +74,7 @@ function handleKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6">
+  <form class="space-y-6" @submit.prevent="handleSubmit">
     <!-- Rating -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">

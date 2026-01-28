@@ -49,6 +49,7 @@ Current implementation status and planning:
 - **[operations/README.md](operations/README.md)** - Operations documentation index
 - **[operations/not-implemented.md](operations/not-implemented.md)** - Frontend integration roadmap
 - **[operations/frontend-todo.md](operations/frontend-todo.md)** - Quick actionable checklist
+- **[operations/backend-endpoints-delta.md](operations/backend-endpoints-delta.md)** - Backend endpoints delta (update/add/implement)
 - **[operations/ai-rules.md](operations/ai-rules.md)** - Operational rules for AI agents
 
 ### Reference

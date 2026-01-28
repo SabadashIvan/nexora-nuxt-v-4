@@ -91,9 +91,11 @@ Returns the current cart by token.
 ---
 
 ### 2. Get Cart Version
-`HEAD /api/v1/cart/v`
+`GET /api/v1/cart/v`
 
 Returns the current version of the cart **without full cart data**.
+
+**Note:** Backend YAML shows GET method. Verify with backend if HEAD is also supported.
 
 **Headers:**
 - `X-Cart-Token`: Cart token (required)
@@ -275,6 +277,8 @@ Used when a guest becomes authenticated. Merges guest cart with user cart.
 **Headers:**
 - `X-Cart-Token`: Guest cart token (required)
 - `Authorization`: Cookie-based authentication (required)
+
+**Note:** Verify with backend if this endpoint exists. If not, cart merging may happen automatically on login.
 
 ---
 

@@ -3,7 +3,8 @@
  */
 
 import type { ImageValue, Pagination } from './common'
-import { CatalogSort, FilterType } from './enums'
+import type { ProductImage, VariantOptions } from './product'
+import type { CatalogSort, FilterType } from './enums'
 
 export interface Category {
   id: number
@@ -81,27 +82,6 @@ export interface CatalogState {
   sorting: CatalogSort | string // Allow string for backward compatibility
   pagination: Pagination
   loading: boolean
-}
-
-export interface ProductImage {
-  id: number
-  url: string
-}
-
-export interface VariantOptionValue {
-  value_id: number
-  label: string
-  slug: string
-  is_in_stock: boolean
-}
-
-export interface VariantOptions {
-  axes: Array<{
-    attribute_id: number
-    code: string
-    title: string
-  }>
-  options: Record<string, VariantOptionValue[]>
 }
 
 export interface ProductPrice {

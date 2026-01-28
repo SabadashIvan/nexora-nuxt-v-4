@@ -196,7 +196,7 @@ function applyFilters() {
   emit('update:filters', filters)
 }
 
-function resetFilters() {
+function _resetFilters() {
   priceMin.value = undefined
   priceMax.value = undefined
   selectedCategories.value = []
@@ -204,14 +204,9 @@ function resetFilters() {
   selectedAttributes.value = {}
   emit('reset')
 }
-
+ 
 function toggleSection(section: string) {
   expandedSections.value[section] = !expandedSections.value[section]
-}
-
-// Render filter content (shared between mobile and desktop)
-function renderFilterContent() {
-  return null // Will be rendered in template
 }
 </script>
 

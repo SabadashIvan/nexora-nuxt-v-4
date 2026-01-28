@@ -43,8 +43,15 @@ Returns list of all available brands.
 
 ---
 
-## 3. Get Category by Slug
-`GET /api/v1/catalog/categories/{slug}`
+## 3. Get Category by ID or Slug
+`GET /api/v1/catalog/categories/{idOrSlug}`
+
+The `{idOrSlug}` parameter supports:
+- numeric category ID
+- string slug
+
+**Path parameters:**
+- `idOrSlug` (string | number): Category ID (number) or slug (string)
 
 **Query params:**
 - `withProducts` (optional): Include products in response
@@ -62,32 +69,6 @@ Returns list of all available brands.
 ```
 
 ---
-
-## 4. Get Product Listing
-`GET /api/v1/catalog/products`
-
-**Filters:**
-- `category` - Filter by category slug
-- `search` - Search query
-- `price[min]` - Minimum price
-- `price[max]` - Maximum price
-- `attributes[]` - Filter by attributes
-- `sort` - Sort order
-- `page` - Page number
-- `per_page` - Items per page
-
-**Response:**
-```json
-{
-  "data": [],
-  "meta": {
-    "current_page": 1,
-    "total": 100,
-    "last_page": 10
-  },
-  "filters": {}
-}
-```
 
 ---
 
@@ -112,7 +93,7 @@ Frontend must not assume slug-only resolution.
 
 ---
 
-## 6. List All Variants
+## 4. List All Variants
 `GET /api/v1/catalog/variants`
 
 **Query params:**
@@ -136,6 +117,47 @@ Frontend must not assume slug-only resolution.
   }
 }
 ```
+
+---
+
+## 6. Get Recommended Variants
+`GET /api/v1/catalog/recommendations/variants`
+
+Returns recommended product variants (e.g., "You may also like") based on a variant ID.
+
+**Query parameters:**
+- `variant_id` (required): Variant ID to get recommendations for
+- `limit` (optional): Number of recommendations to return. Default: 10
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1932,
+      "product_id": 646,
+      "sku": "SKU-3931-ECAL",
+      "slug": "iphone-15-pro-max",
+      "title": "iPhone 15 Pro Max",
+      "is_favorite": false,
+      "images": [],
+      "price": {
+        "currency": "USD",
+        "list_minor": "$232.25",
+        "sale_minor": "$0.00",
+        "effective_minor": "$232.25"
+      },
+      "is_in_stock": true,
+      "rating": {
+        "value": 4.5,
+        "count": 10
+      }
+    }
+  ]
+}
+```
+
+**Use case:** Display "You may also like" or "Recommended products" section on product detail pages.
 
 ---
 

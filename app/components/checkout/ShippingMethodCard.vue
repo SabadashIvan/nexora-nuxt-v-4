@@ -11,7 +11,7 @@ interface Props {
   selected: boolean
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const emit = defineEmits<{
   select: []
@@ -47,14 +47,11 @@ const emit = defineEmits<{
         <div class="flex items-center justify-between">
           <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ method.name }}</h4>
           <span class="font-semibold text-gray-900 dark:text-gray-100">
-            {{ method.price > 0 ? formatPrice(method.price, { currency: method.currency }) : 'Free' }}
+            {{ method.price_minor > 0 ? formatPrice(method.price_minor) : 'Free' }}
           </span>
         </div>
-        <p v-if="method.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {{ method.description }}
-        </p>
-        <p v-if="method.estimated_days" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Estimated delivery: {{ method.estimated_days }} days
+        <p v-if="method.eta" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {{ method.eta }}
         </p>
       </div>
 

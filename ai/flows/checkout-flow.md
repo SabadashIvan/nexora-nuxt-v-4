@@ -47,13 +47,14 @@ Checkout uses a **Single-Page Checkout (SPC)** model:
 
 1. High-Level Checkout Stages
 
-The checkout flow contains five strict sequential steps:
+The checkout flow contains six sequential steps (loyalty is optional):
 
 1. Start
 2. Address
 3. Shipping
 4. Payment
-5. Confirm
+5. Loyalty (optional, authenticated users only)
+6. Confirm
 
 All steps are rendered on a single page (`/checkout`) with dynamic UI state management.
 
@@ -65,6 +66,8 @@ Address	PUT /api/v1/checkout/{id}/address	PUT	Saves shipping & billing address
 Shipping Methods	GET /api/v1/shipping/methods	GET	Returns available shipping methods
 Shipping Selection	PUT /api/v1/checkout/{id}/shipping-method	PUT	Sets chosen shipping method
 Payment Provider	PUT /api/v1/checkout/{id}/payment-provider	PUT	Sets payment type
+Loyalty Points	POST /api/v1/checkout/{id}/loyalty	POST	Apply loyalty points (optional, authenticated only)
+Loyalty Points	DELETE /api/v1/checkout/{id}/loyalty	DELETE	Remove loyalty points (optional)
 Confirm	POST /api/v1/checkout/{id}/confirm	POST	Creates final order
 Payment Init	POST /api/v1/payments/init	POST	Initializes payment (after confirm)
 
@@ -106,7 +109,9 @@ Represents the entire state of the checkout.
     total: number
   },
   selectedShippingMethod: ShippingMethod | null,
-  selectedPaymentProvider: PaymentProvider | null
+  selectedPaymentProvider: PaymentProvider | null,
+  loyaltyPointsApplied: number | null,
+  availableLoyaltyPoints: number | null
 }
 
 3.2 Address Model
@@ -285,21 +290,66 @@ X-Cart-Token: <token>
 
 **On success:**
 - Update checkout state
-- Set current step to "confirm"
-- Display confirmation summary
-- Enable "Place Order" button
+- Set current step to "loyalty" (if user is authenticated) or "confirm"
+- Display loyalty points section (if authenticated) or confirmation summary
+- Enable "Place Order" button (if loyalty step skipped)
 
 **No redirect** — UI updates dynamically.
 
-4.5 Step 5 — Confirm
+4.5 Step 5 — Loyalty Points (Optional, Authenticated Users Only)
+
+**Prerequisites:**
+- User must be authenticated
+- User must have available loyalty points
+- Checkout session must be active
+
+**Steps:**
+1. Fetch available loyalty points:
+   - Get from loyalty store or user profile
+   - Display available points balance
+
+2. User can apply loyalty points:
+   - Input field to specify points to apply
+   - Button to apply points
+   - **POST** `/api/v1/checkout/{id}/loyalty`
+   
+   Body:
+   ```json
+   {
+     "points_minor": 100  // Points to apply in minor units (e.g., 100 = 1.00 points)
+   }
+   ```
+   
+   **Note:** Points are specified in minor units (e.g., 100 = 1.00 points). The system will validate that the amount doesn't exceed available points or checkout total.
+
+3. User can remove loyalty points:
+   - Button to remove applied points
+   - **DELETE** `/api/v1/checkout/{id}/loyalty`
+
+4. Pricing updates automatically with loyalty discount
+
+**On success:**
+- Update checkout state with loyalty points applied
+- Recalculate pricing (loyalty discount reflected in totals)
+- Set current step to "confirm"
+- Display confirmation summary with loyalty discount
+- Enable "Place Order" button
+
+**On skip (guest or no points):**
+- Automatically proceed to confirm step
+
+**No redirect** — UI updates dynamically.
+
+4.6 Step 6 — Confirm
 
 **Tasks:**
 - Show complete summary:
   - address
   - shipping
   - payment
+  - loyalty points (if applied)
   - items
-  - totals (items + shipping + discounts)
+  - totals (items + shipping + discounts - loyalty points)
 
 **Confirm call:**
 **POST** `/api/v1/checkout/{id}/confirm`
@@ -672,13 +722,16 @@ X-Cart-Token: <token>
 - `selectShippingMethod()` - Set shipping method
 - `loadPaymentProviders()` - Fetch available payment providers
 - `selectPaymentProvider()` - Set payment provider
+- `applyLoyaltyPoints(points: number)` - Apply loyalty points to checkout
+- `removeLoyaltyPoints()` - Remove applied loyalty points
 - `confirmOrder()` - Create order
 - `restartCheckout()` - Restart after cart changes
 
 **Getters:**
 - `canProceedToShipping()` - Validate address step
 - `canProceedToPayment()` - Validate shipping step
-- `canProceedToConfirm()` - Validate payment step
+- `canProceedToLoyalty()` - Validate payment step (authenticated users only)
+- `canProceedToConfirm()` - Validate loyalty step (or payment if loyalty skipped)
 - `canPlaceOrder()` - All steps complete
 
 12. Implementation Checklist

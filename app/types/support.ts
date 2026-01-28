@@ -3,7 +3,7 @@
  * API: /api/v1/customer-support/*
  */
 
-import { SupportRequestType } from './enums'
+import type { SupportRequestType } from './enums'
 
 /**
  * Payload for submitting a support request

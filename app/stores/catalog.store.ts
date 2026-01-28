@@ -28,6 +28,8 @@ interface CatalogState {
   sorting: SortOption
   pagination: Pagination
   brands: Brand[]
+  recommendedVariants: ProductListItem[]
+  recommendationsLoading: boolean
   loading: boolean
   error: string | null
   errorStatus: number | null
@@ -48,6 +50,8 @@ export const useCatalogStore = defineStore('catalog', {
       lastPage: 1,
     },
     brands: [],
+    recommendedVariants: [],
+    recommendationsLoading: false,
     loading: false,
     error: null,
     errorStatus: null,
@@ -454,9 +458,53 @@ export const useCatalogStore = defineStore('catalog', {
         lastPage: 1,
       }
       this.brands = []
+      this.recommendedVariants = []
+      this.recommendationsLoading = false
       this.loading = false
       this.error = null
       this.errorStatus = null
+    },
+
+    /**
+     * Fetch recommended variants for a product
+     * GET /api/v1/catalog/recommendations/variants?variant_id={id}
+     * @param variantId - The variant ID to get recommendations for
+     * @param limit - Optional limit for number of recommendations (default: 8)
+     */
+    async fetchRecommendedVariants(variantId: number, limit = 8): Promise<void> {
+      const api = useApi()
+      this.recommendationsLoading = true
+      this.error = null
+
+      try {
+        const response = await api.get<VariantsResponse | { data: ProductListItem[] }>(
+          '/catalog/recommendations/variants',
+          {
+            variant_id: variantId,
+            limit,
+          },
+          {
+            guest: true, // Include guest token for favorite flags
+          }
+        )
+
+        // Handle both wrapped and unwrapped response
+        if ('data' in response && Array.isArray(response.data)) {
+          this.recommendedVariants = response.data
+        } else if (Array.isArray(response)) {
+          this.recommendedVariants = response
+        } else if ('data' in response && Array.isArray((response as VariantsResponse).data)) {
+          this.recommendedVariants = (response as VariantsResponse).data
+        } else {
+          this.recommendedVariants = []
+        }
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        console.error('Fetch recommended variants error:', error)
+        this.recommendedVariants = []
+      } finally {
+        this.recommendationsLoading = false
+      }
     },
   },
 })

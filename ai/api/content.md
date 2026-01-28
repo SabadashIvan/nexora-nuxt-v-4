@@ -227,6 +227,54 @@ Created comment object (same structure as list response)
 
 ---
 
+### 4. Update Comment
+`PATCH /api/v1/comments/{id}`
+
+Updates an existing comment. Only the comment author can update their own comments.
+
+**Authentication:** Required (cookie-based)
+
+**Path parameters:**
+- `id` (integer): Comment ID
+
+**Body:**
+```json
+{
+  "text": "Updated comment text"  // Required: New comment text
+}
+```
+
+**Response:**
+Updated comment object (same structure as list response)
+
+**Error responses:**
+- `401`: Unauthenticated
+- `403`: Not authorized (not the comment author)
+- `404`: Comment not found
+- `422`: Validation error
+
+---
+
+### 5. Delete Comment
+`DELETE /api/v1/comments/{id}`
+
+Deletes an existing comment. Only the comment author can delete their own comments.
+
+**Authentication:** Required (cookie-based)
+
+**Path parameters:**
+- `id` (integer): Comment ID
+
+**Response:**
+- Status: 204 No Content
+
+**Error responses:**
+- `401`: Unauthenticated
+- `403`: Not authorized (not the comment author)
+- `404`: Comment not found
+
+---
+
 ## Reviews API
 
 Reviews system allows authenticated users to leave reviews for products.

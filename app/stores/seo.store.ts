@@ -83,7 +83,7 @@ export const useSeoStore = defineStore('seo', {
 
       const meta = this.current
       // Capture config at the start to preserve context
-      const nuxtApp = useNuxtApp()
+      const _nuxtApp = useNuxtApp()
       const config = useRuntimeConfig()
 
       // Build canonical URL - use provided canonical or build from current URL

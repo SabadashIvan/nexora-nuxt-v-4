@@ -364,9 +364,11 @@ async function handleLogout() {
                 <UiLanguageSwitcher />
               </div>
 
-              <!-- Currency Switcher -->
+              <!-- Currency Switcher (client-only to avoid SSR/client mismatch) -->
               <div class="border-t border-gray-200 px-4 py-6">
-                <UiCurrencySwitcher />
+                <ClientOnly>
+                  <UiCurrencySwitcher />
+                </ClientOnly>
               </div>
             </div>
           </Transition>

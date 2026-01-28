@@ -50,7 +50,7 @@ onMounted(() => {
       class="group inline-flex justify-center text-sm font-medium text-gray-700 hover:text-gray-900"
       @click="isOpen = !isOpen"
     >
-      Sort
+      {{ currentLabel }}
       <svg
         viewBox="0 0 20 20"
         fill="currentColor"

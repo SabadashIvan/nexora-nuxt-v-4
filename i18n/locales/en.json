@@ -116,7 +116,19 @@
   "contact": {
     "title": "Contact Us",
     "description": "Have a question or need help? We're here to assist you.",
+    "locations": {
+      "title": "Our Locations",
+      "workingHours": "Working Hours",
+      "address": "Address",
+      "phones": "Phones",
+      "viewOnMap": "View on Map",
+      "visitWebsite": "Visit Website",
+      "emptyTitle": "No locations available",
+      "emptyDescription": "We're working on adding our locations."
+    },
     "form": {
+      "title": "Do you have a question?",
+      "subtitle": "Write to us - we will tell you everything.",
       "fullName": "Full Name",
       "email": "Email Address",
       "phone": "Phone Number",
@@ -124,12 +136,14 @@
       "selectType": "Select type",
       "subject": "Subject",
       "message": "Message",
+      "consent": "I have read the Terms of Service and agree to the requirements",
+      "consentRequired": "You must agree to the Terms of Service",
       "placeholders": {
-        "name": "John Doe",
-        "email": "you.example.com",
+        "name": "Your name",
+        "email": "E-Mail address",
         "phone": "+380501234567",
         "subject": "What is your question about?",
-        "message": "Please provide details about your question or issue..."
+        "message": "Your message"
       },
       "types": {
         "general": "General Inquiry",
@@ -137,7 +151,7 @@
         "billing": "Billing Question",
         "other": "Other"
       },
-      "submit": "Submit Request",
+      "submit": "Apply",
       "submitting": "Submitting...",
       "responseTime": "We typically respond within 24 hours. For urgent matters, please call our support line."
     },
@@ -459,5 +473,38 @@
     "items": "{count} items",
     "emptyTitle": "Your wishlist is empty",
     "emptyDescription": "Save items you love by clicking the heart icon on products."
+  },
+  "footer": {
+    "brand": {
+      "description": "Your trusted e-commerce destination. Quality products, fast delivery, excellent service."
+    },
+    "shop": {
+      "title": "Shop",
+      "allProducts": "All Products",
+      "newArrivals": "New Arrivals",
+      "bestSellers": "Best Sellers",
+      "sale": "Sale"
+    },
+    "customerService": {
+      "title": "Customer Service",
+      "contactUs": "Contact Us",
+      "trackOrder": "Track Order",
+      "shippingInfo": "Shipping Info",
+      "returnsExchanges": "Returns & Exchanges",
+      "faq": "FAQ"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "unableToLoad": "Unable to load contact information."
+    },
+    "followUs": {
+      "title": "Follow Us",
+      "messengers": "Messengers"
+    },
+    "bottomBar": {
+      "allRightsReserved": "All rights reserved.",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service"
+    }
   }
 }

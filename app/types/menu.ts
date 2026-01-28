@@ -2,7 +2,7 @@
  * Menu types for site navigation
  */
 
-import { LinkTarget } from './enums'
+import type { LinkTarget } from './enums'
 
 export interface MenuItem {
   id: number

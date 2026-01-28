@@ -122,8 +122,10 @@ function isCartMutation(requestPath: string, method: string): boolean {
   return method !== 'GET' && requestPath.startsWith('/api/v1/cart')
 }
 
-function shouldCoalesceRequest(requestPath: string, method: string): boolean {
-  return method === 'GET' && requestPath.startsWith('/api/v1/catalog/products')
+function shouldCoalesceRequest(_requestPath: string, _method: string): boolean {
+  // Backend uses /catalog/variants, not /catalog/products
+  // Coalesce logic removed - endpoint doesn't exist
+  return false
 }
 
 function buildCoalesceKey(requestPath: string, headers: Record<string, string>): string {

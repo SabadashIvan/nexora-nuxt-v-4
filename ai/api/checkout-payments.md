@@ -13,7 +13,8 @@ The full checkout flow consists of:
 3. `/shipping/methods`
 4. `/checkout/{id}/shipping-method`
 5. `/checkout/{id}/payment-provider`
-6. `/checkout/{id}/confirm`
+6. `/checkout/{id}/loyalty` (optional - apply/remove loyalty points)
+7. `/checkout/{id}/confirm`
 
 ### Important Note
 
@@ -191,7 +192,63 @@ Updated checkout session
 
 ---
 
-### 6. Confirm Checkout (Create Order)
+### 6. Apply Loyalty Points
+`POST /api/v1/checkout/{id}/loyalty`
+
+Applies loyalty points to the checkout session to reduce the total amount.
+
+**Authentication:** Required (user must be authenticated)
+
+**Path parameters:**
+- `id` (integer): Checkout session ID
+
+**Body:**
+```json
+{
+  "points_minor": 100  // Required: Points to apply in minor units (e.g., 100 = 1.00 points)
+}
+```
+
+**Response:**
+Updated checkout session with loyalty points applied. The pricing will reflect the discount from loyalty points.
+
+**Error responses:**
+- `400`: Invalid points amount (exceeds available points or checkout total)
+- `401`: Unauthorized (user not authenticated)
+- `404`: Checkout session not found
+
+**Notes:**
+- Points are applied in minor units (e.g., 100 = 1.00 points)
+- Cannot exceed available loyalty points balance
+- Cannot exceed checkout total amount
+- Applied points are reflected in the checkout pricing response
+
+---
+
+### 7. Remove Loyalty Points
+`DELETE /api/v1/checkout/{id}/loyalty`
+
+Removes previously applied loyalty points from the checkout session.
+
+**Authentication:** Required (user must be authenticated)
+
+**Path parameters:**
+- `id` (integer): Checkout session ID
+
+**Response:**
+Updated checkout session with loyalty points removed. The pricing will no longer include the loyalty points discount.
+
+**Error responses:**
+- `401`: Unauthorized (user not authenticated)
+- `404`: Checkout session not found
+
+**Notes:**
+- Removes all loyalty points that were previously applied
+- Checkout pricing will be recalculated without loyalty discount
+
+---
+
+### 8. Confirm Checkout (Create Order)
 `POST /api/v1/checkout/{id}/confirm`
 
 Finalizes the checkout and creates the order.
@@ -318,10 +375,11 @@ Receives webhook notifications from payment providers about payment status updat
 3. **Get Shipping Methods** → Fetch available shipping options (with checkout_session_id)
 4. **Set Shipping Method** → Select shipping method (with quote_id)
 5. **Set Payment Provider** → Choose payment method
-6. **Confirm Checkout** → Create order, get order_id
-7. **Initialize Payment** → (If online payment) Get payment_url and redirect user
-8. **Payment Callback** → User returns from payment gateway
-9. **Order Confirmation** → Show order details
+6. **Apply/Remove Loyalty Points** → (Optional, authenticated users only) Apply or remove loyalty points discount
+7. **Confirm Checkout** → Create order, get order_id
+8. **Initialize Payment** → (If online payment) Get payment_url and redirect user
+9. **Payment Callback** → User returns from payment gateway
+10. **Order Confirmation** → Show order details
 
 ---
 

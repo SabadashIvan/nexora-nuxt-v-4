@@ -3,7 +3,7 @@
  * Matches real API response format
  */
 
-import { CartWarningCode, CartPromotionType } from './enums'
+import type { CartWarningCode, CartPromotionType } from './enums'
 
 /**
  * Cart item price in minor units (cents)

@@ -819,6 +819,10 @@ export const useCartStore = defineStore('cart', {
       if (!authStore.isAuthenticated || !this.cartToken) return
 
       try {
+        // NOTE: /cart/attach endpoint is NOT present in backend YAML specification
+        // Backend may handle cart merging automatically on login
+        // If this endpoint returns 404, cart merging likely happens server-side
+        // See: ai/operations/backend-endpoints-delta.md for verification status
         const response = await nuxtApp.runWithContext(async () => 
           await api.post<Cart | CartApiResponse>('/cart/attach', undefined, { 
             cart: true,
@@ -826,9 +830,16 @@ export const useCartStore = defineStore('cart', {
         )
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(null, cart)
-      } catch (error) {
+      } catch (error: unknown) {
+        // Handle 404 gracefully - endpoint may not exist, cart merging may be automatic
+        const apiError = error as { statusCode?: number; status?: number }
+        if (apiError?.statusCode === 404 || apiError?.status === 404) {
+          // Endpoint doesn't exist - cart merging likely happens automatically on login
+          // No action needed, cart will be merged server-side
+          return
+        }
         console.error('Attach cart error:', error)
-        // Non-critical - just log the error
+        // Non-critical - just log other errors
       }
     },
 

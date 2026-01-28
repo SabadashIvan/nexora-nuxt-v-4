@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
           <p class="text-sm text-red-700 dark:text-red-400">{{ error }}</p>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="space-y-5">
+        <form class="space-y-5" @submit.prevent="handleSubmit">
           <!-- Name -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

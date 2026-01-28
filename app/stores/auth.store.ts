@@ -696,7 +696,7 @@ export const useAuthStore = defineStore('auth', {
         const body = channel === 'phone' && phone ? { phone } : {}
 
         const response = await nuxtApp.runWithContext(async () =>
-          await api.post<{ data: string; meta: { type: string } } | void>(
+          await api.post<{ data: string; meta: { type: string } } | undefined>(
             `/identity/contacts/${channelId}`,
             body
           )

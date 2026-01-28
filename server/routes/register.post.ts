@@ -2,7 +2,7 @@
  * Proxy for Laravel Sanctum register endpoint
  * Routes: POST /register
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event): Promise<unknown> => {
   const config = useRuntimeConfig()
   const backendUrl = config.apiBackendUrl || 'http://localhost:8000'
   const body = await readBody(event)
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const cookies = getHeader(event, 'cookie') || ''
 
   try {
-    const response = await $fetch.raw(`${backendUrl}/register`, {
+    const response = await $fetch.raw<unknown>(`${backendUrl}/register`, {
       method: 'POST',
       body,
       headers: {
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
     }
 
     setResponseStatus(event, response.status)
-    return response._data || {}
+    return response._data ?? {}
   } catch (error: unknown) {
     const err = error as { status?: number; data?: unknown; statusMessage?: string }
     throw createError({

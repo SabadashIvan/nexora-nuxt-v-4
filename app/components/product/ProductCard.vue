@@ -2,18 +2,8 @@
 /**
  * Product card for catalog listings
  */
-import { Heart, ShoppingCart, Eye } from 'lucide-vue-next'
 import type { ProductListItem } from '~/types'
 import { getImageUrl } from '~/utils'
-import { useCartStore } from '~/stores/cart.store'
-import { useFavoritesStore } from '~/stores/favorites.store'
-
-// Get toast function from Nuxt app
-const nuxtApp = useNuxtApp()
-const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
-
-// Get i18n for translations
-const { t } = useI18n()
 
 interface Props {
   product: ProductListItem
@@ -24,8 +14,8 @@ const props = defineProps<Props>()
 // Locale-aware navigation
 const localePath = useLocalePath()
 
-const isAddingToCart = ref(false)
-const isTogglingFavorite = ref(false)
+const _isAddingToCart = ref(false)
+const _isTogglingFavorite = ref(false)
 
 const productImage = computed(() => {
   return getImageUrl(props.product.image) || props.product.images?.[0]?.url
@@ -37,37 +27,8 @@ const formattedPrice = computed(() => {
   return props.product.price.effective_minor || ''
 })
 
-// Access stores inside computed
-const isFavorite = computed(() => {
-  try {
-    return useFavoritesStore().isFavorite(props.product.id)
-  } catch {
-    return false
-  }
-})
-
-async function addToCart() {
-  isAddingToCart.value = true
-  const cartStore = useCartStore()
-  const success = await cartStore.addItem(props.product.id, 1)
-  isAddingToCart.value = false
-  
-  if (success) {
-    $toast.success(t('cart.itemAdded') || 'Item added to cart')
-  } else if (cartStore.error) {
-    $toast.error(cartStore.error)
-  }
-}
-
-async function toggleFavorite() {
-  isTogglingFavorite.value = true
-  const favoritesStore = useFavoritesStore()
-  await favoritesStore.toggleFavorite(props.product.id)
-  isTogglingFavorite.value = false
-}
-
 // Prefetch product data on hover for instant navigation (SWR-like behavior)
-let prefetchPromise: Promise<any> | null = null
+let prefetchPromise: Promise<unknown> | null = null
 
 function prefetchProduct() {
   if (import.meta.client && !prefetchPromise) {
