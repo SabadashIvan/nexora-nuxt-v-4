@@ -79,6 +79,9 @@
     },
     "item": "item",
     "items": "items",
+    "itemAdded": "Item added to cart",
+    "itemRemoved": "Item removed from cart",
+    "quantityUpdated": "Quantity updated",
     "summary": {
       "title": "Order Summary",
       "promoCode": "Promo Code",
@@ -108,24 +111,43 @@
       "availability": "Availability",
       "rating": "Rating",
       "action": "Action"
-    }
+    },
+    "addedToComparison": "Added to comparison",
+    "removedFromComparison": "Removed from comparison",
+    "maxItemsReached": "Maximum {count} items can be compared",
+    "error": "Failed to update comparison"
   },
   "contact": {
     "title": "Contact Us",
     "description": "Have a question or need help? We're here to assist you.",
+    "locations": {
+      "title": "Our Locations",
+      "workingHours": "Working Hours",
+      "address": "Address",
+      "phones": "Phones",
+      "viewOnMap": "View on Map",
+      "visitWebsite": "Visit Website",
+      "emptyTitle": "No locations available",
+      "emptyDescription": "We're working on adding our locations."
+    },
     "form": {
+      "title": "Do you have a question?",
+      "subtitle": "Write to us - we will tell you everything.",
       "fullName": "Full Name",
       "email": "Email Address",
       "phone": "Phone Number",
       "requestType": "Request Type",
+      "selectType": "Select type",
       "subject": "Subject",
       "message": "Message",
+      "consent": "I have read the Terms of Service and agree to the requirements",
+      "consentRequired": "You must agree to the Terms of Service",
       "placeholders": {
-        "name": "John Doe",
-        "email": "you.example.com",
+        "name": "Your name",
+        "email": "E-Mail address",
         "phone": "+380501234567",
         "subject": "What is your question about?",
-        "message": "Please provide details about your question or issue..."
+        "message": "Your message"
       },
       "types": {
         "general": "General Inquiry",
@@ -133,7 +155,7 @@
         "billing": "Billing Question",
         "other": "Other"
       },
-      "submit": "Submit Request",
+      "submit": "Apply",
       "submitting": "Submitting...",
       "responseTime": "We typically respond within 24 hours. For urgent matters, please call our support line."
     },
@@ -168,7 +190,12 @@
   "newsletter": {
     "consent": "I agree to receive newsletter emails",
     "subscribe": "Subscribe",
-    "subscribing": "Subscribing..."
+    "subscribing": "Subscribing...",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "emailInvalid": "Please enter a valid email address",
+    "nameLabel": "Name",
+    "namePlaceholder": "Your name (optional)"
   },
   "breadcrumbs": {
     "home": "Home"
@@ -197,6 +224,23 @@
     "hero": {
       "title": "We built our business on great customer service",
       "description": "At the beginning at least, but then we realized we could make a lot more money if we kinda stopped caring about that. Our new strategy is to write a bunch of things that look really good in the headlines, then clarify in the small print but hope people don't actually read it."
+    },
+    "featuredProducts": {
+      "title": "Featured Products"
+    },
+    "newsletter": {
+      "title": "Subscribe to our newsletter",
+      "description": "Stay updated with our latest products, exclusive offers, and special promotions. Join our community and never miss out on great deals.",
+      "features": {
+        "weeklyArticles": {
+          "title": "Weekly articles",
+          "description": "Get valuable insights, product tips, and industry news delivered to your inbox every week."
+        },
+        "noSpam": {
+          "title": "No spam",
+          "description": "We respect your inbox. You'll only receive relevant updates and can unsubscribe at any time."
+        }
+      }
     }
   },
   "pages": {
@@ -229,7 +273,38 @@
       "addToComparison": "Add to Comparison",
       "inComparison": "In Comparison",
       "share": "Share",
-      "quickBuy": "Quick Buy"
+      "quickBuy": "Quick Buy",
+      "inStock": "In Stock",
+      "outOfStock": "Out of Stock"
+    },
+    "tabs": {
+      "description": "Description",
+      "specifications": "Specifications",
+      "reviews": "Reviews",
+      "shipping": "Shipping & Returns",
+      "noSpecifications": "No specifications available.",
+      "shippingInfo": "Shipping Information",
+      "shippingDescription": "We offer fast and reliable shipping to most locations. Shipping costs and delivery times vary based on your location and the shipping method selected at checkout.",
+      "freeShipping": "Free shipping on orders over $100",
+      "standardShipping": "Standard shipping: 5-7 business days",
+      "expressShipping": "Express shipping: 2-3 business days",
+      "trackingInfo": "Tracking information will be provided via email once your order ships",
+      "returnsInfo": "Returns & Exchanges",
+      "returnsDescription": "We want you to be completely satisfied with your purchase. If you're not happy with your item, you can return it within 30 days of delivery for a full refund or exchange.",
+      "returnWindow": "30-day return window from delivery date",
+      "returnCondition": "Items must be in original condition with tags attached",
+      "returnProcess": "Contact our support team to initiate a return",
+      "refundTime": "Refunds processed within 5-7 business days after we receive your return"
+    },
+    "guarantees": {
+      "freeShipping": "Free Shipping",
+      "freeShippingDesc": "Free shipping on orders over $100",
+      "easyReturns": "Easy Returns",
+      "easyReturnsDesc": "30-day return policy",
+      "securePayment": "Secure Payment",
+      "securePaymentDesc": "100% secure checkout",
+      "support": "24/7 Support",
+      "supportDesc": "Round-the-clock customer service"
     },
     "quickBuy": {
       "title": "Quick Buy",
@@ -454,6 +529,42 @@
     "outOfStock": "Out of Stock",
     "items": "{count} items",
     "emptyTitle": "Your wishlist is empty",
-    "emptyDescription": "Save items you love by clicking the heart icon on products."
+    "emptyDescription": "Save items you love by clicking the heart icon on products.",
+    "addedToWishlist": "Added to wishlist",
+    "removedFromWishlist": "Removed from wishlist",
+    "error": "Failed to update wishlist"
+  },
+  "footer": {
+    "brand": {
+      "description": "Your trusted e-commerce destination. Quality products, fast delivery, excellent service."
+    },
+    "shop": {
+      "title": "Shop",
+      "allProducts": "All Products",
+      "newArrivals": "New Arrivals",
+      "bestSellers": "Best Sellers",
+      "sale": "Sale"
+    },
+    "customerService": {
+      "title": "Customer Service",
+      "contactUs": "Contact Us",
+      "trackOrder": "Track Order",
+      "shippingInfo": "Shipping Info",
+      "returnsExchanges": "Returns & Exchanges",
+      "faq": "FAQ"
+    },
+    "contact": {
+      "title": "Contact Us",
+      "unableToLoad": "Unable to load contact information."
+    },
+    "followUs": {
+      "title": "Follow Us",
+      "messengers": "Messengers"
+    },
+    "bottomBar": {
+      "allRightsReserved": "All rights reserved.",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service"
+    }
   }
 }

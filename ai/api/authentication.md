@@ -101,12 +101,68 @@ Requires authentication via cookies.
 }
 ```
 
-### 1.5 Addresses
+### 1.5 Update Profile
+`PUT /api/v1/identity/me/profile`
 
-#### 1.5.1 Get Addresses
+Updates the authenticated user's profile information.
+
+**Authentication:** Required (cookie-based)
+
+**Body:**
+```json
+{
+  "name": "John Doe",           // Optional: Full name
+  "email": "newemail@example.com", // Optional: Email address
+  "gender_id": 1                 // Optional: Gender ID (from /api/v1/identity/genders)
+}
+```
+
+**Response:**
+Updated profile object (same structure as GET response)
+
+**Error responses:**
+- `401`: Unauthenticated
+- `422`: Validation error (email already taken, invalid gender_id, etc.)
+
+---
+
+### 1.6 Get Genders
+`GET /api/v1/identity/genders`
+
+Returns a list of available gender options for user profiles.
+
+**Authentication:** Optional (public endpoint)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Male"
+    },
+    {
+      "id": 2,
+      "title": "Female"
+    },
+    {
+      "id": 3,
+      "title": "Other"
+    }
+  ]
+}
+```
+
+**Use case:** Populate gender dropdown in profile edit forms.
+
+---
+
+### 1.7 Addresses
+
+#### 1.7.1 Get Addresses
 `GET /api/v1/identity/addresses`
 
-#### 1.5.2 Create Address
+#### 1.7.2 Create Address
 `POST /api/v1/identity/addresses`
 
 **Body:**
@@ -122,7 +178,7 @@ Requires authentication via cookies.
 }
 ```
 
-#### 1.5.3 Update Address
+#### 1.7.3 Update Address
 `PUT /api/v1/identity/addresses/{id}`
 
 **Body:**
@@ -137,7 +193,7 @@ Requires authentication via cookies.
 }
 ```
 
-#### 1.5.4 Delete Address
+#### 1.7.4 Delete Address
 `DELETE /api/v1/identity/addresses/{id}`
 
 ---
@@ -336,29 +392,18 @@ Send an email change notification to the user.
 - `422`: Validation error
 
 ### 5.4 Confirm Email Address Change
-`POST /change-email/confirm/{token}`
+`GET /change-email/{id}/{hash}`
 
-Confirm the email address change using the token from the confirmation email.
+Confirm the email address change using a signed URL redirect (backend implementation).
 
 **Path parameters:**
-- `token` (string): Email change confirmation token from email
+- `id` (integer): User ID
+- `hash` (string): Signed hash for verification
 
-**Body:**
-```json
-{
-  "email": "oldemail@example.com"  // Required: Current email address
-}
-```
+**Note:** Backend uses signed URL redirect flow. Frontend should handle the redirect response.
 
-**Response:**
-```json
-{
-  "message": "Your email has been updated."
-}
-```
-
-**Error responses:**
-- `422`: Invalid or expired token
+**Alternative (verify with backend):**
+`POST /change-email/confirm/{token}` - May be deprecated, verify with backend which flow is correct.
 
 ---
 

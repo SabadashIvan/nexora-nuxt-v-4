@@ -56,7 +56,7 @@ function getItemCountLabel(count: number): string {
 
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ $t('cart.shoppingCart') }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-black-100">{{ $t('cart.shoppingCart') }}</h1>
         <span v-if="cartStore.itemCount > 0" class="text-sm text-gray-500 dark:text-gray-400">
           {{ cartStore.itemCount }} {{ getItemCountLabel(cartStore.itemCount) }}
         </span>

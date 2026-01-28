@@ -99,9 +99,17 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
       price_min: query.price_min ? Number(query.price_min) : undefined,
       price_max: query.price_max ? Number(query.price_max) : undefined,
       attributes: query.attributes ? (query.attributes as string).split(',') : undefined,
+      raw_suggest: query.raw_suggest as string | undefined,
     }
     // Pass API instance to preserve context
     const cat = await catalogStore.fetchCategory(slug, false, api)
+
+    // TODO(backend): The backend should return the full ancestor path for a category
+    // (e.g. `ancestors`/`path`) in `/catalog/categories/{slug}`. Today we fetch the
+    // entire categories tree to build breadcrumbs (Home → root → … → current).
+    if (catalogStore.categories.length === 0) {
+      await catalogStore.fetchCategories(api)
+    }
 
     let sorting: 'newest' | 'price_asc' | 'price_desc' = 'newest'
     let appliedFilters: ProductFilter = { page: 1 }
@@ -115,6 +123,11 @@ const { data: asyncCategoryData, pending, error, status, refresh } = await useAs
           // Always filter by current category ID
           categories: String(cat.id),
         },
+      }
+
+      // Add raw_suggest if present (confirmed search from suggest/history)
+      if (filters.raw_suggest) {
+        filterParams.raw_suggest = filters.raw_suggest
       }
 
       // Add additional filters from URL params
@@ -275,6 +288,10 @@ const sorting = computed(() => asyncCategoryData.value?.sorting ?? payloadCatego
 const availableFilters = computed(() => asyncCategoryData.value?.availableFilters ?? payloadCategoryData.value?.availableFilters ?? storeAvailableFilters.value)
 const activeFilters = computed(() => asyncCategoryData.value?.filters ?? payloadCategoryData.value?.filters ?? storeFilters.value)
 
+const excludedCategoryIds = computed(() => {
+  return category.value?.id ? [String(category.value.id)] : []
+})
+
 watchEffect(() => {
   const productsList = asyncCategoryData.value?.products ?? payloadCategoryData.value?.products ?? storeProducts.value
   if (productsList.length > 0) {
@@ -299,11 +316,31 @@ watch([status, category, error, categoryErrorStatus], ([currentStatus, cat, err,
 
 // Breadcrumbs
 const breadcrumbs = computed(() => {
-  const items = [{ label: 'Categories', to: '/categories' }]
-  if (category.value) {
-    const catName = category.value.title || category.value.name || 'Category'
-    items.push({ label: catName, to: `/categories/${categorySlug.value}` })
+  // UiBreadcrumbs already prepends Home. We only provide the category hierarchy.
+  const items: Array<{ label: string; to?: string }> = []
+
+  const cat = category.value
+  if (!cat) return items
+
+  // Prefer full path from categories tree (supports unlimited depth).
+  // Fallback to just the current category if the tree isn't available.
+  let path: Category[] = []
+  try {
+    const store = useCatalogStore()
+    path = store.getCategoryPathBySlug(cat.slug) || []
+  } catch {
+    path = []
   }
+
+  const effectivePath = path.length > 0 ? path : [cat]
+
+  for (const node of effectivePath) {
+    const label = node.title || node.name || 'Category'
+    // If slug is missing, still show label (no link)
+    const to = node.slug ? `/categories/${node.slug}` : undefined
+    items.push({ label, to })
+  }
+
   return items
 })
 
@@ -333,10 +370,70 @@ const categoryName = computed(() => {
   return category.value.title || category.value.name || 'Category'
 })
 
-// Handle filter changes
-async function handleFilterChange(filters: ProductFilter) {
-  const catalogStore = useCatalogStore()
+// Build query object from filter state
+function buildFilterQuery(filters: ProductFilter, currentCategoryId?: number, currentSorting?: string, currentPage?: number): Record<string, string> {
+  const query: Record<string, string> = {}
 
+  // Search
+  if (filters.filters?.q) {
+    query.q = filters.filters.q
+  }
+
+  // Preserve raw_suggest from current route if present (confirmed search from suggest/history)
+  if (filters.raw_suggest) {
+    query.raw_suggest = filters.raw_suggest
+  }
+
+  // Sort
+  if (currentSorting && currentSorting !== 'newest') {
+    query.sort = currentSorting
+  }
+
+  // Categories - only add to URL if there are multiple categories (not just current one)
+  if (filters.filters?.categories) {
+    const categoryIds = filters.filters.categories.split(',')
+    if (currentCategoryId) {
+      const currentCategoryIdStr = String(currentCategoryId)
+      const otherCategories = categoryIds.filter(id => id !== currentCategoryIdStr)
+      if (otherCategories.length > 0) {
+        // Include all categories in URL (current + others)
+        query.categories = filters.filters.categories
+      }
+      // If only current category, don't add to URL (it's already in the path)
+    } else {
+      query.categories = filters.filters.categories
+    }
+  }
+
+  // Brands
+  if (filters.filters?.brands) {
+    query.brands = filters.filters.brands
+  }
+
+  // Price range
+  if (filters.filters?.price_min !== undefined) {
+    query.price_min = String(filters.filters.price_min)
+  }
+  if (filters.filters?.price_max !== undefined) {
+    query.price_max = String(filters.filters.price_max)
+  }
+
+  // Attributes
+  if (filters.filters?.attributes && filters.filters.attributes.length > 0) {
+    query.attributes = filters.filters.attributes.join(',')
+  }
+
+  // Page
+  const page = currentPage ?? filters.page ?? 1
+  if (page > 1) {
+    query.page = page.toString()
+  }
+
+  return query
+}
+
+// Handle filter changes - update URL immediately, let route watcher handle data fetching
+function handleFilterChange(filters: ProductFilter) {
   // Ensure current category ID is always included
   const updatedFilters = { ...filters }
   if (!updatedFilters.filters) {
@@ -357,82 +454,44 @@ async function handleFilterChange(filters: ProductFilter) {
     }
   }
 
-  await catalogStore.applyFilters({
-    ...updatedFilters,
-    category: categorySlug.value,
-  } as ProductFilter)
-  updateUrl()
-}
+  // Reset page to 1 when filters change
+  updatedFilters.page = 1
 
-// Handle sort change
-async function handleSortChange(sort: string) {
-  const catalogStore = useCatalogStore()
-  await catalogStore.applySorting(sort)
-  updateUrl()
-}
-
-// Handle page change
-async function handlePageChange(page: number) {
-  // Update URL first, then fetch products
-  const query: Record<string, string> = {}
-  const currentFilters = activeFilters.value
-  const currentSorting = sorting.value
-
-  // Preserve all current filters
-  if (currentFilters.filters?.q) {
-    query.q = currentFilters.filters.q
-  }
-  if (currentSorting !== 'newest') {
-    query.sort = currentSorting
-  }
-  // Categories - only add to URL if there are multiple categories
-  if (currentFilters.filters?.categories) {
-    const categoryIds = currentFilters.filters.categories.split(',')
-    if (category.value?.id) {
-      const currentCategoryId = String(category.value.id)
-      const otherCategories = categoryIds.filter(id => id !== currentCategoryId)
-      if (otherCategories.length > 0) {
-        query.categories = currentFilters.filters.categories
-      }
-    } else {
-      query.categories = currentFilters.filters.categories
-    }
-  }
-  if (currentFilters.filters?.brands) {
-    query.brands = currentFilters.filters.brands
-  }
-  if (currentFilters.filters?.price_min !== undefined) {
-    query.price_min = String(currentFilters.filters.price_min)
-  }
-  if (currentFilters.filters?.price_max !== undefined) {
-    query.price_max = String(currentFilters.filters.price_max)
-  }
-  if (currentFilters.filters?.attributes && currentFilters.filters.attributes.length > 0) {
-    query.attributes = currentFilters.filters.attributes.join(',')
-  }
-
-  // Set page
-  if (page > 1) {
-    query.page = page.toString()
-  }
-
-  // Navigate to update URL - this will trigger useLazyAsyncData to refetch
-  // The watch on route.fullPath will detect the change and reload data
+  // Build query and update URL immediately
+  const query = buildFilterQuery(updatedFilters, category.value?.id, sorting.value, 1)
   const localePath = useLocalePath()
-  await navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
+  navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+}
 
-  // Force refresh to ensure data is reloaded
-  await refresh()
+// Handle sort change - update URL immediately, let route watcher handle data fetching
+function handleSortChange(sort: string) {
+  // Build query with new sort value
+  const query = buildFilterQuery(activeFilters.value, category.value?.id, sort, pagination.value.page)
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+}
 
+// Handle page change - update URL immediately, let route watcher handle data fetching
+function handlePageChange(page: number) {
+  // Build query with new page number
+  const query = buildFilterQuery(activeFilters.value, category.value?.id, sorting.value, page)
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+  
   // Scroll to top
   if (import.meta.client) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
-// Handle remove single filter
-async function handleRemoveFilter(type: string, value: string) {
-  const catalogStore = useCatalogStore()
+// Handle remove single filter - update URL immediately, let route watcher handle data fetching
+function handleRemoveFilter(type: string, value: string) {
   const currentFilters = { ...activeFilters.value }
 
   if (!currentFilters.filters) {
@@ -521,90 +580,29 @@ async function handleRemoveFilter(type: string, value: string) {
     currentFilters.filters = undefined
   }
 
-  await catalogStore.applyFilters(currentFilters)
-  updateUrl()
-}
+  // Reset page to 1 when removing filters
+  currentFilters.page = 1
 
-// Handle reset
-async function handleReset() {
-  const catalogStore = useCatalogStore()
-
-  // Reset filters but keep current category
-  if (category.value?.id) {
-    const filters: ProductFilter = {
-      page: 1,
-      filters: {
-        categories: String(category.value.id),
-      },
-    }
-    await catalogStore.fetchProducts(filters)
-    catalogStore.filters = filters
-  } else {
-    catalogStore.resetFilters()
-    await catalogStore.fetchProducts()
-  }
-
+  // Build query and update URL immediately
+  const query = buildFilterQuery(currentFilters, category.value?.id, sorting.value, 1)
   const localePath = useLocalePath()
-  navigateTo(localePath(`/categories/${categorySlug.value}`))
+  navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
 }
 
-// Update URL with current filters
-function updateUrl() {
-  const query: Record<string, string> = {}
-  const currentFilters = activeFilters.value
-  const currentSorting = sorting.value
-  const currentPagination = pagination.value
+// Handle reset - navigate to clean URL, let route watcher handle data fetching
+function handleReset() {
+  // Navigate to category page without any query params (except keep category slug in path)
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query: {} }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+}
 
-  // Search
-  if (currentFilters.filters?.q) {
-    query.q = currentFilters.filters.q
-  }
-
-  // Sort
-  if (currentSorting !== 'newest') {
-    query.sort = currentSorting
-  }
-
-  // Categories - only add to URL if there are multiple categories (not just current one)
-  if (currentFilters.filters?.categories) {
-    const categoryIds = currentFilters.filters.categories.split(',')
-    // Only add to URL if there are multiple categories or if it's not the current category
-    if (category.value?.id) {
-      const currentCategoryId = String(category.value.id)
-      const otherCategories = categoryIds.filter(id => id !== currentCategoryId)
-      if (otherCategories.length > 0) {
-        // Include all categories in URL (current + others)
-        query.categories = currentFilters.filters.categories
-      }
-      // If only current category, don't add to URL (it's already in the path)
-    } else {
-      query.categories = currentFilters.filters.categories
-    }
-  }
-
-  // Brands
-  if (currentFilters.filters?.brands) {
-    query.brands = currentFilters.filters.brands
-  }
-
-  // Price range
-  if (currentFilters.filters?.price_min !== undefined) {
-    query.price_min = String(currentFilters.filters.price_min)
-  }
-  if (currentFilters.filters?.price_max !== undefined) {
-    query.price_max = String(currentFilters.filters.price_max)
-  }
-
-  // Attributes
-  if (currentFilters.filters?.attributes && currentFilters.filters.attributes.length > 0) {
-    query.attributes = currentFilters.filters.attributes.join(',')
-  }
-
-  // Page
-  if (currentPagination.page > 1) {
-    query.page = currentPagination.page.toString()
-  }
-
+// Update URL with current filters (used by handlePageChange)
+function _updateUrl() {
+  const query = buildFilterQuery(activeFilters.value, category.value?.id, sorting.value, pagination.value.page)
   const localePath = useLocalePath()
   navigateTo({ path: localePath(`/categories/${categorySlug.value}`), query }, { replace: true })
 }
@@ -719,6 +717,7 @@ function updateUrl() {
           <CatalogFiltersSidebar
             :filters="availableFilters"
             :active-filters="activeFilters"
+            :excluded-category-ids="excludedCategoryIds"
             mobile-only
             @update:filters="handleFilterChange"
             @reset="handleReset"
@@ -730,6 +729,7 @@ function updateUrl() {
       <CatalogActiveFilters
         :active-filters="activeFilters"
         :available-filters="availableFilters"
+        :excluded-category-ids="excludedCategoryIds"
         @remove-filter="handleRemoveFilter"
         @reset="handleReset"
       />
@@ -744,6 +744,7 @@ function updateUrl() {
             <CatalogFiltersSidebar
               :filters="availableFilters"
               :active-filters="activeFilters"
+              :excluded-category-ids="excludedCategoryIds"
               @update:filters="handleFilterChange"
               @reset="handleReset"
             />

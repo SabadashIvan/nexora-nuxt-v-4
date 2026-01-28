@@ -12,7 +12,7 @@ interface Props {
   expiringCount?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   loading: false,
   expiringCount: 0,
 })

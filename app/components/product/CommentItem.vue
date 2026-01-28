@@ -77,7 +77,7 @@ function toggleReplyForm() {
             :src="comment.author.avatar" 
             :alt="comment.author.name"
             class="h-full w-full object-cover"
-          />
+          >
         </div>
         <div 
           v-else 

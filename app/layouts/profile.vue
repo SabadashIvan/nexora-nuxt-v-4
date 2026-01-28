@@ -2,7 +2,7 @@
 /**
  * Profile layout with sidebar navigation
  */
-import { User, Package, MapPin, Settings, Bell, CreditCard, LogOut, Coins } from 'lucide-vue-next'
+import { User, Package, MapPin, Settings, Bell, LogOut, Coins } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -94,9 +94,9 @@ const isActive = (item: { to: string; exact?: boolean }) => {
             <div class="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden">
               <button
                 type="button"
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="isLoggingOut"
                 @click="handleLogout"
-                class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <LogOut class="h-5 w-5" />
                 <span>{{ isLoggingOut ? $t('navigation.loggingOut') : $t('navigation.logout') }}</span>

@@ -28,6 +28,7 @@ describe('Price component', () => {
   it('should render price from ProductPrice object', () => {
     const priceObject: ProductPrice = {
       list_minor: '10000',
+      sale_minor: '9000',
       effective_minor: '8000',
       currency: 'USD',
     }

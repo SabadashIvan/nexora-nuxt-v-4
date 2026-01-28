@@ -87,7 +87,7 @@ const sizeClasses = computed(() => {
       :class="[
         'text-center border-x border-gray-200 dark:border-gray-700 bg-transparent',
         'focus:outline-none focus:ring-0',
-        'text-gray-900 dark:text-gray-100',
+        'text-black-900 dark:text-black-100',
         '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
         sizeClasses.input,
         disabled ? 'cursor-not-allowed opacity-50' : '',

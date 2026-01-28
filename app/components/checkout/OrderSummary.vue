@@ -2,6 +2,7 @@
 /**
  * Order summary for checkout
  */
+import { Package } from 'lucide-vue-next'
 import type { CheckoutItem, CheckoutPricing, ShippingMethod, PaymentProvider } from '~/types'
 import { getImageUrl } from '~/utils'
 
@@ -12,7 +13,7 @@ interface Props {
   payment?: PaymentProvider | null
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 </script>
 
 <template>
@@ -21,29 +22,30 @@ const props = defineProps<Props>()
 
     <!-- Items -->
     <div class="space-y-4 max-h-64 overflow-y-auto">
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="flex gap-3"
-        >
-          <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-            <NuxtImg
-              v-if="getImageUrl(item.image)"
-              :src="getImageUrl(item.image)"
-              :alt="item.name"
-              class="w-full h-full object-cover"
-            />
-          </div>
+      <div
+        v-for="item in items"
+        :key="item.id"
+        class="flex gap-3"
+      >
+        <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 flex items-center justify-center">
+          <NuxtImg
+            v-if="getImageUrl(item.image)"
+            :src="getImageUrl(item.image)!"
+            :alt="item.name ?? item.sku"
+            class="w-full h-full object-cover"
+          />
+          <Package v-else class="h-6 w-6 text-gray-400" />
+        </div>
         <div class="flex-1 min-w-0">
           <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">
-            {{ item.name }}
+            {{ item.name ?? item.sku }}
           </h4>
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Qty: {{ item.quantity }}
+            Qty: {{ item.qty }}
           </p>
-          <UiPrice 
-            :price="item.total" 
-            :currency="item.currency"
+          <UiPrice
+            :price="item.line_total_minor"
+            :currency="pricing.currency"
             size="sm"
             :show-discount="false"
           />
@@ -88,7 +90,26 @@ const props = defineProps<Props>()
           -<UiPrice :price="pricing.discounts" :currency="pricing.currency" :show-discount="false" />
         </span>
       </div>
-      
+      <template v-if="pricing.promotions?.length">
+        <div
+          v-for="promo in pricing.promotions"
+          :key="promo.promotion_id"
+          class="flex justify-between text-sm pl-3 text-gray-500 dark:text-gray-500"
+        >
+          <span>{{ promo.name }}</span>
+          <span class="text-green-600 dark:text-green-400">
+            -<UiPrice :price="promo.value" :currency="pricing.currency" :show-discount="false" />
+          </span>
+        </div>
+      </template>
+
+      <div v-if="(pricing.loyalty_points_minor ?? 0) > 0" class="flex justify-between text-sm">
+        <span class="text-gray-600 dark:text-gray-400">Loyalty points</span>
+        <span class="text-green-600 dark:text-green-400">
+          -<UiPrice :price="pricing.loyalty_points_minor!" :currency="pricing.currency" :show-discount="false" />
+        </span>
+      </div>
+
       <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-800">
         <span class="font-semibold text-gray-900 dark:text-gray-100">Total</span>
         <UiPrice :price="pricing.total" :currency="pricing.currency" size="lg" :show-discount="false" />
@@ -96,4 +117,3 @@ const props = defineProps<Props>()
     </div>
   </div>
 </template>
-

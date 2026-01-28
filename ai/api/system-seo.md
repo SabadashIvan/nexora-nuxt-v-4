@@ -1,68 +1,12 @@
-# System & SEO API
+# System, Site & SEO API
 
-Complete endpoints for system configuration, languages, currencies, SEO metadata, menus, and site contacts.
+Complete endpoints for system configuration, languages, currencies, SEO metadata, menus, site contacts, and store locations.
 
 ---
 
 ## System API
 
-### 1. Get System Config
-`GET /api/v1/system/config`
-
-Returns global system configuration.
-
-**Response includes:**
-- locales
-- currencies
-- default currency
-- min/max price
-- feature toggles
-
----
-
-### 2. Set Locale
-`PUT /api/v1/system/locale`
-
-Sets the user's preferred locale.
-
-**Body:**
-```json
-{
-  "locale": "en"
-}
-```
-
----
-
-### 3. Set Currency
-`PUT /api/v1/system/currency`
-
-Sets the user's preferred currency.
-
-**Body:**
-```json
-{
-  "currency": "USD"
-}
-```
-
----
-
-### 4. List Locales
-`GET /api/v1/system/locales`
-
-Returns list of available locales.
-
----
-
-### 5. List Currencies
-`GET /api/v1/system/currencies`
-
-Returns list of available currencies.
-
----
-
-### 6. Get Active Languages
+### 1. Get Active Languages
 `GET /api/v1/app/languages`
 
 Returns a list of active site languages and the default language code.
@@ -109,7 +53,7 @@ Returns a list of active site languages and the default language code.
 
 ---
 
-### 7. Get Active Currencies
+### 2. Get Active Currencies
 `GET /api/v1/app/currencies`
 
 Returns a list of active site currencies and the default currency code.
@@ -153,25 +97,162 @@ Returns a list of active site currencies and the default currency code.
 
 ---
 
-### 8. System Health Check
-`GET /api/v1/health`
+---
 
-Health check endpoint.
+## Site API
+
+Endpoints for site information including store locations and contact information. These are **NOT SEO-related** - they provide operational information about the business.
+
+### 1. Get Site Contacts
+`GET /api/v1/site/contacts`
+
+Returns shop working contacts including phone numbers, email, working hours, messengers, and social media links. Translatable fields are automatically localized to the current request locale.
+
+**Headers:**
+- `Accept-Language`: Locale (optional)
 
 **Response:**
 ```json
 {
-  "status": "ok",
-  "version": "1.0.0",
-  "timestamp": "2025-01-19T12:00:00+00:00"
+  "data": {
+    "contacts": {
+      "address": "123 Demo Street, Springfield",
+      "address_link": "https://maps.google.com/?q=123+Demo+Street+Springfield",
+      "phones": [
+        "+1 (555) 010-2000",
+        "+1 (555) 010-2001"
+      ],
+      "email": "info@example.com",
+      "schedule_html": "<p>Mon-Fri: 9:00 - 18:00</p>",
+      "map_iframe": "<iframe src=\"https://maps.google.com\" loading=\"lazy\"></iframe>",
+      "image": []
+    },
+    "messengers": [
+      { "icon": null, "title": "Telegram", "url": "https://t.me/example" },
+      { "icon": null, "title": "Viber", "url": "viber://chat?number=%2B15550102000" }
+    ],
+    "socials": [
+      { "icon": null, "title": "Facebook", "url": "https://facebook.com/example" },
+      { "icon": null, "title": "Instagram", "url": "https://instagram.com/example" }
+    ]
+  }
 }
+```
+
+**Response fields:**
+- `data.contacts` (object): Contact information (address, phones, email, schedule, map)
+- `data.messengers` (array): Messenger links (Telegram, Viber, WhatsApp, etc.)
+- `data.socials` (array): Social media links (Facebook, Instagram, YouTube, etc.)
+
+**Use cases:**
+- Display contact information in footer
+- Show working hours
+- Display messenger and social media links
+- Contact page
+
+---
+
+### 2. Get Site Locations
+`GET /api/v1/site/locations`
+
+Returns a list of active physical store/office locations with details including addresses, working hours, phone numbers, and maps.
+
+**Authentication:** None required (public endpoint)
+
+**Headers:**
+- `Accept-Language`: Locale (optional)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "is_active": true,
+      "title": "Main Office",
+      "address": "123 Demo Street, Springfield",
+      "address_link": "https://maps.google.com/?q=123+Demo+Street+Springfield",
+      "schedule": {
+        "monday": "09:00-18:00",
+        "tuesday": "09:00-18:00",
+        "wednesday": "09:00-18:00",
+        "thursday": "09:00-18:00",
+        "friday": "09:00-18:00",
+        "saturday": "10:00-16:00",
+        "sunday": "Closed"
+      },
+      "phones": [
+        "+1 (555) 010-2000",
+        "+1 (555) 010-2001"
+      ],
+      "map_iframe": "<iframe src=\"https://maps.google.com/maps?q=...\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe>",
+      "website_link": "https://example.com",
+      "image": "https://example.com/storage/locations/main-office.jpg"
+    }
+  ]
+}
+```
+
+**Response fields:**
+- `data` (array): Array of location objects
+- `data[].id` (number): Location identifier
+- `data[].is_active` (boolean): Whether location is active
+- `data[].title` (string): Location name/title
+- `data[].address` (string): Full physical address
+- `data[].address_link` (string | null): Google Maps link for the address
+- `data[].schedule` (object): Weekly schedule with day names as keys
+  - Keys: `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, `sunday`
+  - Values: Time ranges (e.g., "09:00-18:00") or "Closed"
+- `data[].phones` (array): Array of phone numbers
+- `data[].map_iframe` (string | null): Embeddable Google Maps iframe HTML
+- `data[].website_link` (string | null): Location-specific website URL
+- `data[].image` (string | null): Location image URL
+
+**Notes:**
+- Returns only active locations
+- Response is cached per locale and automatically invalidated on location changes
+- Schedule fields are translatable (respects `Accept-Language` header)
+- Map iframes should have `loading="lazy"` attribute
+- Phone numbers should use `tel:` protocol for mobile click-to-call
+- Address links typically use Google Maps format
+
+**Frontend Implementation:**
+
+**Store:** `/app/stores/system.store.ts`
+```typescript
+async fetchLocations(): Promise<SiteLocation[]> {
+  const api = useApi()
+  const response = await api.get<{data: SiteLocation[]}>('/site/locations')
+  return response.data
+}
+```
+
+**Page:** `/app/pages/stores.vue`
+- SSR-enabled page for SEO
+- Displays locations in a responsive grid
+- Shows address, phones, schedule, map iframe, website link
+- Highlights current day in schedule
+- Click-to-call phone numbers
+- Map iframe with lazy loading
+- Loading and empty states
+
+**Usage Example:**
+```vue
+<script setup>
+const systemStore = useSystemStore()
+const { data: locations, pending } = await useAsyncData(
+  'site-locations',
+  () => systemStore.fetchLocations(),
+  { server: true }
+)
+</script>
 ```
 
 ---
 
 ## SEO API
 
-Core endpoints for SEO metadata, menus, static pages, and site contacts.
+Core endpoints for SEO metadata, menus, and static pages.
 
 ### 1. Get SEO Metadata for a Page
 `GET /api/v1/site?url={path}`
@@ -263,7 +344,6 @@ Returns the full navigational menu tree for the current locale.
 
 ---
 
-### 3. Get Site Contacts
 `GET /api/v1/site/contacts`
 
 Returns site contacts, messengers, and socials from Spatie settings. Translatable fields are automatically localized to the current request locale.
@@ -306,7 +386,69 @@ Returns site contacts, messengers, and socials from Spatie settings. Translatabl
 
 ---
 
-### 4. Get Static Page by Slug
+### 2. Get Site Locations
+`GET /api/v1/site/locations`
+
+Returns a list of active physical store/office locations with details.
+
+**Authentication:** None required (public endpoint)
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "title": "Main Office",
+      "address": "123 Demo Street, Springfield",
+      "address_link": "https://maps.google.com/?q=123+Demo+Street+Springfield",
+      "schedule": {
+        "monday": "09:00-18:00",
+        "tuesday": "09:00-18:00",
+        "wednesday": "09:00-18:00",
+        "thursday": "09:00-18:00",
+        "friday": "09:00-18:00",
+        "saturday": "10:00-16:00",
+        "sunday": "Closed"
+      },
+      "phones": [
+        "+1 (555) 010-2000",
+        "+1 (555) 010-2001"
+      ],
+      "map_iframe": "<iframe src=\"https://maps.google.com/maps?q=...\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe>",
+      "website_link": "https://example.com",
+      "image": "https://example.com/storage/locations/main-office.jpg"
+    }
+  ]
+}
+```
+
+**Response fields:**
+- `data` (array): Array of location objects
+- `data[].id` (number): Location identifier
+- `data[].title` (string): Location name/title
+- `data[].address` (string): Full physical address
+- `data[].address_link` (string | null): Google Maps link for the address
+- `data[].schedule` (object): Weekly schedule with day names as keys
+- `data[].phones` (array): Array of phone numbers
+- `data[].map_iframe` (string | null): Embeddable Google Maps iframe HTML
+- `data[].website_link` (string | null): Location-specific website URL
+- `data[].image` (string | null): Location image URL
+
+**Notes:**
+- Returns only active locations
+- Schedule fields are translatable (respects `Accept-Language` header)
+- Map iframes should have `loading="lazy"` attribute
+- Phone numbers should use `tel:` protocol for mobile click-to-call
+- Address links typically use Google Maps format
+
+---
+
+## SEO API
+
+Core endpoints for SEO metadata, menus, and static pages.
+
+### 1. Get SEO Metadata for a Page
 `GET /api/v1/site/pages/{slug}`
 
 Returns a single static page by its slug with SEO data. The response is cached and automatically invalidated on page changes.
@@ -361,7 +503,7 @@ Returns a single static page by its slug with SEO data. The response is cached a
 
 ---
 
-### 5. Get Homepage Banners
+### 3. Get Static Page by Slug
 `GET /api/v1/banners/homepage`
 
 Retrieves all visible Hero type banners for the homepage.
@@ -407,119 +549,6 @@ Retrieves all visible Hero type banners for the homepage.
 
 ---
 
-### 9. Get Site Locations
-`GET /api/v1/site/locations`
-
-Returns a list of active physical store/office locations with details.
-
-**Authentication:** None required (public endpoint)
-
-**Response:**
-```json
-{
-  "data": [
-    {
-      "id": 1,
-      "title": "Main Office",
-      "address": "123 Demo Street, Springfield",
-      "address_link": "https://maps.google.com/?q=123+Demo+Street+Springfield",
-      "schedule": {
-        "monday": "09:00-18:00",
-        "tuesday": "09:00-18:00",
-        "wednesday": "09:00-18:00",
-        "thursday": "09:00-18:00",
-        "friday": "09:00-18:00",
-        "saturday": "10:00-16:00",
-        "sunday": "Closed"
-      },
-      "phones": [
-        "+1 (555) 010-2000",
-        "+1 (555) 010-2001"
-      ],
-      "map_iframe": "<iframe src=\"https://maps.google.com/maps?q=...\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe>",
-      "website_link": "https://example.com",
-      "image": "https://example.com/storage/locations/main-office.jpg"
-    },
-    {
-      "id": 2,
-      "title": "Downtown Store",
-      "address": "456 Market Street, City Center",
-      "address_link": "https://maps.google.com/?q=456+Market+Street+City+Center",
-      "schedule": {
-        "monday": "10:00-20:00",
-        "tuesday": "10:00-20:00",
-        "wednesday": "10:00-20:00",
-        "thursday": "10:00-20:00",
-        "friday": "10:00-21:00",
-        "saturday": "10:00-21:00",
-        "sunday": "11:00-18:00"
-      },
-      "phones": [
-        "+1 (555) 020-3000"
-      ],
-      "map_iframe": "<iframe src=\"https://maps.google.com/maps?q=...\" width=\"600\" height=\"450\" style=\"border:0;\" allowfullscreen=\"\" loading=\"lazy\"></iframe>",
-      "website_link": null,
-      "image": null
-    }
-  ]
-}
-```
-
-**Response fields:**
-- `data` (array): Array of location objects
-- `data[].id` (number): Location identifier
-- `data[].title` (string): Location name/title
-- `data[].address` (string): Full physical address
-- `data[].address_link` (string | null): Google Maps link for the address
-- `data[].schedule` (object): Weekly schedule with day names as keys
-  - Keys: `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, `sunday`
-  - Values: Time ranges (e.g., "09:00-18:00") or "Closed"
-- `data[].phones` (array): Array of phone numbers
-- `data[].map_iframe` (string | null): Embeddable Google Maps iframe HTML
-- `data[].website_link` (string | null): Location-specific website URL
-- `data[].image` (string | null): Location image URL
-
-**Frontend Implementation:**
-
-**Store:** `/app/stores/system.store.ts`
-```typescript
-async fetchLocations(): Promise<SiteLocation[]> {
-  const api = useApi()
-  const response = await api.get<{data: SiteLocation[]}>('/site/locations')
-  return response.data
-}
-```
-
-**Page:** `/app/pages/stores.vue`
-- SSR-enabled page for SEO
-- Displays locations in a responsive grid
-- Shows address, phones, schedule, map iframe, website link
-- Highlights current day in schedule
-- Click-to-call phone numbers
-- Map iframe with lazy loading
-- Loading and empty states
-
-**Usage Example:**
-```vue
-<script setup>
-const systemStore = useSystemStore()
-const { data: locations, pending } = await useAsyncData(
-  'site-locations',
-  () => systemStore.fetchLocations(),
-  { server: true }
-)
-</script>
-```
-
-**Notes:**
-- Returns only active locations
-- Schedule fields are translatable (respects `Accept-Language` header)
-- Map iframes should have `loading="lazy"` attribute
-- Phone numbers should use `tel:` protocol for mobile click-to-call
-- Address links typically use Google Maps format
-
----
-
 ## SSR/CSR Behavior
 
 **SSR Pages** (Must be fetched on SSR):
@@ -527,14 +556,10 @@ const { data: locations, pending } = await useAsyncData(
 - Currencies (`/api/v1/app/currencies`)
 - SEO metadata (`/api/v1/site?url={path}`)
 - Menu tree (`/api/v1/site/menus/tree`)
-- Site contacts (`/api/v1/site/contacts`)
-- Site locations (`/api/v1/site/locations`)
+- Site contacts (`/api/v1/site/contacts`) - Shop working contacts
+- Site locations (`/api/v1/site/locations`) - Physical store locations
 - Static pages (`/api/v1/site/pages/{slug}`)
 - Homepage banners (`/api/v1/banners/homepage`)
-
-**CSR Compatible:**
-- System config updates (locale, currency)
-- Health check
 
 **Authentication:**
 - None required for read endpoints
@@ -552,6 +577,7 @@ const { data: locations, pending } = await useAsyncData(
 6. **Static Pages**: Common slugs: "terms", "privacy", "faq", "returns", "shipping"
 7. **Currency Precision**: Affects decimal places in price formatting
 8. **Default Language**: Used as fallback when requested locale is unavailable
+9. **Site vs SEO**: Site endpoints (`/site/locations`, `/site/contacts`) are for store/contact information, not SEO metadata
 
 ---
 
@@ -565,6 +591,20 @@ For proper frontend initialization:
 4. **Setup Currency Store** → Initialize currency selection
 5. **Fetch SEO** → `GET /api/v1/site?url={currentPath}` (for every page)
 6. **Fetch Menu** → `GET /api/v1/site/menus/tree` (once, cache in store)
-7. **Fetch Contacts** → `GET /api/v1/site/contacts` (once, cache in store)
+7. **Fetch Contacts** → `GET /api/v1/site/contacts` (once, cache in store) - Shop working contacts
+8. **Fetch Locations** → `GET /api/v1/site/locations` (once, cache in store, if needed) - Physical store locations
 
 All of these should happen in SSR for optimal SEO and UX.
+
+---
+
+## Deprecated Endpoints
+
+The following endpoints are **NOT** present in the backend API and should not be used:
+
+- ❌ `GET /api/v1/system/config` - Not in backend
+- ❌ `PUT /api/v1/system/currency` - Not in backend
+- ❌ `GET /api/v1/system/currencies` - Not in backend (use `/api/v1/app/currencies` instead)
+- ❌ `PUT /api/v1/system/locale` - Not in backend
+- ❌ `GET /api/v1/system/locales` - Not in backend (use `/api/v1/app/languages` instead)
+- ❌ `GET /api/v1/health` - Not in backend

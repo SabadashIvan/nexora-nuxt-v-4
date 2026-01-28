@@ -16,6 +16,10 @@ const router = useRouter()
 const localePath = useLocalePath()
 const { t } = useI18n()
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
 const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
 const token = computed(() => route.query.token as string | undefined)
 const email = ref('')
@@ -51,6 +55,9 @@ async function handleConfirm() {
 
   if (success) {
     status.value = 'success'
+    $toast.success(t('auth.changePassword.success'), {
+      description: t('auth.changePassword.successMessage'),
+    })
     // Redirect to login after 3 seconds
     setTimeout(() => {
       router.push(localePath('/auth/login'))
@@ -59,6 +66,13 @@ async function handleConfirm() {
     status.value = 'error'
   }
 }
+
+// Watch for error messages and show toast
+watch(error, (newError) => {
+  if (newError && status.value === 'error') {
+    $toast.error(newError)
+  }
+})
 </script>
 
 <template>
@@ -120,19 +134,6 @@ async function handleConfirm() {
         </div>
 
         <form class="mt-8 space-y-6" @submit.prevent="handleConfirm">
-          <!-- Error Alert -->
-          <div
-            v-if="error"
-            class="rounded-md bg-red-50 dark:bg-red-900/20 p-4"
-          >
-            <div class="flex">
-              <XCircle class="h-5 w-5 text-red-400" />
-              <div class="ml-3">
-                <p class="text-sm text-red-700 dark:text-red-400">{{ error }}</p>
-              </div>
-            </div>
-          </div>
-
           <!-- Email Input -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -153,7 +154,7 @@ async function handleConfirm() {
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               ]"
               :placeholder="$t('auth.changePassword.emailPlaceholder')"
-            />
+            >
             <p v-if="fieldErrors.email" class="mt-1 text-sm text-red-600 dark:text-red-400">
               {{ fieldErrors.email }}
             </p>

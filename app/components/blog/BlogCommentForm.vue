@@ -55,7 +55,7 @@ function handleKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-3">
+  <form class="space-y-3" @submit.prevent="handleSubmit">
     <div class="relative">
       <textarea
         v-model="text"

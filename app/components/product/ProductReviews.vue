@@ -4,9 +4,16 @@
  * Main component for displaying and managing product reviews
  * CSR-only: loads reviews on client mount
  */
-import { Star, LogIn, ChevronDown, CheckCircle, MessageSquareText } from 'lucide-vue-next'
+import { Star, LogIn, ChevronDown, MessageSquareText } from 'lucide-vue-next'
 import { useReviewsStore } from '~/stores/reviews.store'
 import { useAuthStore } from '~/stores/auth.store'
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
 
 const props = defineProps<{
   /** Product ID (product_id, NOT variant_id) to fetch reviews for */
@@ -21,7 +28,6 @@ const router = useRouter()
 const localePath = useLocalePath()
 
 const isInitialized = ref(false)
-const showSuccessMessage = ref(false)
 
 // Computed
 const reviews = computed(() => reviewsStore.reviews)
@@ -71,14 +77,12 @@ async function handleReviewSubmit(rating: number, body: string, pros?: string, c
   })
   
   if (review) {
-    // Show success message (review may be on moderation)
-    showSuccessMessage.value = true
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      showSuccessMessage.value = false
-    }, 5000)
+    // Show success toast (review may be on moderation)
+    $toast.success(t('product.reviews.submittedSuccess'), {
+      description: t('product.reviews.moderationMessage'),
+    })
   } else if (reviewsStore.error) {
-    // Error is handled by store
+    // Error is handled by toast watcher
     console.error('Failed to create review:', reviewsStore.error)
   }
 }
@@ -86,6 +90,13 @@ async function handleReviewSubmit(rating: number, body: string, pros?: string, c
 function goToLogin() {
   router.push(localePath('/auth/login'))
 }
+
+// Watch for error messages and show toast
+watch(error, (newError) => {
+  if (newError && isSubmitting.value === false) {
+    $toast.error(newError)
+  }
+})
 </script>
 
 <template>
@@ -131,26 +142,6 @@ function goToLogin() {
         <ProductReviewForm 
           @submit="handleReviewSubmit"
         />
-
-        <!-- Success message -->
-        <div 
-          v-if="showSuccessMessage" 
-          class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2"
-        >
-          <CheckCircle class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p class="text-sm font-medium text-green-800">{{ $t('product.reviews.submittedSuccess') }}</p>
-            <p class="text-xs text-green-600 mt-1">{{ $t('product.reviews.moderationMessage') }}</p>
-          </div>
-        </div>
-
-        <!-- Submission error -->
-        <div 
-          v-if="error && isSubmitting === false && !showSuccessMessage" 
-          class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg"
-        >
-          <p class="text-sm text-red-600">{{ error }}</p>
-        </div>
       </div>
 
       <!-- Not authenticated: Show login prompt -->

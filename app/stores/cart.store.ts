@@ -216,6 +216,27 @@ export const useCartStore = defineStore('cart', {
         this.cart.context.locale
       )
     },
+
+    /**
+     * Get cart loyalty information
+     */
+    loyalty: (state) => {
+      return state.cart?.loyalty || null
+    },
+
+    /**
+     * Potential loyalty points accrual in major units
+     */
+    potentialLoyaltyAccrual: (state): number => {
+      return minorToMajor(state.cart?.loyalty?.potential_accrual_minor || 0)
+    },
+
+    /**
+     * Maximum spendable loyalty points in major units
+     */
+    maxLoyaltySpendable: (state): number => {
+      return minorToMajor(state.cart?.loyalty?.max_spendable_minor || 0)
+    },
   },
 
   actions: {
@@ -768,7 +789,11 @@ export const useCartStore = defineStore('cart', {
     },
 
     /**
-     * Remove coupon
+     * Remove coupon from cart
+     * DELETE /api/v1/cart/coupons/{code}
+     * 
+     * Removes a previously applied coupon code from the shopping cart.
+     * Response always returns a full snapshot of the updated cart.
      */
     async removeCoupon(code: string): Promise<boolean> {
       const api = useApi()
@@ -776,29 +801,62 @@ export const useCartStore = defineStore('cart', {
       this.error = null
 
       try {
+        // Ensure we have a cart token
+        if (!this.cartToken) {
+          this.restoreToken()
+        }
+
+        if (!this.cartToken) {
+          this.error = 'No cart token available'
+          return false
+        }
+
         const response = await api.delete<Cart | CartApiResponse>(`/cart/coupons/${code}`, {
           cart: true,
         })
+        
+        // Response always returns a full snapshot of the updated cart
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(null, cart)
+        
+        // Update applied coupons list (remove the one we just deleted)
         this.appliedCoupons = this.appliedCoupons.filter(c => c.code !== code)
 
-        // Save token from response
+        // Save token and version from response
         if (cart.token) {
           this.cartToken = cart.token
           setToken(TOKEN_KEYS.CART, cart.token)
         }
+
         return true
       } catch (error) {
         const apiError = parseApiError(error)
 
-        // Handle 404 - cart doesn't exist, clear token
+        // Handle 404 - cart doesn't exist or coupon not found
         if (apiError.status === 404) {
-          this.cartToken = null
-          removeToken(TOKEN_KEYS.CART)
+          const existingToken = this.cartToken
+          await this.loadCart()
+
+          if (!this.cartToken && existingToken) {
+            this.error = 'Cart not found'
+          } else {
+            this.error = 'Coupon not found in cart'
+          }
+        }
+        // Handle 409 - version mismatch (useApi should retry automatically, but log if it fails)
+        else if (apiError.status === 409) {
+          // Reload cart to get latest version and retry
+          await this.loadCart()
+          this.error = 'Cart was modified. Please try again.'
+        }
+        // Handle 422 - validation error
+        else if (apiError.status === 422) {
+          this.error = apiError.message || 'Invalid coupon code'
+        }
+        else {
+          this.error = getErrorMessage(error)
         }
 
-        this.error = getErrorMessage(error)
         console.error('Remove coupon error:', error)
         return false
       } finally {
@@ -819,6 +877,10 @@ export const useCartStore = defineStore('cart', {
       if (!authStore.isAuthenticated || !this.cartToken) return
 
       try {
+        // NOTE: /cart/attach endpoint is NOT present in backend YAML specification
+        // Backend may handle cart merging automatically on login
+        // If this endpoint returns 404, cart merging likely happens server-side
+        // See: ai/operations/backend-endpoints-delta.md for verification status
         const response = await nuxtApp.runWithContext(async () => 
           await api.post<Cart | CartApiResponse>('/cart/attach', undefined, { 
             cart: true,
@@ -826,9 +888,16 @@ export const useCartStore = defineStore('cart', {
         )
         const cart = this.extractCart(response)
         this.finalizeOptimisticOperation(null, cart)
-      } catch (error) {
+      } catch (error: unknown) {
+        // Handle 404 gracefully - endpoint may not exist, cart merging may be automatic
+        const apiError = error as { statusCode?: number; status?: number }
+        if (apiError?.statusCode === 404 || apiError?.status === 404) {
+          // Endpoint doesn't exist - cart merging likely happens automatically on login
+          // No action needed, cart will be merged server-side
+          return
+        }
         console.error('Attach cart error:', error)
-        // Non-critical - just log the error
+        // Non-critical - just log other errors
       }
     },
 

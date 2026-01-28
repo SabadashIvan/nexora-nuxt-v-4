@@ -125,11 +125,41 @@ server/
 └── routes/             # Server API routes
 
 ai/                     # Project documentation
-├── architecture.md     # Complete architecture specification
-├── api.md              # API endpoints documentation
-├── stores.md           # Store definitions
-├── checkout-flow.md    # Checkout process flow
-└── constitution/       # Immutable rules
+├── README.md           # Central navigation hub
+├── core/               # System architecture & rules
+│   ├── master-prompt.md
+│   ├── architecture.md
+│   └── system-core.md
+├── api/                # API endpoints (9 domain-specific files)
+│   ├── README.md       # API navigation index
+│   ├── authentication.md
+│   ├── catalog.md
+│   ├── cart-favorites.md
+│   ├── checkout-payments.md
+│   ├── shipping-orders.md
+│   ├── content.md
+│   ├── notifications-loyalty.md
+│   ├── audience-support.md
+│   └── system-seo.md
+├── stores/             # Pinia state management
+│   ├── README.md       # Stores index
+│   └── stores.md       # Complete store definitions
+├── flows/              # Business process flows
+│   └── checkout-flow.md
+├── constitution/       # Immutable rules
+│   ├── api-rules.md
+│   ├── rendering.md
+│   ├── checkout.md
+│   ├── seo-i18n.md
+│   └── tokens.md
+├── operations/         # Planning & tracking
+│   ├── README.md
+│   ├── not-implemented.md
+│   ├── frontend-todo.md
+│   └── ai-rules.md
+└── reference/          # Quick reference materials
+    ├── endpoint-index.md
+    └── dto-mapping.md
 ```
 
 ## 🎯 Key Concepts
@@ -203,7 +233,9 @@ All API calls must:
   - `Accept-Currency` (from `system.store`)
   - Session cookies (HTTP-only, automatically attached for authenticated requests)
   - `X-Guest-Id`, `X-Cart-Token`, `X-Comparison-Token` (when applicable)
-- Follow endpoints defined in `ai/api.md` (never invent endpoints)
+- Follow endpoints defined in `ai/api/` domain-specific files (never invent endpoints)
+  - See `ai/api/README.md` for navigation
+  - Use `ai/reference/endpoint-index.md` for quick endpoint lookup
 - Handle errors properly:
   - `401` → auto-logout (handled by `useApi`)
   - `422` → validation error handling
@@ -249,14 +281,43 @@ npm run postinstall  # Regenerate Nuxt types (runs automatically after install)
 
 ## 📚 Documentation
 
-Complete project documentation is available in the `ai/` folder:
+Complete project documentation is available in the `ai/` folder. **Start here:** [`ai/README.md`](ai/README.md) - Central navigation hub
 
-- **`ai/master-prompt.md`** - AI agent guidelines and system rules
-- **`ai/architecture.md`** - Complete architecture specification
-- **`ai/api.md`** - All API endpoints and contracts
-- **`ai/stores.md`** - Pinia store definitions and behavior
-- **`ai/checkout-flow.md`** - Detailed checkout process
-- **`ai/constitution/`** - Immutable system rules
+### Core Documentation
+- **`ai/core/master-prompt.md`** - AI agent guidelines and system rules
+- **`ai/core/architecture.md`** - Complete architecture specification
+- **`ai/core/system-core.md`** - Immutable system core rules
+
+### API Documentation (9 domain-specific files)
+- **`ai/api/README.md`** - API documentation index
+- **`ai/api/authentication.md`** - Auth, Identity, OAuth
+- **`ai/api/catalog.md`** - Products, Categories, Search
+- **`ai/api/cart-favorites.md`** - Cart, Wishlist, Comparison
+- **`ai/api/checkout-payments.md`** - Checkout & Payments
+- **`ai/api/shipping-orders.md`** - Shipping & Orders
+- **`ai/api/content.md`** - Blog, Comments, Reviews
+- **`ai/api/notifications-loyalty.md`** - Notifications & Loyalty
+- **`ai/api/audience-support.md`** - Audience & Support
+- **`ai/api/system-seo.md`** - System Config & SEO
+
+### State Management
+- **`ai/stores/stores.md`** - Complete Pinia store definitions (17 stores)
+
+### Business Flows
+- **`ai/flows/checkout-flow.md`** - Detailed checkout process
+
+### Constitution (Immutable Rules)
+- **`ai/constitution/api-rules.md`** - API contract rules
+- **`ai/constitution/rendering.md`** - SSR vs CSR rendering rules
+- **`ai/constitution/checkout.md`** - Checkout-specific rules
+- **`ai/constitution/seo-i18n.md`** - SEO and i18n rules
+- **`ai/constitution/tokens.md`** - Token model rules
+
+### Reference Materials
+- **`ai/reference/endpoint-index.md`** - Alphabetical endpoint listing
+- **`ai/reference/dto-mapping.md`** - DTO mapping guide
+
+**For AI Agents:** See [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) for complete guidelines.
 
 ## 🔧 Configuration
 
@@ -284,16 +345,16 @@ CSR-only pages (`/cart`, `/checkout`, `/favorites`, `/comparison`, `/profile/**`
 
 ### For Developers
 
-1. **Never invent API endpoints** - Only use endpoints from `ai/api.md`
+1. **Never invent API endpoints** - Only use endpoints from `ai/api/` domain-specific files (see `ai/api/README.md`)
 2. **Never access stores at top level** - Use inside `useAsyncData`, `onMounted`, or computed properties
-3. **Never use SSR for CSR-only pages** - Check rendering rules first
+3. **Never use SSR for CSR-only pages** - Check `ai/constitution/rendering.md` first
 4. **Always use `useApi()`** - Never use raw `fetch()` in components
 5. **Business logic in stores** - Never implement cart/checkout logic in components
 6. **Always handle errors** - 401 → logout, 422 → validation errors
 
 ### For AI Agents
 
-See `ai/master-prompt.md` and `AGENTS.md` for complete guidelines.
+See [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md) for complete guidelines. Start with `ai/README.md` for navigation.
 
 ## 🐛 Troubleshooting
 

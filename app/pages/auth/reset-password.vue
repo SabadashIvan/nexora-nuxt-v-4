@@ -2,7 +2,7 @@
 /**
  * Reset password page
  */
-import { Lock, Eye, EyeOff, CheckCircle } from 'lucide-vue-next'
+import { Lock, Eye, EyeOff } from 'lucide-vue-next'
 
 definePageMeta({
   ssr: false,
@@ -11,6 +11,10 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
 
 // Locale-aware navigation
 const localePath = useLocalePath()
@@ -59,6 +63,22 @@ async function handleSubmit() {
     }, 2000)
   }
 }
+
+// Watch for success messages and show toast
+watch(status, (newStatus) => {
+  if (newStatus === 'reset') {
+    $toast.success('Password reset successful!', {
+      description: 'Redirecting to sign in...',
+    })
+  }
+})
+
+// Watch for error messages and show toast
+watch(error, (newError) => {
+  if (newError) {
+    $toast.error(newError)
+  }
+})
 </script>
 
 <template>
@@ -79,31 +99,7 @@ async function handleSubmit() {
 
       <!-- Form -->
       <div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8">
-        <!-- Success message -->
-        <div 
-          v-if="status === 'reset'" 
-          class="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-        >
-          <div class="flex items-start gap-3">
-            <CheckCircle class="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p class="font-medium text-green-700 dark:text-green-300">Password reset successful!</p>
-              <p class="text-sm text-green-600 dark:text-green-400">
-                Redirecting to sign in...
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Error message -->
-        <div 
-          v-else-if="error" 
-          class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-        >
-          <p class="text-sm text-red-700 dark:text-red-400">{{ error }}</p>
-        </div>
-
-        <form v-if="status !== 'reset'" @submit.prevent="handleSubmit" class="space-y-5">
+        <form v-if="status !== 'reset'" class="space-y-5" @submit.prevent="handleSubmit">
           <!-- Password -->
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

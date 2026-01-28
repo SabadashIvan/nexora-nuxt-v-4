@@ -119,7 +119,7 @@ const sizeClasses = computed(() => {
       <span 
         :class="[
           sizeClasses,
-          isDiscounted ? 'text-red-600 dark:text-red-400 font-bold' : 'text-black dark:text-gray-100 font-bold'
+          isDiscounted ? 'text-red-600 dark:text-red-400 font-bold' : 'text-black dark:text-black-100 font-bold'
         ]"
       >
         {{ formattedPrice }}

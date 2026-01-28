@@ -119,7 +119,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
             rel: 'canonical',
             href: canonicalUrl,
           })
-        } catch (error) {
+        } catch {
           // Fallback to current path
           links.push({
             rel: 'canonical',

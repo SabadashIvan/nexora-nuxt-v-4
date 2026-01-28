@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
-import type { Cart } from '~/types'
+import CartCounter from '~/components/cart/CartCounter.vue'
 
 // Mock cart store before importing component
 const mockUseCartStore = vi.fn()
@@ -17,9 +17,6 @@ vi.mock('#app', async () => {
     useLocalePath: vi.fn(() => (path: string) => path),
   }
 })
-
-// Import component after mocks
-import CartCounter from '~/components/cart/CartCounter.vue'
 
 describe('CartCounter component', () => {
   beforeEach(() => {

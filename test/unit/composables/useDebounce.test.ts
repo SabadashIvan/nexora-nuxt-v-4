@@ -3,7 +3,7 @@ import { ref, nextTick } from 'vue'
 import { useDebouncedRef, useDebounce, useThrottle } from '~/composables/useDebounce'
 
 // Mock onUnmounted (auto-imported in Nuxt)
-global.onUnmounted = vi.fn((fn) => {
+global.onUnmounted = vi.fn((_fn) => {
   // Store cleanup function but don't execute immediately
   // This allows testing the composable without actual unmount
 })

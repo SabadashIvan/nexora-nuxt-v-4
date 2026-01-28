@@ -9,17 +9,14 @@ export default defineEventHandler(async (event): Promise<unknown> => {
   const body = await readBody(event)
 
   // Extract IP address from request headers
-  // Check X-Forwarded-For first (for proxies/load balancers), then X-Real-IP, then direct connection
-  const forwardedFor = getHeader(event, 'x-forwarded-for')
-  const realIp = getHeader(event, 'x-real-ip')
-  let ipAddress = forwardedFor 
-    ? forwardedFor.split(',')[0].trim() 
-    : realIp || '127.0.0.1'
-  
-  // Fallback to socket remote address if headers don't have IP
-  if (ipAddress === '127.0.0.1' && event.node?.req?.socket?.remoteAddress) {
-    ipAddress = event.node.req.socket.remoteAddress
-  }
+  // Prefer X-Forwarded-For, then X-Real-IP, then socket remote address, then localhost
+  const nodeEvent = event as { node?: { req?: { socket?: { remoteAddress?: string } } } }
+  const ipAddress = String(
+    getHeader(event, 'x-forwarded-for')
+      || getHeader(event, 'x-real-ip')
+      || nodeEvent?.node?.req?.socket?.remoteAddress
+      || '127.0.0.1',
+  )
 
   // Get user agent from headers
   const userAgent = getHeader(event, 'user-agent') || ''

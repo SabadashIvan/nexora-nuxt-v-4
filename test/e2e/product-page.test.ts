@@ -13,11 +13,12 @@ describe('Product Page', async () => {
       const html = await $fetch('/product/test-product')
       expect(html).toBeTruthy()
       expect(html).toContain('<!DOCTYPE html>')
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { status?: number }
       // If product doesn't exist, that's expected in test environment
       // This test verifies the route exists and handles requests
-      if (error.status === 404) {
-        expect(error.status).toBe(404)
+      if (err.status === 404) {
+        expect(err.status).toBe(404)
       } else {
         throw error
       }
@@ -28,9 +29,10 @@ describe('Product Page', async () => {
     try {
       await $fetch('/product/non-existent-product-12345')
       // If it doesn't throw, the page exists (unexpected)
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { status?: number }
       // Expected: 404 for non-existent product
-      expect(error.status).toBe(404)
+      expect(err.status).toBe(404)
     }
   })
 })

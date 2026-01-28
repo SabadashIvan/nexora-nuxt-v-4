@@ -19,10 +19,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <NuxtLayout>
-    <!-- Key by locale to force page remount on language change -->
-    <NuxtPage :key="locale" />
-  </NuxtLayout>
+  <div>
+    <Toaster position="top-right" rich-colors />
+    <NuxtLayout>
+      <!-- Key by locale to force page remount on language change -->
+      <NuxtPage :key="locale" />
+    </NuxtLayout>
+  </div>
 </template>
 
 <style>

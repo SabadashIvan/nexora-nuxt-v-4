@@ -61,7 +61,7 @@ Returns the current cart by token.
         "qty": 2,
         "title": "MacBook Air 13",
         "image": {
-          "id": 234,
+          "id": null,
           "url": "https://example.com/images/thumb_250_250.webp"
         },
         "price": {
@@ -70,10 +70,24 @@ Returns the current cart by token.
           "sale_minor": 39195,
           "effective_minor": 39195
         },
+        "options": [],
+        "options_total_minor": 0,
         "line_total_minor": 78390
       }
     ],
-    "promotions": [],
+    "promotions": [
+      {
+        "promotion_id": 8,
+        "name": "Quo mollitia aliquam",
+        "type": 2,
+        "value": 2185,
+        "source": 2
+      }
+    ],
+    "loyalty": {
+      "potential_accrual_minor": 367270,
+      "max_spendable_minor": 0
+    },
     "warnings": [],
     "totals": {
       "items_minor": 78390,
@@ -84,6 +98,23 @@ Returns the current cart by token.
 }
 ```
 
+**Cart item fields:**
+- `title` (string, optional): Product title from API. Use this as the primary display name.
+- `image`: Each item may include `image` with `id` (number or `null`) and `url` (string). Use `url` for display; `id` may be `null` when no media record exists.
+- `price.sale_minor` (number, optional): Sale price in minor units. Only present when item is on sale.
+- `options_total_minor` (number): Total price of item options in minor units.
+
+**Cart promotions:**
+- `promotion_id` (number): Unique promotion identifier
+- `name` (string): Promotion name/description
+- `value` (number): Promotion discount value in minor units
+- `type` (number): Promotion type identifier
+- `source` (number, optional): Promotion source identifier
+
+**Cart loyalty:**
+- `potential_accrual_minor` (number): Potential loyalty points that can be earned from this cart in minor units
+- `max_spendable_minor` (number): Maximum loyalty points that can be spent on this cart in minor units
+
 **Response headers:**
 - `X-Cart-Token`: Current cart token
 - `X-Cart-Version`: Current cart version number
@@ -91,9 +122,11 @@ Returns the current cart by token.
 ---
 
 ### 2. Get Cart Version
-`HEAD /api/v1/cart/v`
+`GET /api/v1/cart/v`
 
 Returns the current version of the cart **without full cart data**.
+
+**Note:** Backend YAML shows GET method. Verify with backend if HEAD is also supported.
 
 **Headers:**
 - `X-Cart-Token`: Cart token (required)
@@ -263,7 +296,16 @@ Removes a previously applied coupon code from the shopping cart.
 - `code` (string): Coupon code to remove
 
 **Response:**
-Updated cart with coupon removed
+The response body always returns a full snapshot of the updated cart (items, totals, currency, version, etc.).
+
+**Response headers:**
+- `X-Cart-Token`: Current cart token
+- `X-Cart-Version`: Updated version number
+
+**Error responses:**
+- `404`: Cart not found or coupon not found
+- `409`: Version mismatch (cart was modified concurrently)
+- `422`: Validation error
 
 ---
 
@@ -275,6 +317,8 @@ Used when a guest becomes authenticated. Merges guest cart with user cart.
 **Headers:**
 - `X-Cart-Token`: Guest cart token (required)
 - `Authorization`: Cookie-based authentication (required)
+
+**Note:** Verify with backend if this endpoint exists. If not, cart merging may happen automatically on login.
 
 ---
 

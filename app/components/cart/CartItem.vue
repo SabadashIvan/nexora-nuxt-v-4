@@ -1,12 +1,20 @@
 <script setup lang="ts">
 /**
  * Cart item component
- * Works with new API format (qty, price.effective_minor, line_total_minor)
+ * Works with new API format (qty, price.effective_minor, line_total_minor, image)
  */
 import { Trash2, AlertTriangle } from 'lucide-vue-next'
 import type { CartItem, CartWarning } from '~/types'
 import { useCartStore } from '~/stores/cart.store'
 import { formatPrice as formatPriceUtil } from '~/types/cart'
+import { getImageUrl } from '~/utils'
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
+// Get i18n for translations
+const { t } = useI18n()
 
 interface Props {
   item: CartItem
@@ -56,18 +64,33 @@ const hasStockWarning = computed(() =>
   props.warning?.code === 'INSUFFICIENT_STOCK'
 )
 
+// Image URL from cart item (image.id may be null; image.url is used)
+const imageUrl = computed(() => getImageUrl(props.item.image))
+
 async function updateQuantity(newQty: number) {
   if (newQty === props.item.qty || newQty < 1) return
   
   isUpdating.value = true
-  await cartStore.updateItemQuantity(props.item.id, newQty)
+  const success = await cartStore.updateItemQuantity(props.item.id, newQty)
   isUpdating.value = false
+  
+  if (success) {
+    $toast.success(t('cart.quantityUpdated') || 'Quantity updated')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 async function removeItem() {
   isRemoving.value = true
-  await cartStore.removeItem(props.item.id)
+  const success = await cartStore.removeItem(props.item.id)
   isRemoving.value = false
+  
+  if (success) {
+    $toast.success(t('cart.itemRemoved') || 'Item removed from cart')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 
 // Debounced quantity update
@@ -96,18 +119,28 @@ function onQuantityChange(newQty: number) {
       'border-amber-300 dark:border-amber-700': hasStockWarning
     }"
   >
-    <!-- Placeholder image (API doesn't return images) -->
-    <div class="flex-shrink-0">
-      <div class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+    <!-- Product image or placeholder -->
+    <div class="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+      <NuxtImg
+        v-if="imageUrl"
+        :src="imageUrl"
+        :alt="item.title || item.name || item.sku"
+        class="w-full h-full object-cover"
+        loading="lazy"
+      />
+      <div
+        v-else
+        class="w-full h-full flex items-center justify-center"
+      >
         <span class="text-xs text-gray-400 text-center px-2">{{ item.sku }}</span>
       </div>
     </div>
 
     <!-- Details -->
     <div class="flex-1 min-w-0">
-      <!-- SKU as title (API doesn't return product name) -->
+      <!-- Product title (API now returns title field) -->
       <h3 class="font-medium text-gray-900 dark:text-gray-100 truncate">
-        Product #{{ item.variant_id }}
+        {{ item.title || item.name || `Product #${item.variant_id}` }}
       </h3>
       
       <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">SKU: {{ item.sku }}</p>

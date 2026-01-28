@@ -28,6 +28,8 @@ interface CatalogState {
   sorting: SortOption
   pagination: Pagination
   brands: Brand[]
+  recommendedVariants: ProductListItem[]
+  recommendationsLoading: boolean
   loading: boolean
   error: string | null
   errorStatus: number | null
@@ -48,12 +50,51 @@ export const useCatalogStore = defineStore('catalog', {
       lastPage: 1,
     },
     brands: [],
+    recommendedVariants: [],
+    recommendationsLoading: false,
     loading: false,
     error: null,
     errorStatus: null,
   }),
 
   getters: {
+    /**
+     * Find a category path (root -> ... -> target) from the loaded categories tree.
+     *
+     * NOTE/TODO(backend): Ideally the backend should return the full ancestor path
+     * for a category (e.g. `ancestors` or `path`) in `/catalog/categories/{slug}`.
+     * Today we derive it client-side from `fetchCategories()` which requires
+     * requesting the entire categories tree.
+     */
+    getCategoryPathBySlug: (state) => {
+      return (slug: string): Category[] => {
+        if (!slug) return []
+        if (!state.categories || state.categories.length === 0) return []
+
+        const visited = new Set<number>()
+
+        const dfs = (nodes: Category[], path: Category[]): Category[] | null => {
+          for (const node of nodes) {
+            if (!node) continue
+            if (typeof node.id === 'number') {
+              if (visited.has(node.id)) continue
+              visited.add(node.id)
+            }
+
+            const nextPath = [...path, node]
+            if (node.slug === slug) return nextPath
+
+            if (node.children && node.children.length > 0) {
+              const found = dfs(node.children, nextPath)
+              if (found) return found
+            }
+          }
+          return null
+        }
+
+        return dfs(state.categories, []) ?? []
+      }
+    },
     /**
      * Get root categories (no parent)
      */
@@ -246,9 +287,14 @@ export const useCatalogStore = defineStore('catalog', {
       // Build query parameters according to YAML API spec
       const queryParams: Record<string, string | number | string[] | undefined> = {
         page: mergedParams.page || this.pagination.page,
-        per_page: mergedParams.per_page || this.pagination.perPage,
+        per_page: mergedParams.per_page ?? 20, // Default to 20 if not explicitly provided
         sort: normalizedSort,
         include_facets: mergedParams.include_facets !== undefined ? mergedParams.include_facets : 1, // Default to 1
+      }
+
+      // Add raw_suggest if provided (confirmed search text from suggest/history selection)
+      if (mergedParams.raw_suggest) {
+        queryParams.raw_suggest = mergedParams.raw_suggest
       }
 
       // Add filter parameters with filters[] format
@@ -454,9 +500,60 @@ export const useCatalogStore = defineStore('catalog', {
         lastPage: 1,
       }
       this.brands = []
+      this.recommendedVariants = []
+      this.recommendationsLoading = false
       this.loading = false
       this.error = null
       this.errorStatus = null
+    },
+
+    /**
+     * Fetch recommended variants for a product
+     * GET /api/v1/catalog/recommendations/variants?variant_id={id}
+     * @param variantId - The variant ID to get recommendations for
+     * @param limit - Optional limit for number of recommendations (default: 8)
+     */
+    async fetchRecommendedVariants(variantId: number, limit = 8): Promise<void> {
+      const api = useApi()
+      this.recommendationsLoading = true
+      this.error = null
+
+      try {
+        const response = await api.get<VariantsResponse | { data: ProductListItem[] }>(
+          '/catalog/recommendations/variants',
+          {
+            variant_id: variantId,
+            limit,
+          },
+          {
+            guest: true, // Include guest token for favorite flags
+          }
+        )
+
+        // Handle both wrapped and unwrapped response
+        // Note: avoid relying on `Array.isArray(response.data)` for narrowing here,
+        // because `response.data` can be either an array (recommendations) or an
+        // object (variants response shape) depending on endpoint.
+        if ('data' in response && Array.isArray((response as { data: unknown }).data)) {
+          this.recommendedVariants = (response as { data: ProductListItem[] }).data
+        } else if (Array.isArray(response)) {
+          this.recommendedVariants = response
+        } else if (
+          'data' in response &&
+          (response as VariantsResponse).data &&
+          Array.isArray((response as VariantsResponse).data.items)
+        ) {
+          this.recommendedVariants = (response as VariantsResponse).data.items
+        } else {
+          this.recommendedVariants = []
+        }
+      } catch (error) {
+        this.error = getErrorMessage(error)
+        console.error('Fetch recommended variants error:', error)
+        this.recommendedVariants = []
+      } finally {
+        this.recommendationsLoading = false
+      }
     },
   },
 })

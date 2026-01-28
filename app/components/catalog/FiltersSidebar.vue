@@ -10,10 +10,12 @@ interface Props {
   activeFilters: ProductFilter
   loading?: boolean
   mobileOnly?: boolean
+  excludedCategoryIds?: string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   mobileOnly: false,
+  excludedCategoryIds: () => [],
 })
 
 const emit = defineEmits<{
@@ -22,6 +24,13 @@ const emit = defineEmits<{
 }>()
 
 const isMobileOpen = ref(false)
+
+const visibleCategories = computed(() => {
+  const categories = props.filters.categories ?? []
+  const excluded = props.excludedCategoryIds ?? []
+  if (excluded.length === 0) return categories
+  return categories.filter(c => !excluded.includes(c.value))
+})
 
 // Disclosure states for collapsible sections
 const expandedSections = ref<Record<string, boolean>>({
@@ -196,7 +205,7 @@ function applyFilters() {
   emit('update:filters', filters)
 }
 
-function resetFilters() {
+function _resetFilters() {
   priceMin.value = undefined
   priceMax.value = undefined
   selectedCategories.value = []
@@ -204,14 +213,9 @@ function resetFilters() {
   selectedAttributes.value = {}
   emit('reset')
 }
-
+ 
 function toggleSection(section: string) {
   expandedSections.value[section] = !expandedSections.value[section]
-}
-
-// Render filter content (shared between mobile and desktop)
-function renderFilterContent() {
-  return null // Will be rendered in template
 }
 </script>
 
@@ -268,9 +272,9 @@ function renderFilterContent() {
               <!-- Filters -->
               <form class="mt-4 border-t border-gray-200">
                 <!-- Categories (simple list) -->
-                <h3 v-if="filters.categories && filters.categories.length > 0" class="sr-only">Categories</h3>
-                <ul v-if="filters.categories && filters.categories.length > 0" role="list" class="px-2 py-3 font-medium text-gray-900">
-                  <li v-for="category in filters.categories" :key="category.value">
+                <h3 v-if="visibleCategories.length > 0" class="sr-only">Categories</h3>
+                <ul v-if="visibleCategories.length > 0" role="list" class="px-2 py-3 font-medium text-gray-900">
+                  <li v-for="category in visibleCategories" :key="category.value">
                     <label class="block px-2 py-3 cursor-pointer">
                       <input
                         type="checkbox"
@@ -419,13 +423,13 @@ function renderFilterContent() {
     <!-- Desktop sidebar -->
     <form v-if="!mobileOnly" class="hidden lg:block">
       <!-- Categories (simple list) -->
-      <h3 v-if="filters.categories && filters.categories.length > 0" class="sr-only">Categories</h3>
+      <h3 v-if="visibleCategories.length > 0" class="sr-only">Categories</h3>
       <ul
-        v-if="filters.categories && filters.categories.length > 0"
+        v-if="visibleCategories.length > 0"
         role="list"
         class="space-y-4 border-b border-gray-200 pb-6 text-sm font-medium text-gray-900"
       >
-        <li v-for="category in filters.categories" :key="category.value">
+        <li v-for="category in visibleCategories" :key="category.value">
           <label class="cursor-pointer">
             <input
               type="checkbox"

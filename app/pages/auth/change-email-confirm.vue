@@ -16,6 +16,10 @@ const router = useRouter()
 const localePath = useLocalePath()
 const { t } = useI18n()
 
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
+
 const authStore = shallowRef<ReturnType<typeof useAuthStore> | null>(null)
 const token = computed(() => route.query.token as string | undefined)
 const queryEmail = computed(() => route.query.email as string | undefined)
@@ -47,6 +51,9 @@ onMounted(async () => {
 
   if (success) {
     status.value = 'success'
+    $toast.success(t('auth.changeEmail.success'), {
+      description: t('auth.changeEmail.successMessage'),
+    })
     // Redirect to profile after 3 seconds
     setTimeout(() => {
       router.push(localePath('/profile'))
@@ -57,6 +64,13 @@ onMounted(async () => {
 })
 
 const error = computed(() => authStore.value?.error ?? null)
+
+// Watch for error messages and show toast
+watch(error, (newError) => {
+  if (newError && status.value === 'error') {
+    $toast.error(newError || t('auth.changeEmail.errorMessage'))
+  }
+})
 </script>
 
 <template>

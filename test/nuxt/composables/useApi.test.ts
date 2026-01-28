@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useApi } from '~/composables/useApi'
 
@@ -27,7 +28,7 @@ vi.mock('#app', async () => {
 })
 
 // Mock $fetch
-global.$fetch = vi.fn()
+global.$fetch = vi.fn() as any
 
 // Mock token utilities
 vi.mock('~/utils/tokens', () => ({
@@ -135,7 +136,7 @@ describe('useApi', () => {
     it('should make GET request', async () => {
       const api = useApi()
       const mockResponse = { data: 'test' }
-      global.$fetch = vi.fn().mockResolvedValue(mockResponse)
+      global.$fetch = vi.fn().mockResolvedValue(mockResponse) as any
       
       const result = await api.get('/test')
       
@@ -151,7 +152,7 @@ describe('useApi', () => {
     it('should make POST request with body', async () => {
       const api = useApi()
       const mockResponse = { success: true }
-      global.$fetch = vi.fn().mockResolvedValue(mockResponse)
+      global.$fetch = vi.fn().mockResolvedValue(mockResponse) as any
       
       const payload = { name: 'test' }
       const result = await api.post('/test', payload)
@@ -169,7 +170,7 @@ describe('useApi', () => {
     it('should make PUT request', async () => {
       const api = useApi()
       const mockResponse = { updated: true }
-      global.$fetch = vi.fn().mockResolvedValue(mockResponse)
+      global.$fetch = vi.fn().mockResolvedValue(mockResponse) as any
       
       const result = await api.put('/test/1', { name: 'updated' })
       
@@ -184,7 +185,7 @@ describe('useApi', () => {
     it('should make PATCH request', async () => {
       const api = useApi()
       const mockResponse = { patched: true }
-      global.$fetch = vi.fn().mockResolvedValue(mockResponse)
+      global.$fetch = vi.fn().mockResolvedValue(mockResponse) as any
       
       const result = await api.patch('/test/1', { name: 'patched' })
       
@@ -198,7 +199,7 @@ describe('useApi', () => {
 
     it('should make DELETE request', async () => {
       const api = useApi()
-      global.$fetch = vi.fn().mockResolvedValue(undefined)
+      global.$fetch = vi.fn().mockResolvedValue(undefined) as any
       
       await api.delete('/test/1')
       
@@ -241,7 +242,7 @@ describe('useApi', () => {
       global.$fetch = vi.fn().mockRejectedValue({
         status: 401,
         message: 'Unauthorized',
-      })
+      }) as any
       
       // This will throw, but should attempt logout
       try {
@@ -267,7 +268,7 @@ describe('useApi', () => {
           })
         }
         return Promise.resolve({ success: true })
-      })
+      }) as any
       
       // Mock fetchCsrfCookie
       const originalFetchCsrfCookie = api.fetchCsrfCookie
