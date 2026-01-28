@@ -3,7 +3,7 @@
  * Cart summary component
  * Works with new API format (items_minor, discounts_minor, grand_total_minor)
  */
-import { Tag } from 'lucide-vue-next'
+import { Tag, X } from 'lucide-vue-next'
 import type { CartTotals, AppliedCoupon, CartPromotion } from '~/types'
 import { useCartStore } from '~/stores/cart.store'
 import { formatPrice as formatPriceUtil } from '~/types/cart'
@@ -22,6 +22,10 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const cartStore = useCartStore()
+
+// Get toast function from Nuxt app
+const nuxtApp = useNuxtApp()
+const $toast = nuxtApp.$toast as typeof import('vue-sonner').toast
 
 // Locale-aware navigation
 const localePath = useLocalePath()
@@ -72,7 +76,13 @@ async function applyCoupon() {
 }
 
 async function removeCoupon(code: string) {
-  await cartStore.removeCoupon(code)
+  const success = await cartStore.removeCoupon(code)
+  
+  if (success) {
+    $toast.success(t('cart.couponRemoved') || 'Coupon removed')
+  } else if (cartStore.error) {
+    $toast.error(cartStore.error)
+  }
 }
 </script>
 
@@ -111,18 +121,29 @@ async function removeCoupon(code: string) {
     <div v-if="promotions && Array.isArray(promotions) && promotions.length > 0" class="mb-4 space-y-2">
       <div 
         v-for="promo in promotions" 
-        :key="promo.id"
+        :key="promo.promotion_id || promo.id"
         class="flex items-center justify-between px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg"
       >
         <div class="flex items-center gap-2">
           <Tag class="h-4 w-4 text-green-600 dark:text-green-400" />
           <span class="text-sm font-medium text-green-700 dark:text-green-300">
-            {{ promo.code || promo.description }}
+            {{ promo.code || promo.name || promo.description }}
           </span>
         </div>
-        <span class="text-sm text-green-600 dark:text-green-400">
-          -{{ formatPriceUtil(promo.discount_minor, currency, locale) }}
-        </span>
+        <div class="flex items-center gap-3">
+          <span class="text-sm text-green-600 dark:text-green-400">
+            -{{ formatPriceUtil(promo.value || promo.discount_minor || 0, currency, locale) }}
+          </span>
+          <button
+            v-if="promo.code || promo.name"
+            class="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="cartStore.loading"
+            :aria-label="$t('common.buttons.remove')"
+            @click="removeCoupon(promo.code || promo.name || '')"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -138,10 +159,12 @@ async function removeCoupon(code: string) {
           <span class="text-sm font-medium text-green-700 dark:text-green-300">{{ coupon.code }}</span>
         </div>
         <button
-          class="text-sm text-green-600 dark:text-green-400 hover:underline"
+          class="p-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="cartStore.loading"
+          :aria-label="$t('common.buttons.remove')"
           @click="removeCoupon(coupon.code)"
         >
-          {{ $t('common.buttons.remove') }}
+          <X class="h-4 w-4" />
         </button>
       </div>
     </div>

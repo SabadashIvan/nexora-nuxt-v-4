@@ -12,6 +12,8 @@ export interface CartItemPrice {
   currency: string
   /** List price in minor units (e.g., cents) */
   list_minor: number
+  /** Sale price in minor units (optional, only present when item is on sale) */
+  sale_minor?: number
   /** Effective price after discounts in minor units */
   effective_minor: number
 }
@@ -44,7 +46,9 @@ export interface CartItem {
   variant_id: number
   /** Product SKU */
   sku: string
-  /** Product name/title */
+  /** Product title from API */
+  title?: string
+  /** Product name/title (legacy, kept for backward compatibility) */
   name?: string
   /** Quantity in cart */
   qty: number
@@ -85,6 +89,16 @@ export interface CartContext {
 }
 
 /**
+ * Cart loyalty information
+ */
+export interface CartLoyalty {
+  /** Potential loyalty points accrual in minor units */
+  potential_accrual_minor: number
+  /** Maximum spendable loyalty points in minor units */
+  max_spendable_minor: number
+}
+
+/**
  * Cart warning (e.g., stock issues)
  */
 export interface CartWarning {
@@ -99,11 +113,22 @@ export interface CartWarning {
  * Cart promotion
  */
 export interface CartPromotion {
-  id: string
+  /** Promotion ID (number from API) */
+  promotion_id: number
+  /** Promotion code (optional, kept for backward compatibility with coupons) */
   code?: string
-  description: string
-  discount_minor: number
+  /** Promotion name from API */
+  name: string
+  /** Promotion value in minor units (discount amount) */
+  value: number
+  /** Promotion type */
   type: CartPromotionType | string // Allow string for backward compatibility
+  /** Promotion source identifier (optional) */
+  source?: number
+  /** Legacy fields for backward compatibility */
+  id?: string // Legacy: kept for backward compatibility
+  description?: string // Legacy: kept for backward compatibility
+  discount_minor?: number // Legacy: kept for backward compatibility
 }
 
 /**
@@ -124,6 +149,8 @@ export interface Cart {
   warnings: CartWarning[]
   /** Cart totals */
   totals: CartTotals
+  /** Loyalty information (optional) */
+  loyalty?: CartLoyalty
 }
 
 /**

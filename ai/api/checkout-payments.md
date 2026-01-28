@@ -51,22 +51,56 @@ Initiates a new checkout session from a shopping cart.
 ```json
 {
   "data": {
-    "id": 1315,
-    "expires_at": "2025-10-31T11:11:31+00:00",
-    "currency": "USD",
-    "locale": "ru",
+    "id": 1377,
+    "expires_at": "2026-01-28T13:58:04+00:00",
+    "currency": "UAH",
+    "locale": "en",
     "pricing": {
-      "currency": "USD",
-      "items_minor": 78390,
-      "discounts_minor": 4674,
+      "currency": "UAH",
+      "items_minor": 3175620,
+      "discounts_minor": 177072,
+      "loyalty_points_minor": 0,
       "shipping_minor": 0,
-      "grand_total_minor": 73716,
-      "promotions": []
+      "grand_total_minor": 2998548,
+      "promotions": [
+        {
+          "name": "Non provident omnis",
+          "type": 2,
+          "value": 4216,
+          "source": 1,
+          "promotion_id": 1
+        }
+      ]
     },
-    "items": [],
+    "items": [
+      {
+        "variant_id": 216,
+        "sku": "SKU-1436-UKVH",
+        "qty": 1,
+        "price": {
+          "currency": "UAH",
+          "list_minor": 3528462,
+          "sale_minor": 3175620,
+          "effective_minor": 3175620
+        },
+        "line_total_minor": 3175620,
+        "loyalty_discount_minor": 0
+      }
+    ],
+    "payment_provider": [],
     "shipping": null,
-    "shipping_address": {},
-    "billing_address": {},
+    "shipping_address": {
+      "first_name": null,
+      "last_name": null,
+      "phone": null,
+      "country": null,
+      "region": null,
+      "city": null,
+      "postal": null,
+      "address_line1": null,
+      "address_line2": null
+    },
+    "billing_address": { "first_name": null, "last_name": null, "phone": null, "country": null, "region": null, "city": null, "postal": null, "address_line1": null, "address_line2": null },
     "billing_same_as_shipping": true
   }
 }

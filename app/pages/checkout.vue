@@ -427,8 +427,8 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
               </span>
             </div>
             <div class="divide-y divide-gray-100 dark:divide-gray-800">
-              <div 
-                v-for="item in items" 
+              <div
+                v-for="item in items"
                 :key="item.id"
                 class="px-6 py-4 flex items-center gap-4"
               >
@@ -437,7 +437,7 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {{ item.sku }}
+                    {{ item.name ?? item.sku }}
                   </p>
                   <p class="text-sm text-gray-500 dark:text-gray-400">
                     Qty: {{ item.qty }}
@@ -461,6 +461,20 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
               <div v-if="pricing.discounts > 0" class="flex justify-between text-sm">
                 <span class="text-gray-500 dark:text-gray-400">Discounts</span>
                 <span class="text-green-600 dark:text-green-400">-{{ formatPrice(pricing.discounts, pricing.currency) }}</span>
+              </div>
+              <template v-if="pricing.promotions?.length">
+                <div
+                  v-for="promo in pricing.promotions"
+                  :key="promo.promotion_id"
+                  class="flex justify-between text-sm pl-2 text-gray-500 dark:text-gray-500"
+                >
+                  <span>{{ promo.name }}</span>
+                  <span class="text-green-600 dark:text-green-400">-{{ formatPrice(promo.value, pricing.currency) }}</span>
+                </div>
+              </template>
+              <div v-if="(pricing.loyalty_points_minor ?? 0) > 0" class="flex justify-between text-sm">
+                <span class="text-gray-500 dark:text-gray-400">Loyalty points</span>
+                <span class="text-green-600 dark:text-green-400">-{{ formatPrice(pricing.loyalty_points_minor!, pricing.currency) }}</span>
               </div>
               <div class="flex justify-between text-base font-semibold pt-2 border-t border-gray-200 dark:border-gray-700">
                 <span class="text-gray-900 dark:text-gray-100">Total</span>
