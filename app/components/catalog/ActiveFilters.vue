@@ -8,9 +8,12 @@ import type { ProductFilter, CatalogFilters } from '~/types'
 interface Props {
   activeFilters: ProductFilter
   availableFilters: CatalogFilters
+  excludedCategoryIds?: string[]
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  excludedCategoryIds: () => [],
+})
 
 const emit = defineEmits<{
   'remove-filter': [type: string, value: string]
@@ -25,6 +28,7 @@ const activeFilterChips = computed(() => {
   if (props.activeFilters.filters?.categories) {
     const categoryIds = props.activeFilters.filters.categories.split(',')
     categoryIds.forEach((id) => {
+      if (props.excludedCategoryIds?.includes(id)) return
       const category = props.availableFilters.categories?.find(c => c.value === id)
       if (category) {
         chips.push({

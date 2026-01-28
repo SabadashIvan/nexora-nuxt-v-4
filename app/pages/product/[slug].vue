@@ -1,16 +1,16 @@
 <script setup lang="ts">
-/* eslint-disable vue/no-v-html */
 /**
  * Product detail page - SSR for SEO
  */
-import { Heart, ShoppingCart, Share2, GitCompare, Phone } from 'lucide-vue-next'
+import { Heart, ShoppingCart, Share2, GitCompare, Phone, CheckCircle2 } from 'lucide-vue-next'
 import { useProductStore } from '~/stores/product.store'
 import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
+import { useCatalogStore } from '~/stores/catalog.store'
 import { ERROR_CODES } from '~/utils/errors'
 import { TOKEN_KEYS } from '~/utils/tokens'
-import type { Product } from '~/types'
+import type { Category, Product } from '~/types'
 import type { ProductPrice } from '~/types/catalog'
 
 const route = useRoute()
@@ -60,7 +60,17 @@ const { data: asyncProduct, pending, error, status, refresh } = await useAsyncDa
     // Access store and api inside callback to preserve SSR context
     const api = useApi()
     const productStore = useProductStore()
-    return await productStore.fetch(slug.value, api)
+    const prod = await productStore.fetch(slug.value, api)
+
+    // TODO(backend): Ideally the backend should return the full category ancestor path
+    // for product categories (or include it in the product response). Today we fetch the
+    // entire categories tree to build hierarchical breadcrumbs (Home → root → … → category).
+    const catalogStore = useCatalogStore()
+    if (catalogStore.categories.length === 0) {
+      await catalogStore.fetchCategories(api)
+    }
+
+    return prod
   },
   {
     watch: [() => route.params.slug, locale, currency],
@@ -231,80 +241,6 @@ const quickBuyProductInfo = computed(() => {
   }
 })
 
-// Helper to compute selected options from product data (for SSR/initial render consistency)
-const computeSelectedOptionsFromProduct = (): Record<string, string> => {
-  const options: Record<string, string> = {}
-  if (product.value?.attribute_values && product.value.attribute_values.length > 0) {
-    product.value.attribute_values.forEach(attr => {
-      options[attr.attribute.code] = attr.code
-    })
-  }
-  return options
-}
-
-const selectedOptions = computed(() => {
-  // Always compute from product data during SSR and initial client render (before mount)
-  // This ensures hydration consistency
-  if (import.meta.server || !isMounted.value) {
-    return computeSelectedOptionsFromProduct()
-  }
-  // After mount, use store (which may have been modified by user interactions)
-  try {
-    const storeOptions = useProductStore().selectedOptions
-    // Merge with product data to ensure we have all options
-    const productOptions = computeSelectedOptionsFromProduct()
-    return { ...productOptions, ...storeOptions }
-  } catch {
-    return computeSelectedOptionsFromProduct()
-  }
-})
-// Helper to compute available options from product data (for SSR/initial render consistency)
-const computeAvailableOptionsFromProduct = () => {
-  if (!product.value) return []
-  
-  // New structure: variant_options
-  if (product.value.variant_options) {
-    const currentAttributeValues = product.value.attribute_values || []
-    
-    return product.value.variant_options.axes.map(axis => {
-      return {
-        code: axis.code,
-        name: axis.title,
-        values: (product.value!.variant_options?.options[axis.code] || []).map(opt => {
-          const matchingAttr = currentAttributeValues.find(av => 
-            av.attribute.code === axis.code && 
-            av.label.toLowerCase() === opt.label.toLowerCase()
-          )
-          
-          return {
-            value: matchingAttr?.code || opt.label,
-            label: opt.label,
-            is_available: opt.is_in_stock,
-            slug: opt.slug,
-            value_id: opt.value_id,
-          }
-        }),
-      }
-    })
-  }
-  
-  // Legacy structure: options
-  return product.value.options || []
-}
-
-const availableOptions = computed(() => {
-  // Always compute from product data during SSR and initial client render (before mount)
-  // This ensures hydration consistency
-  if (import.meta.server || !isMounted.value) {
-    return computeAvailableOptionsFromProduct()
-  }
-  // After mount, use store (which may have computed values)
-  try {
-    return useProductStore().availableOptions
-  } catch {
-    return computeAvailableOptionsFromProduct()
-  }
-})
 const productTitle = computed(() => {
   return product.value?.title || product.value?.name || 'Product'
 })
@@ -365,34 +301,50 @@ const _productCategories = computed(() => {
 const breadcrumbs = computed(() => {
   const { t } = useI18n()
   const items: Array<{ label: string; to?: string }> = [
-    { label: t('product.page.categories'), to: localePath('/categories') },
+    { label: t('breadcrumbs.home'), to: localePath('/') },
   ]
-  
-  // Add category breadcrumbs if available
-  if (product.value?.product?.categories && product.value.product.categories.length > 0) {
-    const mainCategory = product.value.product.categories[0]
-    if (mainCategory?.slug) {
-      items.push({ 
-        label: mainCategory.title || mainCategory.name || t('product.page.category'), 
-        to: localePath(`/categories/${mainCategory.slug}`) 
-      })
+
+  // Prefer hierarchical category path (root → … → category) and choose the deepest category
+  // when a product belongs to multiple categories.
+  const productCategories = product.value?.product?.categories || []
+  let bestPath: Category[] = []
+
+  if (productCategories.length > 0) {
+    try {
+      const catalogStore = useCatalogStore()
+      for (const cat of productCategories) {
+        if (!cat?.slug) continue
+        const path = catalogStore.getCategoryPathBySlug(cat.slug) || []
+
+        // If the tree doesn't contain this category, treat it as depth 1 fallback.
+        const effectivePath = path.length > 0 ? path : [cat as Category]
+        if (effectivePath.length > bestPath.length) {
+          bestPath = effectivePath
+        }
+      }
+    } catch {
+      // Store not available; fallback handled below
     }
   }
-  
-  // Add brand if available
-  if (product.value?.product?.brand?.slug) {
-    items.push({ 
-      label: product.value.product.brand.title || t('product.page.brand'), 
-      to: localePath(`/categories?brand=${product.value.product.brand.slug}`) 
-    })
+
+  if (bestPath.length === 0 && productCategories.length > 0) {
+    // Fallback to first category if we couldn't derive a path
+    const first = productCategories[0]
+    if (first) bestPath = [first as Category]
   }
-  
-  // Last item - always add product title (or placeholder)
-  items.push({ 
-    label: product.value?.title || product.value?.name || t('product.page.product'), 
-    to: '#' 
+
+  for (const node of bestPath) {
+    const label = node.title || node.name || t('product.page.category')
+    const to = node.slug ? localePath(`/categories/${node.slug}`) : undefined
+    items.push({ label, to })
+  }
+
+  // Last item - always add product title (or placeholder). No brand crumb.
+  items.push({
+    label: product.value?.title || product.value?.name || t('product.page.product'),
+    to: '#',
   })
-  
+
   return items
 })
 
@@ -415,13 +367,45 @@ async function addToCart() {
 async function toggleFavorite() {
   if (!product.value) return
   const favoritesStore = useFavoritesStore()
-  await favoritesStore.toggleFavorite(product.value.id)
+  const wasFavorite = isFavorite.value
+  const success = await favoritesStore.toggleFavorite(product.value.id)
+  
+  if (success) {
+    if (wasFavorite) {
+      $toast.success(t('favorites.removedFromWishlist') || 'Removed from wishlist')
+    } else {
+      $toast.success(t('favorites.addedToWishlist') || 'Added to wishlist')
+    }
+  } else if (favoritesStore.error) {
+    $toast.error(favoritesStore.error || t('favorites.error') || 'Failed to update wishlist')
+  }
 }
 
 async function toggleComparison() {
   if (!product.value) return
   const comparisonStore = useComparisonStore()
-  await comparisonStore.toggleComparison(product.value.id)
+  const wasInComparison = isInComparison.value
+  
+  // Check if comparison is full before adding
+  if (!wasInComparison && comparisonStore.isFull) {
+    $toast.error(
+      t('comparison.maxItemsReached', { count: comparisonStore.maxItems }) || 
+      `Maximum ${comparisonStore.maxItems} items can be compared`
+    )
+    return
+  }
+  
+  const success = await comparisonStore.toggleComparison(product.value.id)
+  
+  if (success) {
+    if (wasInComparison) {
+      $toast.success(t('comparison.removedFromComparison') || 'Removed from comparison')
+    } else {
+      $toast.success(t('comparison.addedToComparison') || 'Added to comparison')
+    }
+  } else if (comparisonStore.error) {
+    $toast.error(comparisonStore.error || t('comparison.error') || 'Failed to update comparison')
+  }
 }
 
 function _incrementQuantity() {
@@ -434,70 +418,6 @@ function _decrementQuantity() {
   }
 }
 
-function selectOption(code: string, value: string) {
-  const productStore = useProductStore()
-  productStore.selectOption(code, value)
-}
-
-// Helper to get option value safely
-function getOptionValue(optionValue: { value?: string; value_id?: number; label?: string }): string {
-  if ('value' in optionValue && optionValue.value) {
-    return optionValue.value
-  }
-  if ('value_id' in optionValue && optionValue.value_id) {
-    return optionValue.value_id.toString()
-  }
-  return optionValue.label || ''
-}
-
-// Helper to check if option is available
-function isOptionAvailable(optionValue: { is_available?: boolean; is_in_stock?: boolean }): boolean {
-  if ('is_available' in optionValue) {
-    return optionValue.is_available ?? true
-  }
-  if ('is_in_stock' in optionValue) {
-    return optionValue.is_in_stock ?? true
-  }
-  return true
-}
-
-// Helper to check if an option is a color option (for styling)
-function isColorOption(optionCode: string, optionName: string): boolean {
-  const colorKeywords = ['color', 'colour', 'couleur']
-  const code = optionCode.toLowerCase()
-  const name = optionName.toLowerCase()
-  return colorKeywords.some(keyword => code.includes(keyword) || name.includes(keyword))
-}
-
-// Helper to get color class from value (try to extract color from label/value)
-function getColorClass(value: { label?: string; value?: string }): string {
-  const label = (value.label || '').toLowerCase()
-  const valueStr = (value.value || '').toLowerCase()
-  
-  // Map common color names to Tailwind classes
-  const colorMap: Record<string, string> = {
-    'white': 'bg-white checked:outline-gray-400',
-    'black': 'bg-gray-900 checked:outline-gray-900',
-    'gray': 'bg-gray-200 checked:outline-gray-400',
-    'grey': 'bg-gray-200 checked:outline-gray-400',
-    'red': 'bg-red-500 checked:outline-red-600',
-    'blue': 'bg-blue-500 checked:outline-blue-600',
-    'green': 'bg-green-500 checked:outline-green-600',
-    'yellow': 'bg-yellow-500 checked:outline-yellow-600',
-    'purple': 'bg-purple-500 checked:outline-purple-600',
-    'pink': 'bg-pink-500 checked:outline-pink-600',
-    'orange': 'bg-orange-500 checked:outline-orange-600',
-  }
-  
-  for (const [key, className] of Object.entries(colorMap)) {
-    if (label.includes(key) || valueStr.includes(key)) {
-      return className
-    }
-  }
-  
-  // Default to gray if no match
-  return 'bg-gray-200 checked:outline-gray-400'
-}
 
 // Get first 4 images for grid layout
 const gridImages = computed(() => {
@@ -505,6 +425,9 @@ const gridImages = computed(() => {
   if (allImages.length <= 1) return []
   return allImages.slice(0, 4)
 })
+
+// Prefetch product data on hover for instant navigation (SWR-like behavior)
+// Note: Prefetching is now handled by ColorSwatchSelector and SizeSelector components
 </script>
 
 <template>
@@ -629,15 +552,25 @@ const gridImages = computed(() => {
         </div>
 
         <!-- Product info -->
-        <div class="mx-auto max-w-2xl px-4 pt-10 pb-16 sm:px-6 lg:grid lg:max-w-7xl lg:grid-cols-3 lg:grid-rows-[auto_auto_1fr] lg:gap-x-8 lg:px-8 lg:pt-16 lg:pb-24">
-          <div class="lg:col-span-2 lg:border-r lg:border-gray-200 lg:pr-8">
+        <div class="mx-auto max-w-2xl px-4 pt-10 pb-16 sm:px-6 lg:grid lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8 lg:pt-16 lg:pb-24">
+          <!-- Left column: Product title and SKU -->
+          <div class="lg:col-span-2 lg:mb-6">
             <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{{ productTitle }}</h1>
+            <p v-if="product.sku" class="mt-2 text-sm text-gray-500">
+              SKU: {{ product.sku }}
+            </p>
           </div>
 
-          <!-- Options -->
-          <div class="mt-4 lg:row-span-3 lg:mt-0">
+          <!-- Right column: Product details and actions -->
+          <div class="mt-8 lg:col-start-2 lg:row-start-2 lg:mt-0">
             <h2 class="sr-only">{{ $t('product.page.productInformation') }}</h2>
             
+            <!-- Rating -->
+            <div class="flex items-center gap-2">
+              <UiRating :rating="productRating" :reviews-count="reviewsCount" :show-count="false" />
+              <span class="text-sm text-gray-500">({{ reviewsCount }})</span>
+            </div>
+
             <!-- Price -->
             <div v-if="product && priceToDisplay !== null" class="mt-4">
               <template v-if="productPrice !== null">
@@ -653,78 +586,31 @@ const gridImages = computed(() => {
               </template>
             </div>
 
-            <!-- Reviews -->
-            <div v-if="productRating > 0 || reviewsCount > 0" class="mt-6">
-              <h3 class="sr-only">Reviews</h3>
-              <UiRating :rating="productRating" :reviews-count="reviewsCount" />
+            <!-- In Stock indicator -->
+            <div v-if="inStock" class="mt-4 flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle2 class="h-5 w-5" />
+              <span>{{ $t('product.page.inStock') || 'In Stock' }}</span>
+            </div>
+            <div v-else class="mt-4 flex items-center gap-2 text-sm text-red-600">
+              <span>{{ $t('product.page.outOfStock') || 'Out of Stock' }}</span>
             </div>
 
-            <form class="mt-10" @submit.prevent="addToCart">
-              <!-- Options -->
-              <div v-for="option in availableOptions" :key="option.code" :class="option.code !== availableOptions[0]?.code ? 'mt-10' : ''">
-                <!-- Color options -->
-                <template v-if="isColorOption(option.code, option.name)">
-                  <h3 class="text-sm font-medium text-gray-900">{{ option.name }}</h3>
-                  <fieldset aria-label="Choose a color" class="mt-4">
-                    <div class="flex items-center gap-x-3">
-                      <div
-                        v-for="value in option.values"
-                        :key="getOptionValue(value)"
-                        class="flex rounded-full outline -outline-offset-1 outline-black/10"
-                      >
-                        <input
-                          :aria-label="value.label"
-                          type="radio"
-                          :name="`option-${option.code}`"
-                          :value="getOptionValue(value)"
-                          :checked="selectedOptions[option.code] === getOptionValue(value)"
-                          :disabled="!isOptionAvailable(value)"
-                          :class="[
-                            getColorClass(value),
-                            'size-8 appearance-none rounded-full forced-color-adjust-none checked:outline-2 checked:outline-offset-2 focus-visible:outline-3 focus-visible:outline-offset-3 disabled:opacity-25 disabled:cursor-not-allowed'
-                          ]"
-                          @change="selectOption(option.code, getOptionValue(value))"
-                        >
-                      </div>
-                    </div>
-                  </fieldset>
-                </template>
-                
-                <!-- Size or other options -->
-                <template v-else>
-                  <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-medium text-gray-900">{{ option.name }}</h3>
-                    <a v-if="option.code.toLowerCase().includes('size')" href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Size guide</a>
-                  </div>
-                  <fieldset :aria-label="`Choose a ${option.name}`" class="mt-4">
-                    <div class="grid grid-cols-4 gap-3">
-                      <label
-                        v-for="value in option.values"
-                        :key="getOptionValue(value)"
-                        :aria-label="value.label"
-                        :class="[
-                          'group relative flex items-center justify-center rounded-md border border-gray-300 bg-white p-3 text-sm font-medium uppercase',
-                          selectedOptions[option.code] === getOptionValue(value)
-                            ? 'border-indigo-600 bg-indigo-600 text-white'
-                            : 'text-gray-900 hover:border-gray-400',
-                          !isOptionAvailable(value) && 'border-gray-400 bg-gray-200 opacity-25 cursor-not-allowed'
-                        ]"
-                      >
-                        <input
-                          type="radio"
-                          :name="`option-${option.code}`"
-                          :value="getOptionValue(value)"
-                          :checked="selectedOptions[option.code] === getOptionValue(value)"
-                          :disabled="!isOptionAvailable(value)"
-                          class="absolute inset-0 appearance-none focus:outline-none disabled:cursor-not-allowed"
-                          @change="selectOption(option.code, getOptionValue(value))"
-                        >
-                        <span>{{ value.label }}</span>
-                      </label>
-                    </div>
-                  </fieldset>
-                </template>
-              </div>
+            <form class="mt-6" @submit.prevent="addToCart">
+              <!-- Color Swatch Selector -->
+              <ProductColorSwatchSelector
+                v-if="product?.variant_options"
+                :product="product"
+                :variant-options="product.variant_options"
+                class="mt-6"
+              />
+
+              <!-- Size Selector -->
+              <ProductSizeSelector
+                v-if="product?.variant_options"
+                :product="product"
+                :variant-options="product.variant_options"
+                class="mt-6"
+              />
 
               <!-- Quantity and Add to Cart -->
               <div class="mt-10 flex items-center gap-4">
@@ -776,84 +662,20 @@ const gridImages = computed(() => {
                   <span class="text-sm">{{ $t('product.page.quickBuy') }}</span>
                 </button>
               </div>
+
+              <!-- Guarantees/Services Section -->
+              <ProductGuarantees />
             </form>
           </div>
+        </div>
 
-          <!-- Description and details -->
-          <div class="py-10 lg:col-span-2 lg:col-start-1 lg:border-r lg:border-gray-200 lg:pt-6 lg:pr-8 lg:pb-16">
-            <!-- Description -->
-            <div>
-              <h3 class="sr-only">Description</h3>
-              <div class="space-y-6">
-                <p v-if="product.short_description || product.product?.description" class="text-base text-gray-900">
-                  {{ product.short_description || product.product?.description }}
-                </p>
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <div
-                  v-if="product.description"
-                  class="prose max-w-none text-base text-gray-900"
-                  v-html="product.description"
-                />
-              </div>
-            </div>
-
-            <!-- Highlights (if available) -->
-            <div v-if="product.product?.description && !product.short_description" class="mt-10">
-              <h3 class="text-sm font-medium text-gray-900">Highlights</h3>
-              <div class="mt-4">
-                <ul role="list" class="list-disc space-y-2 pl-4 text-sm">
-                  <li
-                    v-for="(highlight, index) in (product.product.description.match(/[^.!?]+[.!?]+/g) || []).slice(0, 4)"
-                    :key="index"
-                    class="text-gray-400"
-                  >
-                    <span class="text-gray-600">{{ highlight.trim() }}</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Details -->
-            <div v-if="product.description || product.product?.description" class="mt-10">
-              <h2 class="text-sm font-medium text-gray-900">Details</h2>
-              <div class="mt-4 space-y-6">
-                <!-- eslint-disable-next-line vue/no-v-html -->
-                <div
-                  v-if="product.description"
-                  class="prose max-w-none text-sm text-gray-600"
-                  v-html="product.description"
-                />
-                <p v-else-if="product.product?.description" class="text-sm text-gray-600">
-                  {{ product.product.description }}
-                </p>
-              </div>
-            </div>
-
-            <!-- Specifications -->
-            <div v-if="product.specifications?.length" class="mt-10">
-              <h2 class="text-sm font-medium text-gray-900">Specifications</h2>
-              <div class="mt-4 bg-white rounded-lg overflow-hidden border border-gray-200">
-                <table class="w-full">
-                  <tbody>
-                    <template v-for="(spec, index) in product.specifications" :key="index">
-                      <tr
-                        v-for="item in spec.items"
-                        :key="item.name"
-                        class="border-b border-gray-200 last:border-0"
-                      >
-                        <td class="px-4 py-3 text-sm font-medium text-gray-500 w-1/3">
-                          {{ item.name }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-900">
-                          {{ item.value }}
-                        </td>
-                      </tr>
-                    </template>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        <!-- Product Tabs Section -->
+        <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8">
+          <ProductTabs
+            v-if="product"
+            :product="product"
+            :product-id="product.product_id"
+          />
         </div>
 
         <!-- Recommended Products Section -->
@@ -863,12 +685,6 @@ const gridImages = computed(() => {
           </ClientOnly>
         </div>
 
-        <!-- Product Reviews Section -->
-        <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8 pb-16">
-          <ClientOnly>
-            <ProductReviews :product-id="product.product_id" />
-          </ClientOnly>
-        </div>
       </div>
     </div>
 
