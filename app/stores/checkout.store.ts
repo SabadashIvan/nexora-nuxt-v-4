@@ -18,8 +18,7 @@ import type {
   PaymentProvider,
   Address,
   StartCheckoutPayload,
-  StartCheckoutResponse,
-  CheckoutUpdateAddressPayload,
+  StartCheckoutResponseDto,
   SetShippingMethodPayload,
   SetPaymentProviderPayload,
   CheckoutConfirmResponse,
@@ -27,6 +26,7 @@ import type {
   PaymentInitResponse,
 } from '~/types'
 import { parseApiError, CHECKOUT_ERRORS } from '~/utils/errors'
+import { mapStartCheckoutResponseDto, mapAddressToCheckoutPayload } from '~/utils/mappers/checkout.mapper'
 import { useCartStore } from '~/stores/cart.store'
 
 const initialAddresses: CheckoutAddresses = {
@@ -163,23 +163,19 @@ export const useCheckoutStore = defineStore('checkout', {
           billing_same_as_shipping: billingSameAsShipping,
         }
 
-        const rawResponse = await api.post<StartCheckoutResponse | { data: StartCheckoutResponse }>(
+        const rawResponse = await api.post<StartCheckoutResponseDto | { data: StartCheckoutResponseDto }>(
           '/checkout/start',
           payload,
-          { 
-            cart: true,
-          }
+          { cart: true }
         )
 
-        const response = this.extractData(rawResponse)
+        const dto = this.extractData(rawResponse) as StartCheckoutResponseDto
+        const mapped = mapStartCheckoutResponseDto(dto)
 
-        this.checkoutId = response.id
-        this.items = response.items
-        this.pricing = response.pricing
-        if (response.addresses) {
-          this.addresses = response.addresses
-        }
-        this.addresses.billingSameAsShipping = billingSameAsShipping
+        this.checkoutId = mapped.id
+        this.items = mapped.items
+        this.pricing = mapped.pricing
+        this.addresses = { ...mapped.addresses, billingSameAsShipping }
         this.status = 'address'
 
         return true
@@ -217,33 +213,43 @@ export const useCheckoutStore = defineStore('checkout', {
       this.error = null
 
       try {
-        const payload: CheckoutUpdateAddressPayload = {
-          shipping_address: shippingAddress,
+        const payload: Record<string, unknown> = {
+          shipping_address: mapAddressToCheckoutPayload(shippingAddress),
           billing_same_as_shipping: billingSameAsShipping,
         }
-
         if (!billingSameAsShipping && billingAddress) {
-          payload.billing_address = billingAddress
+          payload.billing_address = mapAddressToCheckoutPayload(billingAddress)
         }
 
-        const rawResponse = await api.put<{ addresses: CheckoutAddresses; pricing: CheckoutPricing } | { data: { addresses: CheckoutAddresses; pricing: CheckoutPricing } }>(
-          `/checkout/${this.checkoutId}/address`,
-          payload,
-          { 
-            cart: true,
-          }
-        )
+        const rawResponse = await api.put<
+          | StartCheckoutResponseDto
+          | { data: StartCheckoutResponseDto }
+          | { addresses: CheckoutAddresses; pricing: CheckoutPricing }
+          | { data: { addresses: CheckoutAddresses; pricing: CheckoutPricing } }
+        >(`/checkout/${this.checkoutId}/address`, payload, { cart: true })
 
-        const response = this.extractData(rawResponse)
+        const response = this.extractData(rawResponse) as StartCheckoutResponseDto | { addresses: CheckoutAddresses; pricing: CheckoutPricing }
 
-        this.addresses = response.addresses
-        if (response.pricing) {
-          this.pricing = response.pricing
+        if (response && 'pricing' in response && 'grand_total_minor' in (response.pricing as { grand_total_minor?: number })) {
+          const dto = response as StartCheckoutResponseDto
+          const mapped = mapStartCheckoutResponseDto(dto)
+          this.addresses = { ...mapped.addresses, billingSameAsShipping }
+          this.pricing = mapped.pricing
+          this.items = mapped.items
+        } else {
+          const leg = response as { addresses: CheckoutAddresses; pricing: CheckoutPricing }
+          this.addresses = { ...leg.addresses, billingSameAsShipping }
+          if (leg.pricing) this.pricing = leg.pricing
         }
+
         this.status = 'shipping'
 
-        // Auto-fetch shipping methods
-        await this.fetchShippingMethods()
+        await this.fetchShippingMethods({
+          country: shippingAddress.country,
+          city: shippingAddress.city,
+          region: shippingAddress.region || undefined,
+          postal: shippingAddress.postal || undefined,
+        })
 
         return true
       } catch (error) {
@@ -256,9 +262,9 @@ export const useCheckoutStore = defineStore('checkout', {
 
     /**
      * Fetch available shipping methods
-     * Uses X-Cart-Token for cart-aware shipping rates
+     * Uses X-Cart-Token and checkout_session_id for cart-aware shipping rates.
      * Response format: { data: { currency, methods: [...], cache_ttl_seconds } }
-     * 
+     *
      * @param addressParams - Destination address for shipping calculation
      *   - country: ISO country code (required)
      *   - city: City name (required)
@@ -271,8 +277,13 @@ export const useCheckoutStore = defineStore('checkout', {
       region?: string
       postal?: string
     }): Promise<void> {
-      // Require at least country and city for shipping calculation
       if (!addressParams?.country || !addressParams?.city) {
+        this.shippingMethods = []
+        this.shippingCurrency = null
+        return
+      }
+
+      if (!this.checkoutId) {
         this.shippingMethods = []
         this.shippingCurrency = null
         return
@@ -282,20 +293,14 @@ export const useCheckoutStore = defineStore('checkout', {
       this.loading = true
 
       try {
-        // Build query params with dest[field] format (as per API spec)
         const queryParams: Record<string, string> = {
+          checkout_session_id: String(this.checkoutId),
           'dest[country]': addressParams.country,
           'dest[city]': addressParams.city,
         }
-        
-        if (addressParams.region) {
-          queryParams['dest[region]'] = addressParams.region
-        }
-        if (addressParams.postal) {
-          queryParams['dest[postal]'] = addressParams.postal
-        }
+        if (addressParams.region) queryParams['dest[region]'] = addressParams.region
+        if (addressParams.postal) queryParams['dest[postal]'] = addressParams.postal
 
-        // API uses X-Cart-Token header (via cart: true option) to get cart-specific rates
         const rawResponse = await api.get<{ data: ShippingMethodsResponse } | ShippingMethodsResponse>(
           '/shipping/methods',
           queryParams,
@@ -651,11 +656,18 @@ export const useCheckoutStore = defineStore('checkout', {
         }
 
         if (apiError.message.includes(CHECKOUT_ERRORS.INVALID_SHIPPING) || apiError.message.includes('INVALID_SHIPPING')) {
-          // Shipping method no longer available
           this.error = 'Selected shipping method is no longer available. Please choose another.'
           this.selectedShipping = null
           this.status = 'shipping'
-          await this.fetchShippingMethods()
+          const addr = this.addresses.shipping
+          if (addr?.country && addr?.city) {
+            await this.fetchShippingMethods({
+              country: addr.country,
+              city: addr.city,
+              region: addr.region || undefined,
+              postal: addr.postal || undefined,
+            })
+          }
           return
         }
 

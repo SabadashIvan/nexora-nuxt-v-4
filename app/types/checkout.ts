@@ -2,7 +2,6 @@
  * Checkout domain types
  */
 
-import type { CartItem } from './cart'
 import { CheckoutStatus } from './enums'
 import type { PaymentProviderType } from './enums'
 
@@ -19,6 +18,19 @@ export interface Address {
   address_line_1: string
   address_line_2?: string
   is_default?: boolean
+}
+
+/** API address format (address_line1/2, postal) */
+export interface CheckoutAddressDto {
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  country: string | null
+  region: string | null
+  city: string | null
+  postal: string | null
+  address_line1: string | null
+  address_line2: string | null
 }
 
 export interface CheckoutAddresses {
@@ -76,10 +88,64 @@ export interface CheckoutPricing {
   tax?: number
   total: number
   currency: string
+  /** Loyalty points discount in minor units */
+  loyalty_points_minor?: number
+  /** Applied promotions (for display) */
+  promotions?: CheckoutPromotionDto[]
 }
 
-// CheckoutItem is just CartItem - use CartItem directly
-export type CheckoutItem = CartItem
+/** Checkout item price from API */
+export interface CheckoutItemPriceDto {
+  currency: string
+  list_minor: number
+  sale_minor?: number
+  effective_minor: number
+}
+
+/** Checkout item from API (start/address/shipping/payment responses) */
+export interface CheckoutItemDto {
+  variant_id: number
+  sku: string
+  qty: number
+  price: CheckoutItemPriceDto
+  line_total_minor: number
+  loyalty_discount_minor: number
+}
+
+/** Normalized checkout line item (display) */
+export interface CheckoutItem {
+  variant_id: number
+  sku: string
+  qty: number
+  price: CheckoutItemPriceDto
+  line_total_minor: number
+  loyalty_discount_minor: number
+  /** Composite key for v-for */
+  id: string
+  /** Display name (sku fallback when no title) */
+  name?: string
+  image?: { id: number | null; url: string } | string | null
+}
+
+/** Promotion from checkout pricing */
+export interface CheckoutPromotionDto {
+  name: string
+  type: number
+  value: number
+  source: number
+  promotion_id: number
+}
+
+/** Pricing block from checkout API */
+export interface CheckoutPricingDto {
+  currency: string
+  items_minor: number
+  discounts_minor: number
+  loyalty_points_minor: number
+  shipping_minor: number
+  grand_total_minor: number
+  promotions: CheckoutPromotionDto[]
+}
 
 export interface CheckoutSession {
   id: string
@@ -108,7 +174,11 @@ export interface CheckoutState {
   paymentProviders: PaymentProvider[]
   selectedPayment: PaymentProvider | null
   pricing: CheckoutPricing
-  status: CheckoutStatus | string // Allow string for backward compatibility
+  /** Loyalty points applied in minor units */
+  loyaltyPointsApplied: number | null
+  /** Available loyalty balance in minor units */
+  availableLoyaltyPoints: number | null
+  status: CheckoutStatus | string
   loading: boolean
   error: string | null
 }
@@ -118,7 +188,22 @@ export interface StartCheckoutPayload {
   billing_same_as_shipping: boolean
 }
 
-// Start checkout response
+/** Raw checkout start/update API response */
+export interface StartCheckoutResponseDto {
+  id: number
+  expires_at: string
+  currency: string
+  locale: string
+  pricing: CheckoutPricingDto
+  items: CheckoutItemDto[]
+  payment_provider: unknown[]
+  shipping: unknown
+  shipping_address: CheckoutAddressDto
+  billing_address: CheckoutAddressDto
+  billing_same_as_shipping: boolean
+}
+
+// Start checkout response (normalized)
 export interface StartCheckoutResponse {
   id: string
   items: CheckoutItem[]
@@ -135,6 +220,19 @@ export interface CheckoutUpdateAddressPayload {
   shipping_address: Address
   billing_address?: Address
   billing_same_as_shipping: boolean
+}
+
+/** API address payload (address_line1/2, postal) */
+export interface CheckoutAddressPayloadDto {
+  first_name: string
+  last_name: string
+  phone: string
+  country: string
+  region: string
+  city: string
+  postal: string
+  address_line1: string
+  address_line2?: string
 }
 
 export interface SetShippingMethodPayload {
