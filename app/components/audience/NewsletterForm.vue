@@ -113,14 +113,14 @@ watch(storeError, (error) => {
     <!-- Horizontal layout (original design) -->
     <template v-if="variant === 'horizontal'">
       <div class="flex max-w-md gap-x-4">
-        <label for="newsletter-email" class="sr-only">Email address</label>
+        <label for="newsletter-email" class="sr-only">{{ $t('newsletter.emailLabel') }}</label>
         <input
           id="newsletter-email"
           v-model="email"
           type="email"
           name="email"
           required
-          placeholder="Enter your email"
+          :placeholder="$t('newsletter.emailPlaceholder')"
           autocomplete="email"
           class="min-w-0 flex-auto rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
           :aria-invalid="email && !isEmailValid ? 'true' : undefined"
@@ -131,8 +131,8 @@ watch(storeError, (error) => {
           :disabled="!isFormValid || storeLoading"
           class="flex-none rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          <span v-if="storeLoading">...</span>
-          <span v-else>Subscribe</span>
+          <span v-if="storeLoading">{{ $t('newsletter.subscribing') }}</span>
+          <span v-else>{{ $t('newsletter.subscribe') }}</span>
         </button>
       </div>
 
@@ -149,7 +149,7 @@ watch(storeError, (error) => {
           for="newsletter-consent"
           class="text-sm text-gray-300 cursor-pointer"
         >
-          I agree to receive newsletter emails
+          {{ $t('newsletter.consent') }}
           <span class="text-red-400" aria-label="required">*</span>
         </label>
       </div>
@@ -159,14 +159,14 @@ watch(storeError, (error) => {
     <template v-else>
       <!-- Email field -->
       <div>
-        <label for="newsletter-email" class="sr-only">Email address</label>
+        <label for="newsletter-email" class="sr-only">{{ $t('newsletter.emailLabel') }}</label>
         <input
           id="newsletter-email"
           v-model="email"
           type="email"
           name="email"
           required
-          placeholder="Enter your email"
+          :placeholder="$t('newsletter.emailPlaceholder')"
           autocomplete="email"
           :class="[
             'w-full rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6',
@@ -181,19 +181,19 @@ watch(storeError, (error) => {
           class="mt-1 text-sm text-red-400"
           role="alert"
         >
-          Please enter a valid email address
+          {{ $t('newsletter.emailInvalid') }}
         </p>
       </div>
 
       <!-- Name field (optional) -->
       <div v-if="showName">
-        <label for="newsletter-name" class="sr-only">Name</label>
+        <label for="newsletter-name" class="sr-only">{{ $t('newsletter.nameLabel') }}</label>
         <input
           id="newsletter-name"
           v-model="name"
           type="text"
           name="name"
-          placeholder="Your name (optional)"
+          :placeholder="$t('newsletter.namePlaceholder')"
           autocomplete="name"
           :class="[
             'w-full rounded-md bg-white/5 px-3.5 py-2 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6',

@@ -60,26 +60,59 @@ export const useLeadsStore = defineStore('leads', {
     /**
      * Create a lead (quick buy/callback request)
      * POST /api/v1/leads
+     * Uses server route proxy to add IP address and user agent from request headers
+     * Uses useApi() which should route through Nuxt server routes when they exist
      */
     async createLead(payload: Omit<CreateLeadPayload, 'ip_address' | 'user_agent'>): Promise<boolean> {
-      const api = useApi()
       this.loading = true
       this.clearState()
       this.success = false
 
+      // Helper to get cookie value (client-side only)
+      function getCookieValue(key: string): string | null {
+        if (import.meta.server) return null
+        try {
+          const match = document.cookie.match(new RegExp(`(?:^|; )${key}=([^;]*)`))
+          return match && match[1] ? decodeURIComponent(match[1]) : null
+        } catch {
+          return null
+        }
+      }
+
       try {
-        // Get client info (user_agent, referer)
+        // Get client info (user_agent)
         const clientInfo = getClientInfo()
 
-        // Build full payload with client metadata
-        // Note: ip_address will be extracted server-side from request headers
-        const fullPayload: CreateLeadPayload = {
+        // Build payload with client metadata
+        // Note: ip_address will be extracted server-side from request headers by the server route proxy
+        // Server route is at /api/v1/leads and will extract IP and user agent from headers
+        const fullPayload: Omit<CreateLeadPayload, 'ip_address'> = {
           ...payload,
-          ip_address: '', // Will be set by backend from request headers
           user_agent: clientInfo.user_agent,
         }
 
-        await api.post<LeadApiResponse>('/leads', fullPayload)
+        // Use $fetch directly with current origin to ensure it goes through Nuxt server routes
+        // The server route will add ip_address and proxy to backend
+        // We need to call Nuxt's server (not backend directly) so server routes can intercept
+        if (import.meta.dev) {
+          console.log('[Leads Store] Sending request to Nuxt server route /api/v1/leads with payload:', fullPayload)
+        }
+        
+        // Get current origin (Nuxt server) to ensure request goes through server routes
+        const nuxtOrigin = import.meta.client ? window.location.origin : ''
+        
+        await $fetch<LeadApiResponse>('/api/v1/leads', {
+          method: 'POST',
+          body: fullPayload,
+          baseURL: nuxtOrigin || undefined, // Use Nuxt server origin, not backend
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Accept-Language': getCookieValue('locale') || 'en',
+            'Accept-Currency': getCookieValue('currency') || 'USD',
+          },
+          credentials: 'include',
+        })
 
         this.success = true
         return true

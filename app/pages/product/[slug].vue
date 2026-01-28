@@ -8,6 +8,7 @@ import { useCartStore } from '~/stores/cart.store'
 import { useFavoritesStore } from '~/stores/favorites.store'
 import { useComparisonStore } from '~/stores/comparison.store'
 import { useCatalogStore } from '~/stores/catalog.store'
+import { useVariantAxes } from '~/composables/useVariantAxes'
 import { ERROR_CODES } from '~/utils/errors'
 import { TOKEN_KEYS } from '~/utils/tokens'
 import type { Category, Product } from '~/types'
@@ -90,6 +91,9 @@ const storeProduct = computed(() => {
 })
 
 const product = computed(() => asyncProduct.value ?? storeProduct.value)
+
+const variantOptions = computed(() => product.value?.variant_options)
+const { remainingAxes } = useVariantAxes(variantOptions)
 
 // Watch for route changes to ensure we refetch on client-side navigation
 // This is a backup to ensure data loads even if watch in useAsyncData doesn't trigger
@@ -611,6 +615,18 @@ const gridImages = computed(() => {
                 :variant-options="product.variant_options"
                 class="mt-6"
               />
+
+              <!-- Other variant axes (e.g. material, length) -->
+              <template v-if="product?.variant_options">
+                <ProductVariantAxisSelector
+                  v-for="axis in remainingAxes"
+                  :key="axis.code"
+                  :product="product"
+                  :variant-options="product.variant_options"
+                  :axis="axis"
+                  class="mt-6"
+                />
+              </template>
 
               <!-- Quantity and Add to Cart -->
               <div class="mt-10 flex items-center gap-4">

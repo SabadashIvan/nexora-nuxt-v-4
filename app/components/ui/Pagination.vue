@@ -112,7 +112,7 @@ function next() {
         :class="[
           'flex items-center justify-center h-10 min-w-[40px] px-3 rounded-lg font-medium transition-colors',
           page === currentPage
-            ? 'bg-primary-500 text-white'
+            ? 'bg-primary-500 text-black'
             : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300',
         ]"
         @click="goToPage(page)"

@@ -190,7 +190,12 @@
   "newsletter": {
     "consent": "I agree to receive newsletter emails",
     "subscribe": "Subscribe",
-    "subscribing": "Subscribing..."
+    "subscribing": "Subscribing...",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "emailInvalid": "Please enter a valid email address",
+    "nameLabel": "Name",
+    "namePlaceholder": "Your name (optional)"
   },
   "breadcrumbs": {
     "home": "Home"
@@ -219,6 +224,23 @@
     "hero": {
       "title": "We built our business on great customer service",
       "description": "At the beginning at least, but then we realized we could make a lot more money if we kinda stopped caring about that. Our new strategy is to write a bunch of things that look really good in the headlines, then clarify in the small print but hope people don't actually read it."
+    },
+    "featuredProducts": {
+      "title": "Featured Products"
+    },
+    "newsletter": {
+      "title": "Subscribe to our newsletter",
+      "description": "Stay updated with our latest products, exclusive offers, and special promotions. Join our community and never miss out on great deals.",
+      "features": {
+        "weeklyArticles": {
+          "title": "Weekly articles",
+          "description": "Get valuable insights, product tips, and industry news delivered to your inbox every week."
+        },
+        "noSpam": {
+          "title": "No spam",
+          "description": "We respect your inbox. You'll only receive relevant updates and can unsubscribe at any time."
+        }
+      }
     }
   },
   "pages": {
