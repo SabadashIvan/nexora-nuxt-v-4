@@ -42,7 +42,7 @@ defineProps<Props>()
             Qty: {{ item.qty }}
           </p>
           <UiPrice 
-            :price="item.line_total_minor / 100" 
+            :price="item.line_total_minor" 
             :currency="pricing.currency"
             size="sm"
             :show-discount="false"
@@ -96,4 +96,3 @@ defineProps<Props>()
     </div>
   </div>
 </template>
-
