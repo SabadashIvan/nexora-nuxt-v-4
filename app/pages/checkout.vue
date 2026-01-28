@@ -10,7 +10,7 @@
  * 4. Payment method
  * 5. Place order button
  */
-import { Lock, AlertCircle, RefreshCw, Package, MapPin, Truck, CreditCard, ShoppingBag } from 'lucide-vue-next'
+import { Lock, AlertCircle, RefreshCw, Package, MapPin, Truck, CreditCard, ShoppingBag, Gift } from 'lucide-vue-next'
 import type { Address } from '~/types'
 import type { Settlement, Warehouse } from '~/types/shipping'
 import { useCheckoutDelivery } from '~/composables/useCheckoutDelivery'
@@ -29,6 +29,9 @@ const { countries } = useCountries()
 const checkoutSession = useCheckoutSession()
 const checkoutDelivery = useCheckoutDelivery()
 const getCartStore = () => useCartStore()
+const checkoutStore = useCheckoutStore()
+const authStore = useAuthStore()
+const loyaltyStore = useLoyaltyStore()
 
 // Local state
 const shippingAddress = ref<Address>({
@@ -52,6 +55,8 @@ const addressErrors = ref<Record<string, string>>({})
 const isInitialized = ref(false)
 const selectedSettlement = ref<Settlement | null>(null)
 const selectedWarehouse = ref<Warehouse | null>(null)
+const loyaltyPointsInput = ref<string>('')
+const isApplyingLoyalty = ref(false)
 
 // Computed
 const items = computed(() => checkoutSession.items.value)
@@ -60,6 +65,10 @@ const shippingMethods = computed(() => checkoutDelivery.shippingMethods.value)
 const paymentProviders = computed(() => checkoutSession.paymentProviders.value)
 const error = computed(() => checkoutSession.error.value)
 const loading = computed(() => checkoutSession.loading.value || checkoutDelivery.deliveryLoading.value)
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const availableLoyaltyPoints = computed(() => checkoutStore.availableLoyaltyPoints)
+const loyaltyPointsApplied = computed(() => checkoutStore.loyaltyPointsApplied)
+const canApplyLoyalty = computed(() => checkoutStore.canApplyLoyalty && isAuthenticated.value)
 
 // Validation
 const isAddressValid = computed(() => {
@@ -204,6 +213,19 @@ onMounted(async () => {
   }
 
   isInitialized.value = true
+
+  // Fetch available loyalty points if user is authenticated
+  if (authStore.isAuthenticated) {
+    try {
+      await loyaltyStore.fetchLoyaltyAccount()
+      // Convert balance from currency string (e.g., "$100.00") to minor units
+      const balanceValue = loyaltyStore.balanceValue || 0
+      const balanceMinor = Math.floor(balanceValue * 100) // Convert to minor units
+      checkoutStore.setAvailableLoyaltyPoints(balanceMinor > 0 ? balanceMinor : null)
+    } catch (err) {
+      console.error('Failed to fetch loyalty points:', err)
+    }
+  }
 })
 
 // Validate address
@@ -234,6 +256,41 @@ const selectedShippingMethod = computed(() => {
 // Select payment provider
 function selectPayment(code: string) {
   selectedPaymentCode.value = code
+}
+
+// Apply loyalty points
+async function applyLoyaltyPoints() {
+  if (!loyaltyPointsInput.value) return
+  
+  const points = parseInt(loyaltyPointsInput.value)
+  if (isNaN(points) || points <= 0) {
+    return
+  }
+
+  // Convert to minor units (assuming input is in major units, e.g., 1 = 100 minor)
+  const pointsMinor = points * 100
+
+  isApplyingLoyalty.value = true
+  try {
+    await checkoutStore.applyLoyaltyPoints(pointsMinor)
+    loyaltyPointsInput.value = ''
+  } catch (err) {
+    console.error('Apply loyalty points error:', err)
+  } finally {
+    isApplyingLoyalty.value = false
+  }
+}
+
+// Remove loyalty points
+async function removeLoyaltyPoints() {
+  isApplyingLoyalty.value = true
+  try {
+    await checkoutStore.removeLoyaltyPoints()
+  } catch (err) {
+    console.error('Remove loyalty points error:', err)
+  } finally {
+    isApplyingLoyalty.value = false
+  }
 }
 
 // Place order - sequential API calls
@@ -281,14 +338,20 @@ async function placeOrder() {
       return
     }
 
-    // Step 4: Confirm checkout and create order
+    // Step 4: Apply loyalty points if any were entered (optional, authenticated users only)
+    if (isAuthenticated.value && loyaltyPointsApplied.value) {
+      // Loyalty points are already applied via applyLoyaltyPoints() function
+      // No need to re-apply here, they're already in the checkout session
+    }
+
+    // Step 5: Confirm checkout and create order
     const orderId = await checkoutSession.confirmCheckout()
     if (!orderId) {
       isProcessing.value = false
       return
     }
 
-    // Step 5: Initialize payment (for online payments)
+    // Step 6: Initialize payment (for online payments)
     const paymentResult = await checkoutSession.initializePayment(orderId)
 
     if (paymentResult?.payment_url) {
@@ -712,6 +775,81 @@ function formatPrice(minor: number, currency: string = 'EUR'): string {
               <p v-else class="text-gray-500 dark:text-gray-400 text-center py-4">
                 No payment methods available
               </p>
+            </div>
+          </section>
+
+          <!-- Section 5: Loyalty Points (Authenticated Users Only) -->
+          <section 
+            v-if="isAuthenticated && canApplyLoyalty" 
+            class="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden"
+          >
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3">
+              <Gift class="h-5 w-5 text-gray-400" />
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Loyalty Points</h2>
+            </div>
+            <div class="p-6">
+              <div v-if="availableLoyaltyPoints !== null" class="space-y-4">
+                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Available Points</span>
+                  <span class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {{ (availableLoyaltyPoints / 100).toFixed(2) }}
+                  </span>
+                </div>
+
+                <div v-if="!loyaltyPointsApplied" class="space-y-3">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Points to Apply
+                  </label>
+                  <div class="flex gap-3">
+                    <input
+                      v-model="loyaltyPointsInput"
+                      type="number"
+                      :min="0"
+                      :max="availableLoyaltyPoints ? (availableLoyaltyPoints / 100) : 0"
+                      step="0.01"
+                      placeholder="0.00"
+                      class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                    <button
+                      type="button"
+                      :disabled="!loyaltyPointsInput || isApplyingLoyalty || loading"
+                      class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      @click="applyLoyaltyPoints"
+                    >
+                      <UiSpinner v-if="isApplyingLoyalty" size="sm" />
+                      <span v-else>Apply</span>
+                    </button>
+                  </div>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Maximum: {{ availableLoyaltyPoints ? (availableLoyaltyPoints / 100).toFixed(2) : '0.00' }} points
+                  </p>
+                </div>
+
+                <div v-else class="space-y-3">
+                  <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                    <div>
+                      <p class="text-sm font-medium text-indigo-900 dark:text-indigo-100">
+                        Applied Points
+                      </p>
+                      <p class="text-lg font-semibold text-indigo-700 dark:text-indigo-300">
+                        {{ (loyaltyPointsApplied / 100).toFixed(2) }} points
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      :disabled="isApplyingLoyalty || loading"
+                      class="px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium transition-colors disabled:opacity-50"
+                      @click="removeLoyaltyPoints"
+                    >
+                      <UiSpinner v-if="isApplyingLoyalty" size="sm" />
+                      <span v-else>Remove</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                Loading loyalty points...
+              </div>
             </div>
           </section>
 

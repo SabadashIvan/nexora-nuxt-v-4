@@ -1,0 +1,248 @@
+name: Blog
+description: 'APIs for browsing blog posts'
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/blog/posts
+    metadata:
+      custom: []
+      groupName: Blog
+      groupDescription: 'APIs for browsing blog posts'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List blog posts'
+      description: |-
+        Retrieves a paginated list of published blog posts with optional filtering and sorting.
+
+        Sorting options:
+        - `newest` — newest posts first (by publish date)
+        - `oldest` — oldest posts first (by publish date)
+      authenticated: false
+      deprecated: false
+    headers:
+      Accept-Language: en
+      Accept-Currency: USD
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      page:
+        custom: []
+        name: page
+        description: 'Page number for pagination.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Number of items per page (max 60).'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      category_id:
+        custom: []
+        name: category_id
+        description: 'Filter posts by category ID.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      sort:
+        custom: []
+        name: sort
+        description: 'Sort order. One of: `newest`, `oldest`.'
+        required: false
+        example: newest
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      page: 1
+      per_page: 15
+      category_id: 1
+      sort: newest
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": [{"id": 1, "slug": "my-first-post", "title": "My First Post", "excerpt": "Short excerpt...", "published_at": "2025-01-15T10:00:00.000000Z", "image": {"id": 1, "url": "https://example.com/image.webp"}, "category": {"id": 1, "slug": "news", "title": "News"}}], "meta": {"pagination": {"current_page": 1, "per_page": 15, "total": 100}}}'
+        headers: []
+        description: Success
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/blog/posts/{slug}'
+    metadata:
+      custom: []
+      groupName: Blog
+      groupDescription: 'APIs for browsing blog posts'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get blog post details'
+      description: 'Retrieves detailed information about a specific blog post by slug.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Accept-Language: en
+      Accept-Currency: USD
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      slug:
+        custom: []
+        name: slug
+        description: 'Post slug.'
+        required: true
+        example: my-first-post
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      slug: my-first-post
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"id": 1, "slug": "my-first-post", "title": "My First Post", "content": "Full post content...", "excerpt": "Short excerpt...", "published_at": "2025-01-15T10:00:00.000000Z", "image": {"id": 1, "url": "https://example.com/image.webp"}, "category": {"id": 1, "slug": "news", "title": "News"}}}'
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: '{"message": "Post not found"}'
+        headers: []
+        description: 'Error: not found'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/blog/categories
+    metadata:
+      custom: []
+      groupName: Blog
+      groupDescription: 'APIs for browsing blog categories'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List blog categories'
+      description: 'Retrieves all active blog categories.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Accept-Language: en
+      Accept-Currency: USD
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": [{"id": 1, "slug": "news", "title": "News", "description": "Latest news and updates"}, {"id": 2, "slug": "tutorials", "title": "Tutorials", "description": "Step-by-step guides"}]}'
+        headers: []
+        description: Success
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/blog/categories/{slug}'
+    metadata:
+      custom: []
+      groupName: Blog
+      groupDescription: 'APIs for browsing blog categories'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Show blog category'
+      description: 'Returns blog category data by slug.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Accept-Language: en
+      Accept-Currency: USD
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      slug:
+        custom: []
+        name: slug
+        description: 'Category slug.'
+        required: true
+        example: news
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      slug: news
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data": {"id": 1, "slug": "news", "title": "News", "description": "Latest news and updates"}}'
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: '{"message": "Category not found"}'
+        headers: []
+        description: 'Error: not found'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null

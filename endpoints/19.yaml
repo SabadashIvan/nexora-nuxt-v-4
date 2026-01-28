@@ -1,0 +1,1105 @@
+name: Checkout
+description: 'APIs for checkout process management'
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/checkout/start
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for checkout process management'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Start checkout session'
+      description: 'Initiates a new checkout session from a shopping cart.'
+      authenticated: false
+      deprecated: false
+    headers:
+      X-Cart-Token: abc123token
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      billing_same_as_shipping:
+        custom: []
+        name: billing_same_as_shipping
+        description: 'optional Whether billing address is same as shipping.'
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      billing_same_as_shipping: true
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |
+          {
+              "data": {
+                  "id": 1315,
+                  "expires_at": "2025-10-31T11:11:31+00:00",
+                  "currency": "USD",
+                  "locale": "ru",
+                  "pricing": {
+                      "currency": "USD",
+                      "items_minor": 78390,
+                      "discounts_minor": 4674,
+                      "shipping_minor": 0,
+                      "grand_total_minor": 73716,
+                      "promotions": [
+                          {
+                              "name": "Debitis quas exercitationem",
+                              "type": 2,
+                              "value": 4674,
+                              "source": 1,
+                              "promotion_id": 5
+                          }
+                      ]
+                  },
+                  "items": [
+                      {
+                          "variant_id": 5,
+                          "sku": "SKU-7283-UPJB",
+                          "qty": 2,
+                          "price": {
+                              "currency": "USD",
+                              "list_minor": 65325,
+                              "sale_minor": 39195,
+                              "effective_minor": 39195
+                          },
+                          "line_total_minor": 78390
+                      }
+                  ],
+                  "payment_provider": [],
+                  "shipping": null,
+                  "shipping_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  },
+                  "billing_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  },
+                  "billing_same_as_shipping": true
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: ''
+        headers: []
+        description: 'Error: not found'
+      -
+        custom: []
+        status: 422
+        content: ''
+        headers: []
+        description: 'Error: validation'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/checkout/{id}/shipping-method'
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for checkout process management'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update shipping method'
+      description: 'Sets the shipping method for the checkout session.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'Checkout session ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      method_code:
+        custom: []
+        name: method_code
+        description: 'Shipping method code.'
+        required: true
+        example: standard_shipping
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      quote_id:
+        custom: []
+        name: quote_id
+        description: 'Shipping quote ID.'
+        required: true
+        example: q_01k8awpra03ck0bq331y0j3fd5
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      provider_metadata.warehouse_external_id:
+        custom: []
+        name: provider_metadata.warehouse_external_id
+        description: 'External warehouse/pickup point ID.'
+        required: false
+        example: 1ec09d88-e1c2-11ec-8f4a-48df37b921db
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      method_code: standard_shipping
+      quote_id: q_01k8awpra03ck0bq331y0j3fd5
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": {
+                  "id": 8,
+                  "expires_at": "2025-10-07T08:04:05+00:00",
+                  "currency": "EUR",
+                  "locale": "en",
+                  "pricing": {
+                      "currency": "EUR",
+                      "items_minor": 0,
+                      "discounts_minor": 0,
+                      "shipping_minor": 123,
+                      "grand_total_minor": 123,
+                      "promotions": []
+                  },
+                  "items": [
+                      {
+                          "variant_id": 1,
+                          "sku": "TEST-1",
+                          "qty": 1,
+                          "price": {
+                              "currency": "EUR",
+                              "list_minor": 0,
+                              "sale_minor": null,
+                              "effective_minor": 0
+                          },
+                          "line_total_minor": 0
+                      }
+                  ],
+                  "shipping": {
+                      "currency": "eur",
+                      "quote_id": "test",
+                      "method_code": "test",
+                      "amount_minor": 123
+                  },
+                  "shipping_address": null,
+                  "billing_address": null
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: ''
+        headers: []
+        description: 'Error: not found'
+      -
+        custom: []
+        status: 409
+        content: ''
+        headers: []
+        description: 'Error: need requote'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/checkout/{id}/payment-provider'
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for checkout process management'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update payment provider'
+      description: 'Sets the payment provider for the checkout session.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'Checkout session ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      provider_code:
+        custom: []
+        name: provider_code
+        description: 'Payment provider code.'
+        required: true
+        example: monobank_installments
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      provider_code: monobank_installments
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": {
+                  "id": 5,
+                  "expires_at": "2025-10-02T11:05:45+00:00",
+                  "currency": "EUR",
+                  "locale": "en",
+                  "pricing": {
+                      "currency": "EUR",
+                      "items_minor": 100,
+                      "discounts_minor": 0,
+                      "shipping_minor": 0,
+                      "grand_total_minor": 105,
+                      "promotions": []
+                  },
+                  "items": [
+                      {
+                          "variant_id": 1,
+                          "sku": "TEST-1",
+                          "qty": 1,
+                          "price": {
+                              "currency": "EUR",
+                              "list_minor": 10,
+                              "sale_minor": null,
+                              "effective_minor": 10
+                          },
+                          "line_total_minor": 10
+                      }
+                  ],
+                  "payment_provider": {
+                      "provider_code": "monobank_installments",
+                      "surcharge_amount_minor": 5,
+                      "surcharge_config": {
+                          "value": 5,
+                          "value_type": "percentage",
+                          "application_type": "entire_order"
+                      }
+                  },
+                  "shipping": null,
+                  "shipping_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  },
+                  "billing_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  }
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: ''
+        headers: []
+        description: 'Error: not found'
+      -
+        custom: []
+        status: 422
+        content: ''
+        headers: []
+        description: 'Error: provider inactive'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: 'api/v1/checkout/{id}/address'
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for checkout process management'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update checkout addresses'
+      description: |-
+        Updates the shipping and/or billing addresses for an active checkout session.
+
+        Both addresses can be updated in a single request.
+        If `billing_same_as_shipping` is `true`, the billing address will automatically be copied from the shipping address.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'The checkout session ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      shipping:
+        custom: []
+        name: shipping
+        description: 'optional Shipping address details.'
+        required: false
+        example: []
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      shipping.first_name:
+        custom: []
+        name: shipping.first_name
+        description: 'optional Recipient’s first name.'
+        required: false
+        example: Ivan
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.last_name:
+        custom: []
+        name: shipping.last_name
+        description: 'optional Recipient’s last name.'
+        required: false
+        example: Ivanov
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.phone:
+        custom: []
+        name: shipping.phone
+        description: 'optional Contact phone number (international format).'
+        required: false
+        example: '+3809999999'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.country:
+        custom: []
+        name: shipping.country
+        description: 'optional ISO 2-letter country code.'
+        required: false
+        example: UA
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.region:
+        custom: []
+        name: shipping.region
+        description: 'optional Region, province, or state.'
+        required: false
+        example: 'Kyiv oblast'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.city:
+        custom: []
+        name: shipping.city
+        description: 'optional City name.'
+        required: false
+        example: Kyiv
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.postal:
+        custom: []
+        name: shipping.postal
+        description: 'optional Postal or ZIP code.'
+        required: false
+        example: '10100'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.address_line1:
+        custom: []
+        name: shipping.address_line1
+        description: 'optional Primary address line (street, building, etc.).'
+        required: false
+        example: 'Street St, 1'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      shipping.address_line2:
+        custom: []
+        name: shipping.address_line2
+        description: 'optional Additional address details (apartment, office, etc.).'
+        required: false
+        example: 'Office 10'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing_same_as_shipping:
+        custom: []
+        name: billing_same_as_shipping
+        description: 'optional If `true`, the billing address will be identical to the shipping address.'
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing:
+        custom: []
+        name: billing
+        description: 'optional Billing address details (ignored if `billing_same_as_shipping` is `true`).'
+        required: false
+        example: []
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      billing.first_name:
+        custom: []
+        name: billing.first_name
+        description: 'optional Payer’s first name.'
+        required: false
+        example: Ivan
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.last_name:
+        custom: []
+        name: billing.last_name
+        description: 'optional Payer’s last name.'
+        required: false
+        example: Ivanov
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.phone:
+        custom: []
+        name: billing.phone
+        description: 'optional Contact phone number (international format).'
+        required: false
+        example: '+3809999999'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.country:
+        custom: []
+        name: billing.country
+        description: 'optional ISO 2-letter country code.'
+        required: false
+        example: UA
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.region:
+        custom: []
+        name: billing.region
+        description: 'optional Region, province, or state.'
+        required: false
+        example: 'Kyiv oblast'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.city:
+        custom: []
+        name: billing.city
+        description: 'optional City name.'
+        required: false
+        example: Kyiv
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.postal:
+        custom: []
+        name: billing.postal
+        description: 'optional Postal or ZIP code.'
+        required: false
+        example: '10100'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.address_line1:
+        custom: []
+        name: billing.address_line1
+        description: 'optional Primary address line (street, building, etc.).'
+        required: false
+        example: 'Street St, 1'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      billing.address_line2:
+        custom: []
+        name: billing.address_line2
+        description: 'optional Additional address details (apartment, office, etc.).'
+        required: false
+        example: 'Office 10'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      shipping:
+        first_name: Ivan
+        last_name: Ivanov
+        phone: '+3809999999'
+        country: UA
+        region: 'Kyiv oblast'
+        city: Kyiv
+        postal: '10100'
+        address_line1: 'Street St, 1'
+        address_line2: 'Office 10'
+      billing_same_as_shipping: false
+      billing:
+        first_name: Ivan
+        last_name: Ivanov
+        phone: '+3809999999'
+        country: UA
+        region: 'Kyiv oblast'
+        city: Kyiv
+        postal: '10100'
+        address_line1: 'Street St, 1'
+        address_line2: 'Office 10'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": {
+                  "id": 1315,
+                  "expires_at": "2025-10-31T11:11:31+00:00",
+                  "currency": "USD",
+                  "locale": "ru",
+                  "pricing": {
+                      "currency": "USD",
+                      "items_minor": 78390,
+                      "discounts_minor": 4674,
+                      "shipping_minor": 0,
+                      "grand_total_minor": 73716,
+                      "promotions": [
+                          {
+                              "name": "Debitis quas exercitationem",
+                              "type": 2,
+                              "value": 4674,
+                              "source": 1,
+                              "promotion_id": 5
+                          }
+                      ]
+                  },
+                  "items": [
+                      {
+                          "variant_id": 5,
+                          "sku": "SKU-7283-UPJB",
+                          "qty": 2,
+                          "price": {
+                              "currency": "USD",
+                              "list_minor": 65325,
+                              "sale_minor": 39195,
+                              "effective_minor": 39195
+                          },
+                          "line_total_minor": 78390
+                      }
+                  ],
+                  "payment_provider": [],
+                  "shipping": null,
+                  "shipping_address": {
+                      "first_name": "Ivan",
+                      "last_name": "Ivanov",
+                      "phone": "+3809999999",
+                      "country": "UA",
+                      "region": "Kyiv oblast",
+                      "city": "Kyiv",
+                      "postal": "10100",
+                      "address_line1": "Street St, 1",
+                      "address_line2": "Office 10"
+                  },
+                  "billing_address": {
+                      "first_name": "Ivan",
+                      "last_name": "Ivanov",
+                      "phone": "+3809999999",
+                      "country": "UA",
+                      "region": "Kyiv oblast",
+                      "city": "Kyiv",
+                      "postal": "10100",
+                      "address_line1": "Street St, 1",
+                      "address_line2": "Office 10"
+                  },
+                  "billing_same_as_shipping": false
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: ''
+        headers: []
+        description: 'Error: not found'
+      -
+        custom: []
+        status: 422
+        content: ''
+        headers: []
+        description: 'Error: validation'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/checkout/{id}/confirm'
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for checkout process management'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Confirm checkout'
+      description: 'Confirms the checkout session and creates an order.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'Checkout session ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": {
+                  "order_id": 5,
+                  "number": "R15-20251007-0002",
+                  "status": "PENDING",
+                  "totals": {
+                      "currency": "EUR",
+                      "items_minor": 0,
+                      "discounts_minor": 0,
+                      "shipping_minor": 123,
+                      "grand_total_minor": 123
+                  }
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 404
+        content: ''
+        headers: []
+        description: 'Error: not found'
+      -
+        custom: []
+        status: 409
+        content: ''
+        headers: []
+        description: 'Error: conflict'
+      -
+        custom: []
+        status: 422
+        content: ''
+        headers: []
+        description: 'Error: unprocessable entity'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/checkout/{id}/loyalty'
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for loyalty points management during checkout'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Apply loyalty points to checkout'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'Checkout session ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      points_minor:
+        custom: []
+        name: points_minor
+        description: 'Points to apply in minor units.'
+        required: true
+        example: 100
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      points_minor: 100
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": {
+                  "id": 334,
+                  "expires_at": "2026-01-05T19:08:00+00:00",
+                  "currency": "USD",
+                  "locale": "ru",
+                  "pricing": {
+                      "currency": "USD",
+                      "items_minor": 95860,
+                      "discounts_minor": 1213,
+                      "loyalty_points_minor": 1000,
+                      "shipping_minor": 0,
+                      "grand_total_minor": 93647,
+                      "promotions": [
+                          {
+                              "name": "Optio ut recusandae",
+                              "type": 2,
+                              "value": 1061,
+                              "source": 1,
+                              "promotion_id": 1
+                          }
+                      ]
+                  },
+                  "items": [
+                      {
+                          "variant_id": 2,
+                          "sku": "SKU-0915-OLCF",
+                          "qty": 2,
+                          "price": {
+                              "currency": "USD",
+                              "list_minor": 54466,
+                              "sale_minor": 47930,
+                              "effective_minor": 47930
+                          },
+                          "line_total_minor": 95860,
+                          "loyalty_discount_minor": 0
+                      }
+                  ],
+                  "payment_provider": [],
+                  "shipping": null,
+                  "shipping_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  },
+                  "billing_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  }
+              }
+          }
+        headers: []
+        description: Success
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/checkout/{id}/loyalty'
+    metadata:
+      custom: []
+      groupName: Checkout
+      groupDescription: 'APIs for loyalty points management during checkout'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Remove loyalty points from checkout'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'Checkout session ID.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": {
+                  "id": 334,
+                  "expires_at": "2026-01-05T19:08:00+00:00",
+                  "currency": "USD",
+                  "locale": "ru",
+                  "pricing": {
+                      "currency": "USD",
+                      "items_minor": 95860,
+                      "discounts_minor": 1213,
+                      "loyalty_points_minor": 0,
+                      "shipping_minor": 0,
+                      "grand_total_minor": 94647,
+                      "promotions": [
+                          {
+                              "name": "Optio ut recusandae",
+                              "type": 2,
+                              "value": 1061,
+                              "source": 1,
+                              "promotion_id": 1
+                          }
+                      ]
+                  },
+                  "items": [
+                      {
+                          "variant_id": 2,
+                          "sku": "SKU-0915-OLCF",
+                          "qty": 2,
+                          "price": {
+                              "currency": "USD",
+                              "list_minor": 54466,
+                              "sale_minor": 47930,
+                              "effective_minor": 47930
+                          },
+                          "line_total_minor": 95860,
+                          "loyalty_discount_minor": 0
+                      }
+                  ],
+                  "payment_provider": [],
+                  "shipping": null,
+                  "shipping_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  },
+                  "billing_address": {
+                      "first_name": null,
+                      "last_name": null,
+                      "phone": null,
+                      "country": null,
+                      "region": null,
+                      "city": null,
+                      "postal": null,
+                      "address_line1": null,
+                      "address_line2": null
+                  }
+              }
+          }
+        headers: []
+        description: Success
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

@@ -1,0 +1,268 @@
+name: 'Customer Support'
+description: |-
+
+  APIs for managing customer support requests
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/customer-support/requests
+    metadata:
+      custom: []
+      groupName: 'Customer Support'
+      groupDescription: |-
+
+        APIs for managing customer support requests
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create support request'
+      description: 'Submit a new customer support request. Rate limited to 3 attempts per 60 minutes per email/IP combination.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      name:
+        custom: []
+        name: name
+        description: 'Name of the user. Min 2, max 100 characters.'
+        required: true
+        example: 'John Doe'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'User email address.'
+        required: true
+        example: john@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      phone:
+        custom: []
+        name: phone
+        description: 'Optional Phone number. Min 5, max 30 characters.'
+        required: false
+        example: '+380991234567'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      subject:
+        custom: []
+        name: subject
+        description: 'Optional Subject of the request. Min 3, max 200 characters.'
+        required: false
+        example: 'Payment issue'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      message:
+        custom: []
+        name: message
+        description: 'Message body. Min 10, max 5000 characters.'
+        required: true
+        example: 'I have an issue with my last payment.'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      type:
+        custom: []
+        name: type
+        description: 'Optional Type ID of request (from request types endpoint response).'
+        required: false
+        example: 2
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      user_id:
+        custom: []
+        name: user_id
+        description: 'Optional Authenticated user ID.'
+        required: false
+        example: 123
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      ip_address:
+        custom: []
+        name: ip_address
+        description: 'IPv4 address of the user.'
+        required: true
+        example: 192.168.1.1
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      user_agent:
+        custom: []
+        name: user_agent
+        description: 'User agent string. Max 500 characters.'
+        required: true
+        example: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      referer:
+        custom: []
+        name: referer
+        description: 'Optional HTTP referer. Max 500 characters.'
+        required: false
+        example: 'https://example.com/contact'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      source:
+        custom: []
+        name: source
+        description: 'Optional Source identifier. Max 50 characters.'
+        required: false
+        example: website
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      name: 'John Doe'
+      email: john@example.com
+      phone: '+380991234567'
+      subject: 'Payment issue'
+      message: 'I have an issue with my last payment.'
+      type: 2
+      user_id: 123
+      ip_address: 192.168.1.1
+      user_agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+      referer: 'https://example.com/contact'
+      source: website
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |
+          {
+            "data": {
+              "id": 1,
+              "name": "John Doe",
+              "email": "john.doe@example.com",
+              "phone": "+380501234567",
+              "subject": "Question about delivery",
+              "message": "Hello, I would like to know what delivery options are available.",
+              "type": "general",
+              "status": "new",
+              "metadata": {
+                "ip_address": "127.0.0.1",
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "source": "contact_page",
+                "referer": "https://example.com"
+              },
+              "created_at": "2025-12-25T10:30:00.000000Z"
+            }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 422
+        content: |
+          {
+            "message": "The email field must be a valid email address. (and 1 more error)",
+            "errors": {
+              "email": [
+                "The email field must be a valid email address."
+              ],
+              "message": [
+                "The message field must be at least 10 characters."
+              ]
+            }
+          }
+        headers: []
+        description: 'Validation error'
+      -
+        custom: []
+        status: 429
+        content: |
+          {
+            "message": "Too many support request attempts. Please try again in 3540 seconds.",
+            "error": "too_many_attempts",
+            "retry_after": 3540
+          }
+        headers: []
+        description: 'Rate limit exceeded'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/customer-support/requests/types
+    metadata:
+      custom: []
+      groupName: 'Customer Support'
+      groupDescription: |-
+
+        APIs for managing customer support requests
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get support request types'
+      description: 'Returns a list of all available support request types.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          [
+            {
+              "id": 1,
+              "title": "General"
+            }
+          ]
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null

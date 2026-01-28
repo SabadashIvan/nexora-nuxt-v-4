@@ -856,6 +856,13 @@ const gridImages = computed(() => {
           </div>
         </div>
 
+        <!-- Recommended Products Section -->
+        <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8 pb-16">
+          <ClientOnly>
+            <ProductRecommendations v-if="product?.id" :variant-id="product.id" :limit="8" />
+          </ClientOnly>
+        </div>
+
         <!-- Product Reviews Section -->
         <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:max-w-7xl lg:px-8 pb-16">
           <ClientOnly>

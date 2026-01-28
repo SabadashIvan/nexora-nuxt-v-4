@@ -1,0 +1,130 @@
+name: App
+description: 'Application system endpoints'
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/app/languages
+    metadata:
+      custom: []
+      groupName: App
+      groupDescription: 'Application system endpoints'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get active languages'
+      description: 'Returns a list of active site languages and the default language code.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": [
+                  {
+                      "code": "en",
+                      "title": "Английский",
+                      "is_default": false
+                  },
+                  {
+                      "code": "ru",
+                      "title": "Русский",
+                      "is_default": true
+                  },
+                  {
+                      "code": "awa",
+                      "title": "Авадхи",
+                      "is_default": false
+                  }
+              ],
+              "meta": {
+                  "default": "ru"
+              }
+          }
+        headers: []
+        description: Success
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/app/currencies
+    metadata:
+      custom: []
+      groupName: App
+      groupDescription: 'Application system endpoints'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get active currencies'
+      description: 'Returns a list of active site currencies and the default currency code.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": [
+                  {
+                      "code": "EUR",
+                      "symbol": "€",
+                      "precision": 2,
+                      "is_default": false
+                  },
+                  {
+                      "code": "USD",
+                      "symbol": "$",
+                      "precision": 2,
+                      "is_default": true
+                  },
+                  {
+                      "code": "UAH",
+                      "symbol": "₴",
+                      "precision": 2,
+                      "is_default": false
+                  },
+                  {
+                      "code": "SHP",
+                      "symbol": "£",
+                      "precision": 2,
+                      "is_default": false
+                  }
+              ],
+              "meta": {
+                  "default": "USD"
+              }
+          }
+        headers: []
+        description: Success
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null

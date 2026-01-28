@@ -1,0 +1,1128 @@
+name: Identity
+description: 'APIs for managing genders'
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: change-password/request
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Request password change'
+      description: 'Request a password change by validating the current password and sending a confirmation email.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      current_password:
+        custom: []
+        name: current_password
+        description: 'Current password.'
+        required: true
+        example: password123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      new_password:
+        custom: []
+        name: new_password
+        description: 'New password (min 8 characters).'
+        required: true
+        example: newpassword123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      new_password_confirmation:
+        custom: []
+        name: new_password_confirmation
+        description: 'New password confirmation.'
+        required: true
+        example: newpassword123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      current_password: password123
+      new_password: newpassword123
+      new_password_confirmation: newpassword123
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": "We have emailed your password reset link."
+          }
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "The current password is incorrect.",
+            "errors": {
+              "current_password": ["The provided password is incorrect."]
+            }
+          }
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'change-password/confirm/{token}'
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Confirm password change'
+      description: 'Confirm the password change using the token from the confirmation email.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      token:
+        custom: []
+        name: token
+        description: 'Password change confirmation token from email.'
+        required: true
+        example: abc123token456
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      token: abc123token456
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      email:
+        custom: []
+        name: email
+        description: "User's email address."
+        required: true
+        example: john@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      email: john@example.com
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "message": "Your password has been reset."
+          }
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "message": "This password change token is invalid.",
+            "errors": {
+              "email": ["This password reset token is invalid."]
+            }
+          }
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: change-email/request
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Request email address change'
+      description: 'Send an email change notification to the user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      new_email:
+        custom: []
+        name: new_email
+        description: 'New email address.'
+        required: false
+        example: new@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      new_email: new@example.com
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: '{}'
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+             "message": "The email address is already taken.",
+             "errors": {
+               "new_email": ["The email address is already taken."]
+             }
+           }
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'change-email/{id}/{hash}'
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Confirm change email address'
+      description: 'Confirm the email change using the signed URL from the confirmation email.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'User ID.'
+        required: true
+        example: '1'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      hash:
+        custom: []
+        name: hash
+        description: 'Verification hash.'
+        required: true
+        example: abc123hash456
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: '1'
+      hash: abc123hash456
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 302
+        content: |-
+          Redirects to /auth/email/change with session flash-variable 'status'. Example value of 'status'
+              variable: 'Your email address has been successfully changed.'
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Unauthenticated."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          set-cookie: 'XSRF-TOKEN=eyJpdiI6IjVMQWI0N0RBSnhoVzcxUi9pZU5qUVE9PSIsInZhbHVlIjoiQlBva3pteW0vVkppR1UwWEh1cmJjKzUzdVRQNkhnakZ4U21rdzgrbUZ6elYvbnM2SXdDRDQxYmp3QkRxYlpnZkg2aE5FVy9mdEFMbkxhUXhScVdiNS9ZSGdjNWgrbUZoQnFiblh3bW5lb1lwdE85OUVlU2pkdGZKNmJ5cVVHWUciLCJtYWMiOiI5NDQ1NmIyZjU3MmRlZjU0MDY3NmU4NjgxNzViMDY5ODYzY2MxOGUxZWFiOWUwZGQ2NzdmM2ViZWY0Njg5NTk1IiwidGFnIjoiIn0%3D; expires=Tue, 27 Jan 2026 10:45:44 GMT; Max-Age=7200; path=/; samesite=lax; nexora-session=eyJpdiI6IkdKNElVRE1sS0JqVUFjRDdqd1lCTFE9PSIsInZhbHVlIjoiTTlPVDRTWERiNUtXRVRJK3B0L3M1K3RnU2VvWERqRFVSY1FtazlFSGJiWkVSNmRIZFlTUTFhL3E0TWk3YXIva2FSQ2pOd3hrOTYwZzFxZnVxTHhXVm1vQkkxN0lwOGYvTmpIUnlaUVNBNFpJWHdDaGo1Q1IvbFZiQ0svaE1tMWEiLCJtYWMiOiI2YzE5YjM5MWNjNGU3MzIwNTZiNTQxYzA2ODJmZjI5YWQzZDdjYmRlNzAwMjg1NTFhZDVhZmU4NDJkODQ2MTk2IiwidGFnIjoiIn0%3D; expires=Tue, 27 Jan 2026 10:45:44 GMT; Max-Age=7200; path=/; httponly; samesite=lax'
+        description: null
+      -
+        custom: []
+        status: 403
+        content: 'Signed URL is invalid'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/identity/genders
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for managing genders'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List genders'
+      description: 'Returns a list of all available genders'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          [
+            {
+              "id": 1,
+              "title": "Male"
+            }
+          ]
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/identity/me/profile
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for user profile'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Get my profile'
+      description: "Returns the current user's profile. If it doesn't exist, a default profile is created."
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data":{"user_id":1,"first_name":"John","last_name":"Doe","full_name":"John Doe","is_email_verified":true, "date_of_birth":"1990-05-15","gender":"Male"}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: api/v1/identity/me/profile
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for user profile'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update my profile'
+      description: "Updates the current user's profile."
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      first_name:
+        custom: []
+        name: first_name
+        description: 'nullable The first name. Max 100.'
+        required: false
+        example: John
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      last_name:
+        custom: []
+        name: last_name
+        description: 'nullable The last name. Max 100.'
+        required: false
+        example: Doe
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      date_of_birth:
+        custom: []
+        name: date_of_birth
+        description: 'nullable The date of birth in Y-m-d format.'
+        required: false
+        example: '1990-05-15'
+        type: date
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      gender:
+        custom: []
+        name: gender
+        description: 'nullable The gender (from /genders endpoint response).'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      first_name: John
+      last_name: Doe
+      date_of_birth: '1990-05-15'
+      gender: 1
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data":{"user_id":1,"first_name":"John","last_name":"Doe","full_name":"John Doe","is_email_verified":true,"date_of_birth":"1990-05-15","gender":1}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/identity/contacts/{channel}'
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for managing user contacts and notification channels'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Link contact channel'
+      description: 'Generates a linking mechanism (e.g., a Telegram deeplink) to associate a contact channel with the authenticated user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel:
+        custom: []
+        name: channel
+        description: 'The contact channel to link. 2 for `telegram`, 3 for `phone`.'
+        required: true
+        example: '2'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel: '2'
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      phone:
+        custom: []
+        name: phone
+        description: 'Phone number (required for phone channel).'
+        required: false
+        example: '+380501234567'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      phone: '+380501234567'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+           "data": "https://t.me/bot_username?start=token",
+           "meta": {
+             "type": "deeplink"
+           }
+          }
+        headers: []
+        description: 'Telegram deeplink'
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: 'Channel linked successfully'
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: 'Channel already linked'
+      -
+        custom: []
+        status: 400
+        content: '{"message": "Telegram bot username is not configured"}'
+        headers: []
+        description: 'Channel not supported or Bot not configured'
+      -
+        custom: []
+        status: 401
+        content: ''
+        headers: []
+        description: Unauthenticated
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/identity/contacts/{channel}'
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for managing user contacts and notification channels'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Unlink contact channel'
+      description: 'Removes the association of a contact channel from the authenticated user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      channel:
+        custom: []
+        name: channel
+        description: 'The contact channel to unlink. One of: `telegram`.'
+        required: true
+        example: telegram
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      channel: telegram
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: ''
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 400
+        content: '{"message": "Contact channel unlinking is not supported"}'
+        headers: []
+        description: 'Channel unlinking not supported'
+      -
+        custom: []
+        status: 401
+        content: ''
+        headers: []
+        description: Unauthenticated
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/identity/addresses
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for customer addresses'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List addresses'
+      description: "Get a list of the current user's saved addresses."
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data":[{"id":1,"user_id":1,"label":"Home","recipient_first_name":"John","recipient_last_name":"Doe","country_code":"US","locality":"New York","postal_code":"10001","address_line1":"350 5th Ave","address_line2":"","is_default_shipping":true,"is_default_billing":false,"created_at":"2025-10-20T12:00:00+00:00","updated_at":"2025-10-20T12:30:00+00:00"}]}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/identity/addresses
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for customer addresses'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create an address'
+      description: 'Create a new address for the current user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      label:
+        custom: []
+        name: label
+        description: 'A short label for the address.'
+        required: true
+        example: Home
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      recipient_first_name:
+        custom: []
+        name: recipient_first_name
+        description: "Recipient's first name."
+        required: true
+        example: John
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      recipient_last_name:
+        custom: []
+        name: recipient_last_name
+        description: "Recipient's last name."
+        required: true
+        example: Doe
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      country_code:
+        custom: []
+        name: country_code
+        description: 'Two-letter ISO country code.'
+        required: true
+        example: US
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      locality:
+        custom: []
+        name: locality
+        description: 'City or locality name.'
+        required: true
+        example: 'New York'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      postal_code:
+        custom: []
+        name: postal_code
+        description: 'Postal code.'
+        required: true
+        example: '10001'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      address_line1:
+        custom: []
+        name: address_line1
+        description: 'First address line.'
+        required: true
+        example: '350 5th Ave'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      address_line2:
+        custom: []
+        name: address_line2
+        description: 'nullable Second address line.'
+        required: false
+        example: 'Apt 12B'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      courier_notes:
+        custom: []
+        name: courier_notes
+        description: 'nullable Courier notes.'
+        required: false
+        example: 'New York 350 5th Ave'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      is_default_shipping:
+        custom: []
+        name: is_default_shipping
+        description: 'optional Whether this is the default shipping address.'
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      is_default_billing:
+        custom: []
+        name: is_default_billing
+        description: 'optional Whether this is the default billing address.'
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      label: Home
+      recipient_first_name: John
+      recipient_last_name: Doe
+      country_code: US
+      locality: 'New York'
+      postal_code: '10001'
+      address_line1: '350 5th Ave'
+      address_line2: 'Apt 12B'
+      courier_notes: 'New York 350 5th Ave'
+      is_default_shipping: true
+      is_default_billing: false
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: '{"data":{"id":2,"user_id":1,"label":"Home","recipient_first_name":"John","recipient_last_name":"Doe","country_code":"US","locality":"New York","postal_code":"10001","address_line1":"350 5th Ave","address_line2":"Apt 12B","is_default_shipping":true,"is_default_billing":false,"created_at":"2025-10-20T12:00:00+00:00","updated_at":"2025-10-20T12:00:00+00:00"}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+      - PATCH
+    uri: 'api/v1/identity/addresses/{id}'
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for customer addresses'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Update an address'
+      description: 'Update an existing address for the current user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'The ID of the address.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      address:
+        custom: []
+        name: address
+        description: 'The ID of the address to update.'
+        required: true
+        example: 2
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 16
+      address: 2
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      label:
+        custom: []
+        name: label
+        description: 'A short label for the address.'
+        required: true
+        example: Home
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      recipient_first_name:
+        custom: []
+        name: recipient_first_name
+        description: "Recipient's first name."
+        required: true
+        example: John
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      recipient_last_name:
+        custom: []
+        name: recipient_last_name
+        description: "Recipient's last name."
+        required: true
+        example: Doe
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      country_code:
+        custom: []
+        name: country_code
+        description: 'Two-letter ISO country code.'
+        required: true
+        example: US
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      locality:
+        custom: []
+        name: locality
+        description: 'City or locality name.'
+        required: true
+        example: 'New York'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      postal_code:
+        custom: []
+        name: postal_code
+        description: 'Postal code.'
+        required: true
+        example: '10001'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      address_line1:
+        custom: []
+        name: address_line1
+        description: 'First address line.'
+        required: true
+        example: '350 5th Ave'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      address_line2:
+        custom: []
+        name: address_line2
+        description: 'nullable Second address line.'
+        required: false
+        example: 'Apt 12B'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      courier_notes:
+        custom: []
+        name: courier_notes
+        description: 'nullable Courier notes.'
+        required: false
+        example: 'New York 350 5th Ave'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      is_default_shipping:
+        custom: []
+        name: is_default_shipping
+        description: 'optional Whether this is the default shipping address.'
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      is_default_billing:
+        custom: []
+        name: is_default_billing
+        description: 'optional Whether this is the default billing address.'
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      label: Home
+      recipient_first_name: John
+      recipient_last_name: Doe
+      country_code: US
+      locality: 'New York'
+      postal_code: '10001'
+      address_line1: '350 5th Ave'
+      address_line2: 'Apt 12B'
+      courier_notes: 'New York 350 5th Ave'
+      is_default_shipping: false
+      is_default_billing: true
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"data":{"id":2,"user_id":1,"label":"Home","recipient_first_name":"John","recipient_last_name":"Doe","country_code":"US","locality":"New York","postal_code":"10001","address_line1":"350 5th Ave","address_line2":"Apt 12B","is_default_shipping":false,"is_default_billing":true,"created_at":"2025-10-20T12:00:00+00:00","updated_at":"2025-10-20T12:30:00+00:00"}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/identity/addresses/{id}'
+    metadata:
+      custom: []
+      groupName: Identity
+      groupDescription: 'APIs for customer addresses'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Delete an address'
+      description: 'Delete an address belonging to the current user.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'The ID of the address.'
+        required: true
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      address:
+        custom: []
+        name: address
+        description: 'The ID of the address to delete.'
+        required: true
+        example: 2
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 16
+      address: 2
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 204
+        content: '{}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

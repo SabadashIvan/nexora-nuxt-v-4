@@ -2,7 +2,7 @@
 
 Alphabetical reference of all 90+ API endpoints with file locations for quick lookup.
 
-**Last Updated:** 2026-01-19
+**Last Updated:** 2026-01-28
 
 ---
 
@@ -54,7 +54,7 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 - GET - Get current cart
 
 **`/api/v1/cart/attach`** → [../api/cart-favorites.md](../api/cart-favorites.md)
-- POST - Attach guest cart to authenticated user
+- POST - Attach guest cart to authenticated user (verify backend existence)
 
 **`/api/v1/cart/coupons`** → [../api/cart-favorites.md](../api/cart-favorites.md)
 - POST - Apply coupon to cart
@@ -73,7 +73,7 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 - PATCH - Update item options (gift wrap, etc.)
 
 **`/api/v1/cart/v`** → [../api/cart-favorites.md](../api/cart-favorites.md)
-- HEAD - Get cart version (without full data)
+- GET - Get cart version (without full data) - Note: Backend YAML shows GET but description mentions HEAD; verify with backend
 
 **`/api/v1/catalog/brands`** → [../api/catalog.md](../api/catalog.md)
 - GET - List all brands
@@ -81,8 +81,8 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 **`/api/v1/catalog/categories`** → [../api/catalog.md](../api/catalog.md)
 - GET - Get category tree
 
-**`/api/v1/catalog/categories/{slug}`** → [../api/catalog.md](../api/catalog.md)
-- GET - Get category by slug
+**`/api/v1/catalog/categories/{idOrSlug}`** → [../api/catalog.md](../api/catalog.md)
+- GET - Get category by ID or slug
 
 **`/api/v1/catalog/comparison`** → [../api/cart-favorites.md](../api/cart-favorites.md)
 - GET - Get comparison table
@@ -101,8 +101,6 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 **`/api/v1/catalog/favorites/{variantId}`** → [../api/cart-favorites.md](../api/cart-favorites.md)
 - DELETE - Remove favorite
 
-**`/api/v1/catalog/products`** → [../api/catalog.md](../api/catalog.md)
-- GET - List products with filters
 
 **`/api/v1/catalog/suggest`** → [../api/catalog.md](../api/catalog.md)
 - GET - Search autocomplete/suggestions
@@ -112,6 +110,9 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 
 **`/api/v1/catalog/variants/{idOrSlug}`** → [../api/catalog.md](../api/catalog.md)
 - GET - Get variant details by ID or slug
+
+**`/api/v1/catalog/recommendations/variants`** → [../api/catalog.md](../api/catalog.md)
+- GET - Get recommended variants for a product (e.g., "You may also like")
 
 **`/api/v1/checkout/start`** → [../api/checkout-payments.md](../api/checkout-payments.md)
 - POST - Start checkout session
@@ -128,12 +129,28 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 **`/api/v1/checkout/{id}/shipping-method`** → [../api/checkout-payments.md](../api/checkout-payments.md)
 - PUT - Set shipping method
 
+**`/api/v1/checkout/{id}/loyalty`** → [../api/checkout-payments.md](../api/checkout-payments.md)
+- POST - Apply loyalty points to checkout
+- DELETE - Remove loyalty points from checkout
+
+**`/api/v1/checkout/{id}/loyalty`** → [../api/checkout-payments.md](../api/checkout-payments.md)
+- POST - Apply loyalty points to checkout
+- DELETE - Remove loyalty points from checkout
+
 **`/api/v1/comments`** → [../api/content.md](../api/content.md)
 - GET - List comments for entity
 - POST - Create comment
 
 **`/api/v1/comments/types`** → [../api/content.md](../api/content.md)
 - GET - List commentable types
+
+**`/api/v1/comments/{id}`** → [../api/content.md](../api/content.md)
+- PATCH - Update comment (author only)
+- DELETE - Delete comment (author only)
+
+**`/api/v1/comments/{id}`** → [../api/content.md](../api/content.md)
+- PATCH - Update comment (author only)
+- DELETE - Delete comment (author or admin)
 
 **`/api/v1/customer-support/requests`** → [../api/audience-support.md](../api/audience-support.md)
 - POST - Submit support request
@@ -159,8 +176,6 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 
 ## H
 
-**`/api/v1/health`** → [../api/system-seo.md](../api/system-seo.md)
-- GET - Health check
 
 ---
 
@@ -176,6 +191,10 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 
 **`/api/v1/identity/me/profile`** → [../api/authentication.md](../api/authentication.md)
 - GET - Get user profile
+- PUT - Update user profile
+
+**`/api/v1/identity/genders`** → [../api/authentication.md](../api/authentication.md)
+- GET - List available genders
 
 ---
 
@@ -286,8 +305,6 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 **`/api/v1/shipping/methods`** → [../api/shipping-orders.md](../api/shipping-orders.md)
 - GET - Get available shipping methods
 
-**`/api/v1/shipping/providers`** → [../api/shipping-orders.md](../api/shipping-orders.md)
-- GET - List shipping providers
 
 **`/api/v1/shipping/webhook/{provider_code}`** → [../api/shipping-orders.md](../api/shipping-orders.md)
 - POST - Shipping webhook handler
@@ -304,26 +321,18 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 **`/api/v1/site/contacts`** → [../api/system-seo.md](../api/system-seo.md)
 - GET - Get site contacts, messengers, socials
 
+**`/api/v1/site/locations`** → [../api/system-seo.md](../api/system-seo.md)
+- GET - Get physical store locations
+
+**`/api/v1/site/locations`** → [../api/system-seo.md](../api/system-seo.md)
+- GET - List active store locations (physical stores)
+
 **`/api/v1/site/menus/tree`** → [../api/system-seo.md](../api/system-seo.md)
 - GET - Get localized menu tree
 
 **`/api/v1/site/pages/{slug}`** → [../api/system-seo.md](../api/system-seo.md)
 - GET - Get static page by slug
 
-**`/api/v1/system/config`** → [../api/system-seo.md](../api/system-seo.md)
-- GET - Get system configuration
-
-**`/api/v1/system/currency`** → [../api/system-seo.md](../api/system-seo.md)
-- PUT - Set user currency preference
-
-**`/api/v1/system/currencies`** → [../api/system-seo.md](../api/system-seo.md)
-- GET - List available currencies
-
-**`/api/v1/system/locale`** → [../api/system-seo.md](../api/system-seo.md)
-- PUT - Set user locale preference
-
-**`/api/v1/system/locales`** → [../api/system-seo.md](../api/system-seo.md)
-- GET - List available locales
 
 ---
 
@@ -352,7 +361,7 @@ Alphabetical reference of all 90+ API endpoints with file locations for quick lo
 
 ## 📊 Statistics
 
-**Total Endpoints:** 90+
+**Total Endpoints:** 90+ (updated 2026-01-28)
 **API Files:** 9
 **Average Endpoints per File:** ~10
 

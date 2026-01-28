@@ -1,0 +1,347 @@
+name: Reviews
+description: 'Reviews API'
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/reviews
+    metadata:
+      custom: []
+      groupName: Reviews
+      groupDescription: 'Reviews API'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List reviews for a reviewable entity'
+      description: |-
+        Retrieves a simple-paginated list of approved and active reviews for the specified entity.
+        Currently, only Product is supported; the entity type is hardcoded to Product for now.
+
+        Notes:
+        - Uses simple pagination (only current page and has_more_pages are returned).
+        - Only reviews with status = Approved and is_active = true are returned.
+        - Each review contains only active replies.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      id:
+        custom: []
+        name: id
+        description: 'ID of the entity to fetch reviews for. Currently, a Product ID.'
+        required: true
+        example: 123
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      page:
+        custom: []
+        name: page
+        description: optional
+        required: false
+        example: 16
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      id: 123
+      page: 16
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |
+          {
+              "data": [
+                  {
+                      "id": 3,
+                      "rating": 1,
+                      "body": "Dignissimos sit fugit eum et. Deserunt consequuntur molestiae deserunt blanditiis possimus rerum.",
+                      "pros": "Praesentium quo aut repellendus non facilis quia sint.",
+                      "cons": null,
+                      "author": {
+                          "id": 4,
+                          "name": "Валентина Андреевна Сазонова"
+                      },
+                      "created_at": "2025-11-19T10:35:16.000000Z",
+                      "replies": [
+                          {
+                              "id": 4,
+                              "body": "Dolorem et dolor ut explicabo non consequatur.",
+                              "is_active": true,
+                              "author": {
+                                  "id": 8,
+                                  "name": "Эмма Львовна Титова"
+                              },
+                              "created_at": "2025-11-19T10:35:16.000000Z"
+                          }
+                      ]
+                  },
+                  {
+                      "id": 1,
+                      "rating": 3,
+                      "body": "Quia quidem minima autem nesciunt. Veritatis impedit iure blanditiis nam accusamus id libero. Modi ut non eveniet consequatur distinctio in sunt.",
+                      "pros": "Aut cum error similique quis.",
+                      "cons": null,
+                      "author": {
+                          "id": 2,
+                          "name": "Мясников Илларион Борисович"
+                      },
+                      "created_at": "2025-11-19T10:35:16.000000Z",
+                      "replies": [
+                          {
+                              "id": 1,
+                              "body": "Non dolore qui error molestiae sit.",
+                              "is_active": true,
+                              "author": {
+                                  "id": 5,
+                                  "name": "Блохин Роберт Александрович"
+                              },
+                              "created_at": "2025-11-19T10:35:16.000000Z"
+                          }
+                      ]
+                  }
+              ],
+              "meta": {
+                  "current_page": 1,
+                  "has_more_pages": false
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 422
+        content: ''
+        headers: []
+        description: 'Error: validation'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/reviews
+    metadata:
+      custom: []
+      groupName: Reviews
+      groupDescription: 'Reviews API'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create a review'
+      description: |-
+        Creates a review for the specified product. A user can leave only one review per product.
+        If moderation is enabled, the review is created with Pending status.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      id:
+        custom: []
+        name: id
+        description: 'Product ID to review.'
+        required: true
+        example: 123
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      rating:
+        custom: []
+        name: rating
+        description: 'Rating from 1 to 5.'
+        required: true
+        example: 5
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      body:
+        custom: []
+        name: body
+        description: 'Review text.'
+        required: true
+        example: 'Отличный товар!'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      pros:
+        custom: []
+        name: pros
+        description: 'Advantages of the product.'
+        required: false
+        example: 'Быстрая доставка'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      cons:
+        custom: []
+        name: cons
+        description: 'Disadvantages of the product.'
+        required: false
+        example: 'Нет инструкции'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      id: 123
+      rating: 5
+      body: 'Отличный товар!'
+      pros: 'Быстрая доставка'
+      cons: 'Нет инструкции'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |
+          {
+              "data": {
+                  "id": 22,
+                  "rating": 5,
+                  "body": "Отличный товар!",
+                  "pros": "Быстрая доставка",
+                  "cons": "Нет инструкции",
+                  "author": {
+                      "id": 2388,
+                      "name": "John Doe"
+                  },
+                  "created_at": "2025-11-19T10:51:44.000000Z"
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 422
+        content: ''
+        headers: []
+        description: 'Error: validation'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/reviews/{review_id}/replies'
+    metadata:
+      custom: []
+      groupName: Reviews
+      groupDescription: 'Reviews API'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Create a reply to a review'
+      description: |-
+        Creates a reply for the specified review. Only authenticated users can post replies.
+        Replies are active by default.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      review_id:
+        custom: []
+        name: review_id
+        description: 'The ID of the review.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      review_id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      body:
+        custom: []
+        name: body
+        description: 'Reply text.'
+        required: true
+        example: 'Спасибо за отзыв!'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      body: 'Спасибо за отзыв!'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |
+          {
+              "data": {
+                  "id": 23,
+                  "body": "Спасибо за отзыв!",
+                  "is_active": true,
+                  "author": {
+                      "id": 2037,
+                      "name": "John Doe"
+                  },
+                  "created_at": "2025-11-19T11:09:24.000000Z"
+              }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 401
+        content: ''
+        headers: []
+        description: 'Error: unauthenticated'
+      -
+        custom: []
+        status: 404
+        content: ''
+        headers: []
+        description: 'Error: not found'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

@@ -56,6 +56,8 @@ export const useCheckoutStore = defineStore('checkout', {
     paymentProviders: [],
     selectedPayment: null,
     pricing: { ...initialPricing },
+    loyaltyPointsApplied: null, // Points applied in minor units (e.g., 100 = 1.00 points)
+    availableLoyaltyPoints: null, // Available points balance (fetched from loyalty store or user profile)
     status: 'idle',
     loading: false,
     error: null,
@@ -88,6 +90,21 @@ export const useCheckoutStore = defineStore('checkout', {
      */
     hasPayment: (state): boolean => {
       return !!state.selectedPayment
+    },
+
+    /**
+     * Check if loyalty points can be applied (user authenticated and has points)
+     */
+    canApplyLoyalty: (state): boolean => {
+      // This should check if user is authenticated - will be implemented when auth store is available
+      return !!state.checkoutId && state.availableLoyaltyPoints !== null && (state.availableLoyaltyPoints || 0) > 0
+    },
+
+    /**
+     * Check if loyalty points are applied
+     */
+    hasLoyaltyApplied: (state): boolean => {
+      return state.loyaltyPointsApplied !== null && (state.loyaltyPointsApplied || 0) > 0
     },
 
     /**
@@ -423,6 +440,95 @@ export const useCheckoutStore = defineStore('checkout', {
     },
 
     /**
+     * Apply loyalty points to checkout
+     * @param pointsMinor - Points to apply in minor units (e.g., 100 = 1.00 points)
+     */
+    async applyLoyaltyPoints(pointsMinor: number): Promise<boolean> {
+      if (!this.checkoutId) {
+        this.error = 'Cannot apply loyalty points - checkout session not started'
+        return false
+      }
+
+      const api = useApi()
+      this.loading = true
+      this.error = null
+
+      try {
+        const payload = {
+          points_minor: pointsMinor,
+        }
+
+        const rawResponse = await api.post<{ pricing: CheckoutPricing } | { data: { pricing: CheckoutPricing } }>(
+          `/checkout/${this.checkoutId}/loyalty`,
+          payload,
+          { 
+            cart: true,
+          }
+        )
+
+        const response = this.extractData(rawResponse)
+
+        this.loyaltyPointsApplied = pointsMinor
+        if (response.pricing) {
+          this.pricing = response.pricing
+        }
+        this.status = 'confirm'
+
+        return true
+      } catch (error) {
+        await this.handleCheckoutError(error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Remove loyalty points from checkout
+     */
+    async removeLoyaltyPoints(): Promise<boolean> {
+      if (!this.checkoutId) {
+        this.error = 'Cannot remove loyalty points - checkout session not started'
+        return false
+      }
+
+      const api = useApi()
+      this.loading = true
+      this.error = null
+
+      try {
+        const rawResponse = await api.delete<{ pricing: CheckoutPricing } | { data: { pricing: CheckoutPricing } }>(
+          `/checkout/${this.checkoutId}/loyalty`,
+          { 
+            cart: true,
+          }
+        )
+
+        const response = this.extractData(rawResponse)
+
+        this.loyaltyPointsApplied = null
+        if (response.pricing) {
+          this.pricing = response.pricing
+        }
+
+        return true
+      } catch (error) {
+        await this.handleCheckoutError(error)
+        return false
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * Set available loyalty points (called from loyalty store or user profile)
+     * @param points - Available points balance in minor units
+     */
+    setAvailableLoyaltyPoints(points: number | null): void {
+      this.availableLoyaltyPoints = points
+    },
+
+    /**
      * Confirm checkout and create order
      * Returns order ID on success, null on failure
      */
@@ -588,6 +694,8 @@ export const useCheckoutStore = defineStore('checkout', {
       this.paymentProviders = []
       this.selectedPayment = null
       this.pricing = { ...initialPricing }
+      this.loyaltyPointsApplied = null
+      this.availableLoyaltyPoints = null
       this.status = 'idle'
       this.loading = false
       this.error = null

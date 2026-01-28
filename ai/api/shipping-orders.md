@@ -6,14 +6,7 @@ Complete endpoints for shipping methods, settlement/warehouse search, and order 
 
 ## Shipping API
 
-### 1. Get Shipping Providers (Optional)
-`GET /api/v1/shipping/providers`
-
-Returns list of available shipping providers.
-
----
-
-### 2. Get Shipping Methods
+### 1. Get Shipping Methods
 `GET /api/v1/shipping/methods`
 
 Retrieves available shipping methods and rates for a given destination and checkout session.
@@ -52,7 +45,7 @@ Retrieves available shipping methods and rates for a given destination and check
 
 ---
 
-### 3. Search Settlements
+### 2. Search Settlements
 `GET /api/v1/shipping/{provider_code}/settlements/search`
 
 Search for cities and settlements in shipping provider database.
@@ -72,7 +65,7 @@ Array of settlement objects with city information
 
 ---
 
-### 4. Search Warehouses
+### 3. Search Warehouses
 `GET /api/v1/shipping/{provider_code}/warehouses/search`
 
 Search for warehouses and postomats by city, method, and checkout session items with automatic filtering by cargo dimensions and weight.
@@ -95,7 +88,7 @@ Array of warehouse/postomat objects
 
 ---
 
-### 5. Shipping Webhook
+### 4. Shipping Webhook
 `POST /api/v1/shipping/webhook/{provider_code}`
 
 Receives webhook notifications from shipping providers about tracking updates.
@@ -253,3 +246,11 @@ Multiple statuses can be selected simultaneously.
 4. **Order Pagination**: Default 15 items per page, max 100
 5. **Status Filtering**: Supports multiple status IDs in query
 6. **Tracking**: Available in shipment details within order response
+
+---
+
+## Deprecated Endpoints
+
+The following endpoint is **NOT** present in the backend API and should not be used:
+
+- ❌ `GET /api/v1/shipping/providers` - Not in backend YAML

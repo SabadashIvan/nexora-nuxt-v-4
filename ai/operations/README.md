@@ -52,6 +52,21 @@ Concise, developer-friendly checklist extracted from not-implemented.md.
 
 ---
 
+### [backend-endpoints-delta.md](backend-endpoints-delta.md)
+**Backend Endpoints Delta**
+
+Compares backend API spec (`endpoints/` YAML) with frontend docs and code. Lists what to update, add, or implement.
+
+**Contents:**
+- New backend endpoints (docs + implementation status)
+- Mismatches between backend and frontend (verify / update)
+- Deprecated or missing endpoints to remove/N/A
+- Implementation checklist (docs + code)
+
+**Use for:** Aligning frontend with backend API changes; planning doc and code updates.
+
+---
+
 ### [ai-rules.md](ai-rules.md)
 **Operational Rules for AI Agents**
 
@@ -206,6 +221,9 @@ When implementing features:
 
 **"What API endpoints do I use?"**
 → Each feature section lists relevant endpoints with links to API docs
+
+**"What backend endpoints changed or need frontend work?"**
+→ Check [backend-endpoints-delta.md](backend-endpoints-delta.md)
 
 ---
 
