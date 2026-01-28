@@ -65,8 +65,8 @@ const textSize = computed(() => {
         <Star
           :size="iconSize"
           :class="[
-            star === 'full' ? 'fill-yellow-400 text-yellow-400' : '',
-            star === 'half' ? 'fill-yellow-400/50 text-yellow-400' : '',
+            star === 'full' ? 'fill-orange-400 text-orange-400' : '',
+            star === 'half' ? 'fill-orange-400/50 text-orange-400' : '',
             star === 'empty' ? 'text-gray-300 dark:text-gray-600' : '',
           ]"
         />

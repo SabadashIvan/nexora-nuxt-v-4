@@ -224,61 +224,83 @@ const sorting = computed(() => productsData.value?.sorting || 'newest')
 const availableFilters = computed(() => productsData.value?.availableFilters as ReturnType<typeof useCatalogStore>['availableFilters'] || {})
 const activeFilters = computed(() => productsData.value?.filters || { page: 1 })
 
-// Handle filter changes
-async function handleFilterChange(filters: ProductFilter) {
-  const catalogStore = useCatalogStore()
-  await catalogStore.applyFilters(filters)
-  updateUrl()
-}
-
-// Handle sort change
-async function handleSortChange(sort: string) {
-  const catalogStore = useCatalogStore()
-  await catalogStore.applySorting(sort)
-  updateUrl()
-}
-
-// Handle page change
-async function handlePageChange(page: number) {
-  const catalogStore = useCatalogStore()
-  // Update URL first, then fetch products
+// Build query object from filter state
+function buildFilterQuery(filters: ProductFilter, currentSorting?: string, currentPage?: number): Record<string, string> {
   const query: Record<string, string> = {}
-  
-  // Preserve all current filters
-  if (catalogStore.filters.filters?.q) {
-    query.q = catalogStore.filters.filters.q
+
+  // Search
+  if (filters.filters?.q) {
+    query.q = filters.filters.q
   }
-  if (catalogStore.sorting !== 'newest') {
-    query.sort = catalogStore.sorting
+
+  // Sort
+  if (currentSorting && currentSorting !== 'newest') {
+    query.sort = currentSorting
   }
-  if (catalogStore.filters.filters?.categories) {
-    query.categories = catalogStore.filters.filters.categories
+
+  // Categories
+  if (filters.filters?.categories) {
+    query.categories = filters.filters.categories
   }
-  if (catalogStore.filters.filters?.brands) {
-    query.brands = catalogStore.filters.filters.brands
+
+  // Brands
+  if (filters.filters?.brands) {
+    query.brands = filters.filters.brands
   }
-  if (catalogStore.filters.filters?.price_min !== undefined) {
-    query.price_min = String(catalogStore.filters.filters.price_min)
+
+  // Price range
+  if (filters.filters?.price_min !== undefined) {
+    query.price_min = String(filters.filters.price_min)
   }
-  if (catalogStore.filters.filters?.price_max !== undefined) {
-    query.price_max = String(catalogStore.filters.filters.price_max)
+  if (filters.filters?.price_max !== undefined) {
+    query.price_max = String(filters.filters.price_max)
   }
-  if (catalogStore.filters.filters?.attributes && catalogStore.filters.filters.attributes.length > 0) {
-    query.attributes = catalogStore.filters.filters.attributes.join(',')
+
+  // Attributes
+  if (filters.filters?.attributes && filters.filters.attributes.length > 0) {
+    query.attributes = filters.filters.attributes.join(',')
   }
-  
-  // Set page
+
+  // Page
+  const page = currentPage ?? filters.page ?? 1
   if (page > 1) {
     query.page = page.toString()
   }
-  
-  // Navigate to update URL - this will trigger useLazyAsyncData to refetch
-  // The watch on routeQuery will detect the change and reload data
+
+  return query
+}
+
+// Handle filter changes - update URL immediately, let route watcher handle data fetching
+function handleFilterChange(filters: ProductFilter) {
+  // Reset page to 1 when filters change
+  const updatedFilters = { ...filters, page: 1 }
+
+  // Build query and update URL immediately
+  const query = buildFilterQuery(updatedFilters, sorting.value, 1)
   const localePath = useLocalePath()
-  await navigateTo({ path: localePath('/categories'), query }, { replace: true })
+  navigateTo({ path: localePath('/categories'), query }, { replace: true })
   
-  // Force refresh to ensure data is reloaded
-  await refresh()
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+}
+
+// Handle sort change - update URL immediately, let route watcher handle data fetching
+function handleSortChange(sort: string) {
+  // Build query with new sort value
+  const query = buildFilterQuery(activeFilters.value, sort, pagination.value.page)
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath('/categories'), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+}
+
+// Handle page change - update URL immediately, let route watcher handle data fetching
+function handlePageChange(page: number) {
+  // Build query with new page number
+  const query = buildFilterQuery(activeFilters.value, sorting.value, page)
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath('/categories'), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
   
   // Scroll to top
   if (import.meta.client) {
@@ -286,10 +308,15 @@ async function handlePageChange(page: number) {
   }
 }
 
-// Handle remove single filter
-async function handleRemoveFilter(type: string, value: string) {
-  const catalogStore = useCatalogStore()
-  const currentFilters = { ...catalogStore.filters }
+// Handle remove single filter - update URL immediately, let route watcher handle data fetching
+function handleRemoveFilter(type: string, value: string) {
+  const sourceFilters = activeFilters.value
+  // Type guard: check if filters property exists
+  const sourceFiltersWithFilters = 'filters' in sourceFilters ? sourceFilters : null
+  const currentFilters: ProductFilter = { 
+    page: sourceFilters.page ?? 1,
+    filters: sourceFiltersWithFilters?.filters ? { ...sourceFiltersWithFilters.filters } : {}
+  }
   
   if (!currentFilters.filters) {
     currentFilters.filters = {}
@@ -298,7 +325,7 @@ async function handleRemoveFilter(type: string, value: string) {
   switch (type) {
     case 'categories': {
       const categories = currentFilters.filters.categories?.split(',') || []
-      const filtered = categories.filter(id => id !== value)
+      const filtered = categories.filter((id: string) => id !== value)
       if (filtered.length > 0) {
         currentFilters.filters.categories = filtered.join(',')
       } else {
@@ -308,7 +335,7 @@ async function handleRemoveFilter(type: string, value: string) {
     }
     case 'brands': {
       const brands = currentFilters.filters.brands?.split(',') || []
-      const filtered = brands.filter(id => id !== value)
+      const filtered = brands.filter((id: string) => id !== value)
       if (filtered.length > 0) {
         currentFilters.filters.brands = filtered.join(',')
       } else {
@@ -324,11 +351,11 @@ async function handleRemoveFilter(type: string, value: string) {
     case 'attributes': {
       const [attrCode, attrValueId] = value.split(':')
       if (currentFilters.filters.attributes) {
-        const updatedAttributes = currentFilters.filters.attributes.map((attrGroup, index) => {
+        const updatedAttributes = currentFilters.filters.attributes.map((attrGroup: string, index: number) => {
           const attrDef = availableFilters.value.attributes?.[index]
           if (attrDef && attrDef.code === attrCode) {
             const valueIds = attrGroup.split(',')
-            const filtered = valueIds.filter(id => id !== attrValueId)
+            const filtered = valueIds.filter((id: string) => id !== attrValueId)
             return filtered.length > 0 ? filtered.join(',') : null
           }
           return attrGroup
@@ -345,68 +372,33 @@ async function handleRemoveFilter(type: string, value: string) {
   }
   
   // Remove filters object if empty
-  if (Object.keys(currentFilters.filters).length === 0) {
+  if (currentFilters.filters && Object.keys(currentFilters.filters).length === 0) {
     currentFilters.filters = undefined
   }
-  
-  await catalogStore.applyFilters(currentFilters)
-  updateUrl()
-}
 
-// Handle reset
-async function handleReset() {
-  const catalogStore = useCatalogStore()
-  catalogStore.resetFilters()
-  await catalogStore.fetchProducts()
+  // Reset page to 1 when removing filters
+  currentFilters.page = 1
+
+  // Build query and update URL immediately
+  const query = buildFilterQuery(currentFilters, sorting.value, 1)
   const localePath = useLocalePath()
-  navigateTo(localePath('/categories'))
+  navigateTo({ path: localePath('/categories'), query }, { replace: true })
+  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
 }
 
-// Update URL with current filters
-function updateUrl() {
-  const catalogStore = useCatalogStore()
-  const query: Record<string, string> = {}
+// Handle reset - navigate to clean URL, let route watcher handle data fetching
+function handleReset() {
+  // Navigate to categories page without any query params
+  const localePath = useLocalePath()
+  navigateTo({ path: localePath('/categories'), query: {} }, { replace: true })
   
-  // Search
-  if (catalogStore.filters.filters?.q) {
-    query.q = catalogStore.filters.filters.q
-  }
-  
-  // Sort
-  if (catalogStore.sorting !== 'newest') {
-    query.sort = catalogStore.sorting
-  }
-  
-  // Categories
-  if (catalogStore.filters.filters?.categories) {
-    query.categories = catalogStore.filters.filters.categories
-  }
-  
-  // Brands
-  if (catalogStore.filters.filters?.brands) {
-    query.brands = catalogStore.filters.filters.brands
-  }
-  
-  // Price range
-  if (catalogStore.filters.filters?.price_min !== undefined) {
-    query.price_min = String(catalogStore.filters.filters.price_min)
-  }
-  if (catalogStore.filters.filters?.price_max !== undefined) {
-    query.price_max = String(catalogStore.filters.filters.price_max)
-  }
-  
-  // Attributes - convert array to query params
-  if (catalogStore.filters.filters?.attributes && catalogStore.filters.filters.attributes.length > 0) {
-    // For attributes, we can either use a single param with comma-separated values
-    // or multiple params. Let's use a single param for simplicity
-    query.attributes = catalogStore.filters.filters.attributes.join(',')
-  }
-  
-  // Page
-  if (catalogStore.pagination.page > 1) {
-    query.page = catalogStore.pagination.page.toString()
-  }
-  
+  // Route watcher will detect URL change and trigger refresh() which fetches data
+}
+
+// Update URL with current filters (kept for potential future use, but handlers now update URL directly)
+function _updateUrl() {
+  const query = buildFilterQuery(activeFilters.value, sorting.value, pagination.value.page)
   const localePath = useLocalePath()
   navigateTo({ path: localePath('/categories'), query }, { replace: true })
 }

@@ -59,6 +59,43 @@ export const useCatalogStore = defineStore('catalog', {
 
   getters: {
     /**
+     * Find a category path (root -> ... -> target) from the loaded categories tree.
+     *
+     * NOTE/TODO(backend): Ideally the backend should return the full ancestor path
+     * for a category (e.g. `ancestors` or `path`) in `/catalog/categories/{slug}`.
+     * Today we derive it client-side from `fetchCategories()` which requires
+     * requesting the entire categories tree.
+     */
+    getCategoryPathBySlug: (state) => {
+      return (slug: string): Category[] => {
+        if (!slug) return []
+        if (!state.categories || state.categories.length === 0) return []
+
+        const visited = new Set<number>()
+
+        const dfs = (nodes: Category[], path: Category[]): Category[] | null => {
+          for (const node of nodes) {
+            if (!node) continue
+            if (typeof node.id === 'number') {
+              if (visited.has(node.id)) continue
+              visited.add(node.id)
+            }
+
+            const nextPath = [...path, node]
+            if (node.slug === slug) return nextPath
+
+            if (node.children && node.children.length > 0) {
+              const found = dfs(node.children, nextPath)
+              if (found) return found
+            }
+          }
+          return null
+        }
+
+        return dfs(state.categories, []) ?? []
+      }
+    },
+    /**
      * Get root categories (no parent)
      */
     rootCategories: (state): Category[] => {
@@ -489,12 +526,19 @@ export const useCatalogStore = defineStore('catalog', {
         )
 
         // Handle both wrapped and unwrapped response
-        if ('data' in response && Array.isArray(response.data)) {
-          this.recommendedVariants = response.data
+        // Note: avoid relying on `Array.isArray(response.data)` for narrowing here,
+        // because `response.data` can be either an array (recommendations) or an
+        // object (variants response shape) depending on endpoint.
+        if ('data' in response && Array.isArray((response as { data: unknown }).data)) {
+          this.recommendedVariants = (response as { data: ProductListItem[] }).data
         } else if (Array.isArray(response)) {
           this.recommendedVariants = response
-        } else if ('data' in response && Array.isArray((response as VariantsResponse).data)) {
-          this.recommendedVariants = (response as VariantsResponse).data
+        } else if (
+          'data' in response &&
+          (response as VariantsResponse).data &&
+          Array.isArray((response as VariantsResponse).data.items)
+        ) {
+          this.recommendedVariants = (response as VariantsResponse).data.items
         } else {
           this.recommendedVariants = []
         }

@@ -74,7 +74,7 @@ async function handleResubscribe() {
         <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900">
           <CheckCircle class="h-12 w-12 text-green-600 dark:text-green-400" />
         </div>
-        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-black-100">
           {{ $t('audience.unsubscribe.successTitle') }}
         </h1>
         <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
@@ -123,7 +123,7 @@ async function handleResubscribe() {
         <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900">
           <CheckCircle class="h-12 w-12 text-green-600 dark:text-green-400" />
         </div>
-        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-black-100">
           {{ $t('audience.unsubscribe.resubscribeSuccessTitle') }}
         </h1>
         <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
@@ -144,7 +144,7 @@ async function handleResubscribe() {
         <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-red-100 dark:bg-red-900">
           <XCircle class="h-12 w-12 text-red-600 dark:text-red-400" />
         </div>
-        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-black-100">
           {{ $t('audience.unsubscribe.errorTitle') }}
         </h1>
         <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
@@ -171,7 +171,7 @@ async function handleResubscribe() {
         <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-gray-100 dark:bg-gray-800">
           <MailX class="h-12 w-12 text-gray-600 dark:text-gray-400" />
         </div>
-        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 class="mt-6 text-3xl font-bold text-gray-900 dark:text-black-100">
           {{ $t('audience.unsubscribe.title') }}
         </h1>
         <p class="mt-4 text-lg text-gray-600 dark:text-gray-400">
